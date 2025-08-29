@@ -1,0 +1,89 @@
+extract mysql and add to path
+run mysql -u root -p
+The Mysql root user is the built in superuser account for the Mysql Server. 
+  It has full privileges to do anything in the database system
+  This is different from a sysrem OS root user
+  Mysql root is an account insude MySQL's user/privilege system.
+  It is very importnt should not be shared.
+
+-u root stands for coonnect using the username "root"
+never do mysql -u root -pMysecretcode as it can be exposed
+ mysql -u root -p is used to start the server always end in a semi colon if not use\c to return to mysql
+
+Error:
+  A common error with MySQL is the server conflicting with XAMPP so go to "C:\xampp\mysql\bin"
+  open my.ini file change the port to 3307 then in xampp control panel as administrator.
+  click config> service and port settings>. 
+  Then go to the mysql tab change the service name from mysql to mysqlxampp
+  Change Main port from 3306 to 3307. save and restart xampp
+
+ To specify the port  create a my.ini file in the bin folder in the sql then paste 
+    [mysqld]
+    # Set base directory to your installation path
+    basedir = "C:/MySQL_Home/"
+    # Set data directory location  
+    datadir = "C:/MySQL_Data_Directory/"
+    # Set port number
+    port = 3306
+    # Server configuration
+    server_id = 1
+    log_error = "mysql_error.log"
+    pid_file = "mysql.pid"
+
+  
+  run mysqld --console if it gets an error, delete the data folder 
+  run mysqld --initialize --console you will see a password copy it then run 
+  in a seperate cmd and run mysql -u root -p and type the password you copied
+  type ALTER USER 'root'@'localhost' IDENTIFIED BY 'simple@321'; FLUSH privilege
+
+  FLUSH PRIVILEGE tells mysql server to reload permision from it's internal table into It's memory.
+  Mysql stores all user accounts and their privileges (what they can't do) 
+  when the server starts it reads this information into it's memory for quick access.
+  when you use GRANT, REVOKE or create user, the MySQL server is smart enough to immediately update It's memory privilege
+  IDENTIFIED BY is the password they're identified by.
+
+Some of The Most Important SQL Commands
+SELECT - extracts data from a database
+UPDATE - updates data in a database
+DELETE - deletes data from a database
+INSERT INTO - inserts new data into a database
+CREATE DATABASE - creates a new database
+ALTER DATABASE - modifies a database
+CREATE TABLE - creates a new table
+ALTER TABLE - modifies a table
+DROP TABLE - deletes a table
+CREATE INDEX - creates an index (search key)
+DROP INDEX - deletes an index 
+
+  MAKE SURE TO USE DOUBLE QUOTES
+To show database: show databases;
+To play with /use database; use database 
+show tables; to show tables
+to create table: create table table_name(id int, name varchar(255) )(specifies the heading of each column)
+describe table_name shows the columns
+Defining a table, fields, columns is part of Defining the schema or how the database is organized
+insert into Python_table values (1,"Oluwagbemiga", "Nigeria","Backend Developer") (the values)
+when you type describe table it does not show
+to fix select or show table s* from table_name 
+To change a column
+  ALTER TABLE table_name 
+  RENAME COLUMN column_name TO new_name(AlTER CAN ALSO BE MODIFY IN SOME DBMS) alter does not specify
+  For mysql - ALTER TABLE python_table CHANGE old_name new_name datatype(int,varchar); change specifies datatype
+  you can also use ADD dateof birth date(datatype)(This adds a new column dateofbirth)
+To change a field use 
+UPDATE table
+set Columnname = "newstring"
+where Columnname = "old_string or anothercol_name = "old_string" the or allows for multiple rows
+ this can be any of the columns
+To select a row of data or related data use SELECT * From table_name where Colname = "field" or anothercolname = "field"
+to select field - select col_name from table_name where col_name = "";
+
+So you created a column using ALTER TABLE table_name ADD new_col varchar(); datatype is needed
+You can insert random info sha use: UPDATE table_name SET age = FLOOR(30+RAND()*50) RAND is between 0 and 1
+or you can use conditional
+UPDATE python_table SET Age = Case
+When old_col = "field" then new_data 
+When old_col = "field" or old_col = "field" then new_data
+else data
+end;
+
