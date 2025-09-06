@@ -1,0 +1,5 @@
+to enter folder first see where you are using ls
+then cd firstfolder/secondfolder has to be forward slash
+then to run pythom virtual environment enter folder the .venv
+and run "source scripts/activate" 
+do cd .. to go back

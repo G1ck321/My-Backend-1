@@ -1,0 +1,42 @@
+How the prices are generated
+
+Each product’s price is computed in build_products() with a simple linear formula base $49 plus $15 per product index to give a realistic progression across the catalog.
+
+The price strings are rendered in the template without further math to keep the presentation layer simple and deterministic.
+
+Why Urban Runner, Classic Leather, Elegant Heels weren’t visible and the fixes
+
+If the Unsplash API was called without a key, the request would be unauthorized; the code above disables API calls entirely when UNSPLASH_ACCESS_KEY is missing and relies solely on curated direct URLs that don’t need a key.
+
+All provided image URLs are direct Unsplash CDN links using the images.unsplash.com domain with transformation parameters to ensure consistent cropping and size.
+
+Fixing “'str' object has no attribute 'strftime'” on the dashboard
+
+The Message resource can have date_sent as None until delivery or as a datetime when present; if code first converts it to a string and later calls strftime in the template, Jinja raises the error seen.
+
+The updated code formats dates in Python with safe_format_date() so the template always receives a plain string, eliminating the need to call strftime in Jinja.
+
+Getting balance reliably
+
+The latest Twilio Python helper exposes client.api.v2010.balance.fetch(), which returns balance and currency; this is the first path attempted in fetch_twilio_balance().
+
+Some accounts or environments may not expose the SDK balance method; in that case, the code falls back to the documented REST URL /2010-04-01/Accounts/{SID}/Balance.json using HTTP Basic auth to retrieve balance and currency.
+
+Extra notes and tips
+
+To filter or paginate messages in the future, use the Messages resource list API with parameters like limit or date_sent/date_sent_before, as shown in Twilio’s docs and examples.
+
+If an Unsplash key is later added, the app will opportunistically fetch extra shoe photos via Authorization: Client-ID and mix them with the curated set.
+
+Folder reminder
+
+Place app.py at the project root, templates/index.html and templates/dashboard.html in the templates folder, and run with your TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN set as environment variables.
+
+If anything still throws an error, share the exact traceback line and the environment package versions (including twilio) and the code above can be adjusted accordingly.
+
+Related
+Could my msg.date_sent be a string from the database instead of a datetime object
+How can I convert msg.date_sent to a datetime before rendering the template
+Which Flask/Twilio query returns date_sent as a string and how to change it
+How do I render a fallback image when I have no Unsplash API key
+Can you show full app.py and dashboard.html with images swapped to local files

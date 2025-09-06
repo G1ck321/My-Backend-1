@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sharp Shoes</title>
+  <link rel = "stylesheet" type="text/css" href= "{{ url_for('static', filename='bootstrap.css')}}">
+  <style>
+    
+    :root {
+      --green:#2b5d34; --mint:#e8f5e9; --card:#ffffff;
+    }
+    body{font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:var(--mint);color:var(--green);margin:0}
+    header{background:var(--green);color:#fff;padding:1.5rem;text-align:center}
+    h1{margin:0;font-weight:800;letter-spacing:.5px}
+    main{max-width:1200px;margin:2rem auto;padding:0 1rem}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.2rem}
+    .card{background:var(--card);border-radius:14px;box-shadow:0 8px 24px rgba(43,93,52,.15);overflow:hidden;display:flex;flex-direction:column}
+    .card img{width:100%;height:260px;object-fit:cover}
+    .meta{padding:1rem;display:flex;justify-content:space-between;align-items:center}
+    .name{font-weight:700}
+    .price{background:#a5d6a7;color:#0b3d1a;padding:.25rem .6rem;border-radius:999px;font-weight:700}
+    footer{margin:3rem 0;text-align:center;color:#366b3e}
+     .dashboard-link {
+            background: #228B22; color: white; border-radius: 8px; 
+            padding: 1em 2em; text-decoration: none; font-weight:700;
+            display:inline-block; margin:2em auto; text-align:center;
+        }
+        .dashboard-link:hover { background: #116611; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sharp Shoes</h1>
+    <p>Modern. Comfortable. Green by design.</p>
+  </header>
+  <main>
+    <a href="{{ url_for('dashboard') }}" class="dashboard-link">View SMS Dashboard</a>
+    <div class="grid">
+      {% for p in products %}
+      <article class="card">
+        <img src="{{ p.img }}" alt="{{ p.name }}" loading="lazy" />
+        <div class="meta">
+          <div class="name">{{ p.name }}</div>
+          <div class="price">{{ p.price }}</div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </main>
+  <footer>&copy; 2025 Sharp Shoes</footer>
+</body>
+</html>

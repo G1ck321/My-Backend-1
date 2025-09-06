@@ -1,0 +1,49 @@
+Restfox is a REST API client for testing and automating API requests (like Postman, Thunder Client, etc.).
+
+Script Tab
+Purpose:
+Allows you to write JavaScript code to perform custom pre-request or test logic.
+
+Automate data generation for requests (e.g. generating tokens).
+
+Manipulate request/response (e.g. extract a value from a previous response and inject into the next request’s header or
+body).
+
+Validate responses with custom assertions.
+
+Common Use:
+Chain requests together, run authentication flows, transform or check data before/after making requests.
+
+Docs Tab
+Purpose:
+A place to add Markdown-formatted documentation about the API, collection, or individual request.
+
+Describe what requests do, required params, security, and usage notes.
+
+Include code samples or explain API workflows for future reference or teammates.
+
+Common Use:
+Onboarding new developers, helping users understand your request workflow, referencing example body formats, or API
+behaviors.
+
+                        ┌───────────────┐                ┌───────────────┐
+                        │    Users      │                │   Customers   │
+                        │  Browsers     │                │(SMS,Call,Email)│
+                        └─────┬─────────┘                └─────┬─────────┘
+                              │                                   │
+                ┌─────────────▼───────────┐            ┌─────────▼───────────┐
+                │     Flask App (UI)      │<---Twilio---│    Twilio Cloud    │
+                │   + Jinja2 Templates    │<-API auth-->|(Programmable SMS,  │
+                │   + REST API Endpoints  │             │Email, Voice, Fax)  │
+                └─────┬─────────┬─────────┘            └─────────────────────┘
+                      │         │
+                 ┌────▼─┐   ┌───▼────┐
+                 │User  │   │ Flask  │
+                 │Mgmt  │   │BackgroundJobs/|
+                 │DB    │   │Celery   │
+                 └──────┘   └─────▲───┘
+                                 │
+                             ┌───▼────┐
+                             │   Mail │
+                             │Service │
+                             └────────┘

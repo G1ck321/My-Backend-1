@@ -1,0 +1,44 @@
+How to set environment variables windows
+//$env:TWILIO_ACCOUNT_SID = "ACb813ac0e7dc0f328393b32677513468e"
+//$env:TWILIO_AUTH_TOKEN = "856be243f6ef926ac7a02c7e7949b1dd"
+//$env:TWILIO_NUMBER = "+19492673112"
+//$env:TO_NUMBER = "+2347079616200"
+How to set environment variables MAC
+export TWILIO_ACCOUNT_SID="ACe3f34e847ee786230a7f279a9d29373f"
+export TWILIO_AUTH_TOKEN="856be243f6ef926ac7a02c7e7949b1dd"
+export TWILIO_NUMBER=+19492673112
+export TO_NUMBER=+2347079616200
+curl -X POST -d "Body=Hi there, this is a test message from a cURL an API It;s actually from Gbemiga👋🚀" -d "From=$TWILIO_NUMBER" -d "To=$TO_NUMBER" "https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Messages" -u "$TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN"
+//curl -X POST -d "Body=Hi there, this is a test message from cURL" -d "From=+19492673112" -d "To+2347079616200" "https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Messages" -u "USb813ac0e7dc0f328393b32677513468e:856be243f6ef926ac7a02c7e7949b1dd"
+change Messages to call to call the number
+
+//for calls
+curl -X POST "https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Calls.json" \
+--data-urlencode "From=+15017122661" \
+--data-urlencode "To=+14155551212" \
+--data-urlencode "Url=http://demo.twilio.com/docs/voice.xml" \
+-u $TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN
+if you get a code 21215 error go to admin then voice then geopermisions then unlock the country
+
+-u stands for user basic authentication showwing id and oath token for api req authentication
+-v is a very detailed info on the req and resp showing headers, connection details, data transfer, for debugging
+-x sets the request type 
+To see all previous messages or calls
+ curl -X GET "https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Calls.json" -u $TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN 
+
+To see your balance 
+curl -X GET "https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Balance.json" \
+-u "$TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN"
+
+https://www.twilio.com/docs/messaging/api/message-resource#read-multiple-message-resources to see messages
+
+List all Message resources
+curl -X GET "https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Messages.json?PageSize=20" \
+-u "$TWILIO_ACCOUNT_SID:$TWILIO_AUTH_TOKEN"
+you can reduce the page size
+
+https://api.twilio.com/2010-04-01/Accounts/$TWILIO_ACCOUNT_SID/Messages.json?To=%2B15558675310&PageSize=20
+
+https://demo.twilio.com/owl.png
+
+This is a file hosted by Twilio specifically for testing. You can use it in your MediaUrl parameter.
