@@ -8,7 +8,7 @@ The Mysql root user is the built in superuser account for the Mysql Server.
 
 -u root stands for coonnect using the username "root"
 never do mysql -u root -pMysecretcode as it can be exposed
- mysql -u root -p is used to start the server always end in a semi colon if not use\c to return to mysql
+ mysql -u root -p is used to start the server. Always end in a semi colon if not use\c to return to mysql
 
 Error:
   A common error with MySQL is the server conflicting with XAMPP so go to "C:\xampp\mysql\bin"
@@ -34,10 +34,10 @@ Error:
   run mysqld --console if it gets an error, delete the data folder 
   run mysqld --initialize --console you will see a password copy it then run 
   in a seperate cmd and run mysql -u root -p and type the password you copied
-  type ALTER USER 'root'@'localhost' IDENTIFIED BY 'simple@321'; FLUSH privilege
+  type ALTER USER 'root'@'localhost' IDENTIFIED BY 'newpassword'; FLUSH privilege
 
   FLUSH PRIVILEGE tells mysql server to reload permision from it's internal table into It's memory.
-  Mysql stores all user accounts and their privileges (what they can't do) 
+  Mysql stores all user accounts and their privileges (what theycan and can't do) 
   when the server starts it reads this information into it's memory for quick access.
   when you use GRANT, REVOKE or create user, the MySQL server is smart enough to immediately update It's memory privilege
   IDENTIFIED BY is the password they're identified by.
@@ -66,8 +66,9 @@ insert into Python_table values (1,"Oluwagbemiga", "Nigeria","Backend Developer"
 when you type describe table it does not show
 to fix select or show table s* from table_name 
 To change a column
+  AlTER table add primary key(columnname) adds a primary
   ALTER TABLE table_name 
-  RENAME COLUMN column_name TO new_name(AlTER CAN ALSO BE MODIFY IN SOME DBMS) alter does not specify
+  RENAME COLUMN column_name TO new_name(AlTER CAN ALSO BE MODIFY IN SOME DBMS) RENAME does not specify
   For mysql - ALTER TABLE python_table CHANGE old_name new_name datatype(int,varchar); change specifies datatype
   you can also use ADD dateof birth date(datatype)(This adds a new column dateofbirth)
 To change a field use 
@@ -76,7 +77,7 @@ set Columnname = "newstring"
 where Columnname = "old_string or anothercol_name = "old_string" the or allows for multiple rows
  this can be any of the columns
 To select a row of data or related data use SELECT * From table_name where Colname = "field" or anothercolname = "field"
-to select field - select col_name from table_name where col_name = "";
+to select field - select col_name from table_name where col_name = "field";
 
 So you created a column using ALTER TABLE table_name ADD new_col varchar(); datatype is needed
 You can insert random info sha use: UPDATE table_name SET age = FLOOR(30+RAND()*50) RAND is between 0 and 1

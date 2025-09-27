@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<html lang="en">
+    <head>
+        <title>JSON</title>
+    </head>
+<body>
+
+<h2>JSON Object Creation in JavaScript</h2>
+
+<p id="demo"></p>
+<input type="text" name="username" placeholder="Choose a place.." list="suggestions" id="">
+<datalist id="suggestions">
+    <option value="New york"></option>
+    <option value="United Kingdom"></option>
+    <option value="Lagos Island"></option>
+</datalist>
+<input type="text" name="username" list="citySuggestions" placeholder="Choose a place.."  id="">
+<datalist id="citySuggestions">
+    <option value="New york"></option>
+    <option value="United Kingdom"></option>
+    <option value="Lagos Island"></option>
+</datalist>
+
+<script>
+//
+var text = '{"name":"Agbejimi Oluwagbemiga","street":"Oslo West 16","phone":"08033741087","Hobby": "Guitar"}';
+
+var obj = JSON.parse(text);
+
+document.getElementById("demo").innerHTML =
+obj.name + "<br>" +
+obj.street + "<br>" +
+obj.phone+"<br>"+
+obj.Hobby;
+//
+const datalist = document.getElementById("citySuggestions");
+const newOption = document.createElement("option");
+newOption.value = "Rome"
+
+datalist.appendChild(newOption);
+
+const options = document.querySelectorAll()
+options.forEach(opt=>{
+    if (opt === "Lagos Island"){
+        datalist.removeChild(opt)
+    }
+})
+</script>
+
+</body>
+</html>

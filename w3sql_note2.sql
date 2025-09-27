@@ -43,8 +43,15 @@ Order of Syntax:
     ORDER BY  (optional)
     LIMIT (optional)
 You can use BETWEEN for numerical values select region from table_name where ages between 17 AND 19;
-ALIAS- Gives a temporary name to a table or a column. 
+ALIAS- Gives a temporary name to a table or a column. andd select displays it
     SELECT column_name AS alias_name FROM table_name; - column 
     SELECT column_name(s) FROM table_name AS alias_name;
+SELECT o.OrderID, o.OrderDate, c.CustomerName
+FROM Customers AS c, Orders AS o
+WHERE c.CustomerName="Around the Horn" AND c.CustomerID=o.CustomerID; 
 
-
+Aliases can be useful when:
+ There are more than one table involved in a query
+ Functions are used in the query
+ Column names are big or not very readable
+ Two or more columns are combined together

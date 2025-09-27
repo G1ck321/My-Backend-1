@@ -1,0 +1,6 @@
+A number (integer or floating point)
+A string (in double quotes)
+A Boolean (true or false)
+An array (in square brackets)
+An object (in curly braces)
+null

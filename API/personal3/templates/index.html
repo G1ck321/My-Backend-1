@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Spotify Top Tracks • Demo</title>
+
+  <!-- Poppins font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <main class="app">
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo">♪</div>
+        <div>
+          <h1>SpotLite</h1>
+          <p class="tag">Search artists • preview top tracks</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="search-panel">
+      <form id="searchForm" class="search-form" onsubmit="return false;">
+        <div class="input-row">
+          <input id="artistInput" autocomplete="off" placeholder="Search artist (e.g. Adele, Drake, Burna Boy)" />
+          <select id="countrySelect" aria-label="Country">
+            <option value="US" selected>US</option>
+            <option value="GB">GB</option>
+            <option value="NG">NG</option>
+            <option value="DE">DE</option>
+            <option value="FR">FR</option>
+            <!-- add more as desired -->
+          </select>
+        </div>
+
+        <div class="actions">
+          <button id="searchBtn" class="btn primary">Search</button>
+          <button id="clearBtn" class="btn ghost">Clear</button>
+        </div>
+      </form>
+
+      <div id="status" class="status muted">Enter an artist and press Search.</div>
+    </section>
+
+    <section id="results" class="results hidden">
+      <h2 id="resultsTitle">Top Tracks</h2>
+      <div id="tracks" class="tracks-grid"></div>
+    </section>
+
+    <footer class="foot muted">
+      Built with ❤️ · Client credentials flow · Token stored on server
+    </footer>
+  </main>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
