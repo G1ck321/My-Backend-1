@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            width: 100dvw;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            background-color: rgb(29, 29, 56);
+            color: beige;
+        }
+
+        a {
+            all: unset;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .tab {
+            width: 100dvw;
+            place-items: center;
+        }
+
+        .mytable {
+            border-collapse: collapse;
+        }
+
+        .tab {
+            padding-top: 2em;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="left">
+            <h2>Basic API</h2>
+        </div>
+        <div class="right"><a href="">Contact us</a></div>
+    </nav>
+    <section class="tab">
+        <table id="mytable" border="solid">
+            <thead bgcolor="skyblue">
+                <tr>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Job</th>
+                </tr>
+            </thead>
+            <tbody id="bod">
+                <tr align="center">
+                    <td>Gbemi</td>
+                    <td>200lvl</td>
+                    <td>19</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+    <script>
+       
+    </script>
+    <script src="{{url_for('static', filename='js/script2.js')}}"></script>
+</body>
+
+</html>
