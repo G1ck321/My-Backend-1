@@ -58,7 +58,7 @@ function getMovies(url) {
                 for (let i = 0; i < 9 ; i++) {
                     showMovie(data.Search[i]);
                 }
-                // data.Search.forEach(movie => showMovie(movie));
+                //data.Search.forEach(movie => showMovie(movie));
             } else {
                 mainSection.innerHTML = '<h2>No movies found</h2>';
             }
@@ -87,5 +87,5 @@ function loadMore() {
     currentPage++;
     getMovies(API_URL + "&s=" + movieName+"&page="+currentPage);
 
-
 }
+btn.addEventListener("click", loadMore);

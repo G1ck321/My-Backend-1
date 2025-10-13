@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+        body {
+            display: grid;
+            place-items: center;
+            height: 100dvh;
+            width: 100dvw;
+            box-sizing: border-box;
+            margin: 0;
+            background-color: rgb(161, 56, 74);
+            color: white;
+            font-family: poppins, sans-serif;
+            font-size: 17px;
+            align-items: flex-start;
+        }
+
+        .container {
+            clip-path: 30px;
+            border-radius: 18px;
+            box-shadow: 6px 6px 4px rgb(117, 41, 54);
+            overflow: hidden;
+            transition: 0.2s all linear;
+            position: relative;
+            transform: translateZ(2px);
+        }
+
+        .container:hover {
+            box-shadow: 20px 20px 4px rgb(117, 41, 54);
+        }
+
+        form {
+            background-color: inherit;
+            display: flex;
+            flex-direction: column;
+            gap: 1em;
+            background-color: white;
+            width: 500px;
+            padding: 2em;
+            border-radius: 18px;
+            height: 200px;
+        }
+
+        input {
+            height: 30px;
+            padding: 0.7em;
+            border-radius: 3px;
+            background-color: antiquewhite;
+            border: none;
+            position: relative;
+            padding-block: 14px;
+        }
+
+        input:focus {
+            border: 400px;
+        }
+
+        a {
+            margin: 2em;
+            text-decoration: none;
+            display: inline-block;
+            padding: 0.7em;
+            background-color: rgb(255, 127, 127);
+            border-radius: 0.35em;
+            color: white;
+            border: 2px solid rgb(184, 74, 74);
+            cursor: pointer;
+        }
+
+        a:hover {
+            border: 3px solid rgb(185, 22, 22);
+        }
+
+        button {
+            display: inline-block;
+            width: max-content;
+            background-color: rgb(192, 77, 83);
+            border: none;
+            padding: 0.8em;
+            border-radius: 10px;
+            color: inherit;
+            cursor: pointer;
+            font-family: "Lucida Console", "Courier New";
+            position: relative;
+        }   
+        .lines{
+            width:700px ;
+            height: 500px;
+            position: absolute;
+            transform: translateX(230px) translateY(-50px) rotateX(40deg) translateZ(2px);
+            background-color: rgba(93, 134, 121, 0.521);
+            border-radius: 10em 0em 0em 0em ;
+            animation: wavy 3.3s infinite linear;
+
+        }
+        .lines1{
+            width:800px ;
+            height: 600px;
+            position: absolute;
+            transform: translateX(200px) translateY(-60px) rotateX(40deg) translateZ(2px);
+            background-color: rgba(120, 139, 133, 0.521);
+            border-radius: 16em 9em 0em 0em ;
+            animation: wavy 3.3s infinite linear reverse;
+            
+        }
+        
+        @keyframes wavy {
+            0%{
+            border-radius: 0em ;
+            transform: rotateZ(0deg);
+            }
+            50%{
+                        border-radius: 16em 9em 5em 8em ;
+
+                transform: rotateZ(90deg);
+            }
+            100%{
+            border-radius: 16em 9em 12em 14em ;
+
+                border-radius: 0em;
+                transform: rotateZ(360deg);
+            }
+        }
+        .container:hover  .lines , .container:hover  .lines1 {
+            animation: wavy 6s infinite;
+        }
+        
+    </style>
+</head>
+
+<body>
+    <h1 id="typed-strings">
+        <p><strong>Welcome</strong> to my login page!</p>
+    </h1>
+    <h1 id="typed-output"></h1>
+    <div class="container">
+        <div class="lines"></div>
+        <div class="lines1"></div>
+        <form action="" id="userForm" method="post">
+            <input type="text" name="username" id="" placeholder="Username" />
+            <input type="number" name="number" id="" placeholder="Age" />
+            <input type="text" name="job" id="" placeholder="Job" />
+            <button type="submit">Update</button>
+        </form>
+    </div>
+    <!-- <a href="http://127.0.0.1:5002" class="exist">Existing User</a> -->
+    <!-- <h2 id="fail"></h2> -->
+    <script>
+        fail = document.getElementById("fail");
+        document.getElementById("userForm").addEventListener("submit", (e) => {
+            e.preventDefault();
+            let formData = new FormData(e.target);
+            
+            let data = {
+                username: formData.get("username"),
+                age: e.target.number.value,
+                job: formData.get("job"),
+            };
+            fetch(`http://127.0.0.1:5001/api/users/${data.username}`, {
+                    method: "PUT", //PUT for updating
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data),
+                })
+                .then((res) => res.json())
+                .then((resp) => alert("Server says: " + JSON.stringify(resp)))
+                .catch((err) => (fail.innerHTML = "Failed to send"));
+            e.target.reset();
+        });
+
+        /*var typed = new Typed('#typed-output', {
+            stringsElement: '#typed-strings',
+            typeSpeed: 50,
+            backSpeed: 30,
+            backDelay: 1000,
+            smartBackspace: true,
+            loop: true,
+            loopCount: 2, //can be 1 or infinity
+            // loopCount: Infinity,
+            showCursor: true,
+            cursorChar: '|',
+            contentType: 'html'
+        });*/
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
+</body>
+
+</html>

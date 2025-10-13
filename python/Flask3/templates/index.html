@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Document</title>
+  </head>
+  <body>
+    <h1>Data</h1>
+    <button id="update">Click me</button>
+    <h2 id="update2"></h2>
+    <script>
+        const update = document.getElementById("update");
+
+        async function upDate() {
+        const userData = {
+            name: "James Paful",
+            age: "46",
+            Job: "Data Andalyst",
+          }
+        const resp = await fetch("http://127.0.0.1:5002/api/users1/1", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(userData),
+        });
+
+        data = await resp.json();
+        const updated = document.getElementById("update2");
+        updated.innerHTML = await `New data: ${data.name} <br> ${data.age}<br> ${data.Job}`;
+        /*Object.entries(data).forEach((arr) => {
+            for(const [username,user] of Object.entries(arr) )
+            {
+          updated.innerHTML = `${user[0]}`;
+        console.log(user[0]);
+            }
+        });
+       */
+
+      }
+
+    update.addEventListener('click',()=>upDate())
+      
+    </script>
+  </body>
+</html>
