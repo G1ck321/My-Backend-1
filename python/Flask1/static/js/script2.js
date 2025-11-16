@@ -12,13 +12,16 @@
         // });
         //like key,value
         
-          console.log(element[0])
+          console.log(element)
+          
+            
             const td = `<tr>  
-            <td>${element["username"]}</td>
-            <td>${element["age"]}</td>
-            <td>${element["job"]}</td>
-        </tr>`;
-          tbody.innerHTML += td;
+            <td>${element["brand"]}</td>
+            <td>${element["model"]}</td>
+            <td>${element["year"]}</td>
+            </tr>`;
+            tbody.innerHTML += td;
+          
         
     // for(let key in element)  {
     //   if (element.hasOwnProperty(key)){
@@ -32,7 +35,7 @@
     // }
     }
 
-    const URL = "http://127.0.0.1:5001/api/users";//uses post
+    const URL = "http://127.0.0.1:5000/api/users";//uses post
     // const URL = "http://127.0.0.1:5000/api/users";uses get request only
 
     // fetch(URL)

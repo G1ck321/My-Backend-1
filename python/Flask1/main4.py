@@ -2,21 +2,58 @@ from flask import Flask, jsonify, send_from_directory,render_template,request
 import json
 from flask_cors import CORS
 import requests
+import psycopg2
 
 app = Flask(__name__)
 CORS(app)
 users = [
-    {"user1": ["Aglfre", 21, "Full-Stack Developer"]},
-    {"user2": ["Addl", 22, "Computer Engineer"]},
-    {"user3": ["Ohdjd", 23, "Artificial Intelligence"]},
-    
+    {"id":"user1",
+    "username":"Agbejimi Oluwagbemiga",
+    "age": 21,
+    "job":"Full-Stack Developer"
+    },
+
+    {"id":"user2",
+    "username":"Akinyemi Kolade",
+    "age": 22,
+    "job":"Computer Engineer"
+    },
+
+    {"id":"user3",
+    "username":"Oyinloye Olaoluwa",
+    "age": 23,
+    "job":"Artificial Intelligence"
+    }
     
 ]
+def get_connected():
+    conn = psycopg2.connect(
+        host = 'localhost',
+        user = 'postgres',
+        database = 'Dvd',
+        password = 'Sample@321'
+    )
+    return conn
+def postgre():
+    conn = get_connected()
+    cur = conn.cursor()
+    cur.execute("Select * from cars")
+    rows = cur.fetchall()
+    output = []
+    id = 0
+    for row in rows:
+        car_data = {'brand':row[0],'model':row[1],'year':row[2]}
+        id+=1
+        output.append(car_data)
+    conn.close()
+    return output
+for i in range(len(postgre())):
+    users.append(postgre()[i])
 
-
+print(users)
 @app.route("/api/users")
 def get_users():
-    return jsonify()
+    return jsonify(users)
 
 @app.route("/")
 def serve():

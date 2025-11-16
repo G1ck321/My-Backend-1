@@ -69,7 +69,9 @@ To change a column
   AlTER table add primary key(columnname) adds a primary
   ALTER TABLE table_name 
   RENAME COLUMN column_name TO new_name(AlTER CAN ALSO BE MODIFY IN SOME DBMS) RENAME does not specify
-  For mysql - ALTER TABLE python_table CHANGE old_name new_name datatype(int,varchar); change specifies datatype
+  For mysql - ALTER TABLE python_table CHANGE old_name new_name datatype(int,varchar); change column specifies datatype
+  alter table table_name add column columnname datatype
+  alter table table_name drop column column_name
   you can also use ADD dateof birth date(datatype)(This adds a new column dateofbirth)
 To change a field use 
 UPDATE table

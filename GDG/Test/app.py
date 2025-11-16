@@ -1,0 +1,104 @@
+from flask import Flask, render_template, jsonify, request
+from config import app
+from models import db, Note
+import datetime
+
+#status code
+#env
+#structure, 
+#presentation 
+# JWT Authentication, deploy on render, github
+# storage bucket  and external storage bucket for file, pagination, git
+
+now = datetime.datetime.now().strftime("%D %H:%M")
+
+
+    
+notes = []
+with app.app_context():
+    db.init_app(app)
+    #binds the sqlalchemy to app
+    db.create_all()
+    #creates table
+
+@app.route("/hello")
+def home():
+    return "hello world"
+
+@app.route("/")
+def renderPage():
+    return render_template("test.html")
+
+@app.route("/api/allnotes")
+def displayNotes():
+    all_notes = Note.query.all()
+    list_notes = []
+    for note in all_notes:
+        notes_list = {'id':note.id,'content':note.content}
+        # if notes_list["id"] ==22:
+        #     print(notes_list["content"])
+        list_notes.append(notes_list)   
+    
+    print(notes_list)
+    
+    # print(list_notes)
+    return jsonify(list_notes), 200
+
+@app.route("/create_notes", methods=["POST"])
+def createData():
+    data = request.get_json()
+    content = data.get("content")
+    if not content:
+        return jsonify({"message": "Content required"}), 400
+    note = Note(content=content)
+    db.session.add(note)
+    db.session.commit()
+    return jsonify({"message": "Note created", "note": note.to_dictionary()}), 201
+        
+        
+    
+    # id = request.json.get("id")
+    # note = request.json.get("note")
+
+    # return (jsonify({notes:"created"},201))
+    # notes['id'] = id
+    # notes['note'] = note
+    data['time'] = now
+    notes.append(data)
+    print(notes)
+    
+    return jsonify({"message": "user created"}),201
+
+
+@app.route("/update_notes/<int:note_id>", methods=["PUT"])
+def updateUser(note_id):
+    data = request.get_json()
+    print(data)
+    if not data or 'content' not in data:
+        return jsonify({'error':f"note with id {note_id} has no content"}),404
+    
+    note = db.session.get(Note, note_id)
+    note.content= data['content'].strip()
+    db.session.commit()
+    return jsonify({"updated":note.content}),200
+
+@app.route("/get_notes", methods=["GET"])
+def displayData():
+    return jsonify(notes), 200
+
+@app.route("/api/search",methods = ['GET'])
+def searchNotes():
+    return jsonify("")
+
+@app.route("/api/delete_note/<int:note_id>", methods = ['DELETE'])
+
+def deleteNotes(note_id):
+    note = db.session.get(Note, note_id)
+    if  not  note:
+        return jsonify({'error':f"note with id {note_id} does not exist"}),404
+    db.session.delete(note)
+    db.session.commit()
+    
+    return jsonify('deleted'),204
+if __name__ == "__main__":
+    app.run(port=3000, debug=True)

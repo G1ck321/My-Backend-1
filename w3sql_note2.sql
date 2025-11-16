@@ -26,6 +26,7 @@ NULL means nothing
 select * from table_name order by Ages asc or desc
 SELECT TOP 2 * FROM Customers; 
 SELECT TOP 50 PERCENT * FROM Customers; 
+you can put a limit after the order e.g limit 10
 
 SELECT * FROM table show all rows 
 WHERE col_name LIKE 's%';(field starts with "s"), %s (field ends with "s"), %a%(field contains a)
