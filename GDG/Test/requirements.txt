@@ -1,11 +1,11 @@
-fcntl
+
 dotenv==0.9.9
 Flask==3.1.2
 flask-cors==6.0.1
 Flask-SQLAlchemy==3.1.1
 frozenlist==1.7.0
 greenlet==3.2.4
-Gunicorn
+
 
 Jinja2==3.1.6
 MarkupSafe==3.0.2
