@@ -1,0 +1,156 @@
+<!-- CHANGED: Fixed HTML structure and added proper JavaScript fetch calls -->
+<!doctype HTML>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note-Taking App</title>
+    <link rel="stylesheet" href="{{url_for('static', filename = 'css/test.css')}}">
+    <!-- CHANGED: Removed defer and will load script at end of body instead -->
+</head>
+
+<body>
+
+    <aside id="beside">
+        <div class="heading">
+            <h2>Notes</h2>
+        </div>
+        <div id="actionButton"><button id="create" class="new">&plus;</button></div>
+        <!-- CHANGED: Added proper search functionality -->
+        <div id="search">
+            <img src="{{url_for('static',filename = 'svg/Search_light.svg')}}" alt="">
+            <input id="myInput" type="text" placeholder="Search Notes">
+        </div>
+        <div id="textArea">
+            <!-- CHANGED: Notes will be dynamically loaded here -->
+            <div id="notesList"></div>
+        </div>
+    </aside>
+    
+    <main>
+        <!-- CHANGED: Added proper form handling -->
+        <form id="textSubmit">
+            <textarea name="" id="yourText" placeholder="Start typing your note..."></textarea>
+            <button id="save" type="submit">&check;</button>
+        </form>
+    </main>
+
+    <!-- CHANGED: Added JavaScript inline for quick fix -->
+    <script>
+        let currentNoteId = null;
+
+        // CHANGED: Load all notes on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadNotes();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Create new note button
+            document.getElementById('create').addEventListener('click', createNewNote);
+            
+            // Save note form
+            document.getElementById('textSubmit').addEventListener('submit', saveNote);
+            
+            // Search input
+            document.getElementById('myInput').addEventListener('input', searchNotes);
+        }
+
+        // CHANGED: Added function to load all notes
+        async function loadNotes() {
+            try {
+                const response = await fetch('/api/notes');
+                if (response.ok) {
+                    const notes = await response.json();
+                    displayNotes(notes);
+                }
+            } catch (error) {
+                console.error('Error loading notes:', error);
+            }
+        }
+
+        // CHANGED: Added function to display notes in sidebar
+        function displayNotes(notes) {
+            const notesList = document.getElementById('notesList');
+            notesList.innerHTML = '';
+            
+            notes.forEach(note => {
+                const noteDiv = document.createElement('div');
+                noteDiv.className = 'sideText';
+                noteDiv.textContent = note.content.substring(0, 50) + '...';
+                noteDiv.onclick = () => loadNoteContent(note.id);
+                notesList.appendChild(noteDiv);
+            });
+        }
+
+        // CHANGED: Added function to load note content
+        async function loadNoteContent(noteId) {
+            try {
+                const response = await fetch(`/api/notes/${noteId}`);
+                if (response.ok) {
+                    const note = await response.json();
+                    document.getElementById('yourText').value = note.content;
+                    currentNoteId = noteId;
+                }
+            } catch (error) {
+                console.error('Error loading note:', error);
+            }
+        }
+
+        // CHANGED: Added function to create new note
+        function createNewNote() {
+            document.getElementById('yourText').value = '';
+            currentNoteId = null;
+        }
+
+        // CHANGED: Added function to save note
+        async function saveNote(e) {
+            e.preventDefault();
+            const content = document.getElementById('yourText').value;
+            
+            try {
+                if (currentNoteId) {
+                    // Update existing note
+                    const response = await fetch(`/api/notes/${currentNoteId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content })
+                    });
+                    if (response.ok) {
+                        loadNotes();
+                    }
+                } else {
+                    // Create new note
+                    const response = await fetch('/api/notes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content })
+                    });
+                    if (response.ok) {
+                        loadNotes();
+                    }
+                }
+            } catch (error) {
+                console.error('Error saving note:', error);
+            }
+        }
+
+        // CHANGED: Added search functionality
+        async function searchNotes(e) {
+            const query = e.target.value;
+            try {
+                const response = await fetch(`/api/notes/search?q=${query}`);
+                if (response.ok) {
+                    const notes = await response.json();
+                    displayNotes(notes);
+                }
+            } catch (error) {
+                console.error('Error searching notes:', error);
+            }
+        }
+    </script>
+
+</body>
+
+</html>
