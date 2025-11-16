@@ -1,4 +1,4 @@
-
+fcntl
 dotenv==0.9.9
 Flask==3.1.2
 flask-cors==6.0.1
