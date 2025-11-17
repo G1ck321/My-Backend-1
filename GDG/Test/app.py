@@ -1,5 +1,5 @@
 from flask import Flask, render_template, jsonify, request
-from config import app
+from config import app,engine, table
 from models import db, Note
 import datetime
 
@@ -34,11 +34,13 @@ def displayNotes():
     all_notes = Note.query.all()
     list_notes = []
     for note in all_notes:
-        notes_list = {'id':note.id,'content':note.content}
+        notes_list = {'id':note.id,'content':note.content,'update':note.updated_at}
         # if notes_list["id"] ==22:
         #     print(notes_list["content"])
+        
         list_notes.append(notes_list)   
-    
+        #sort in a particular order
+    list_notes.sort(key=lambda note:note["update"],reverse=True)
     print(notes_list)
     
     # print(list_notes)
@@ -79,8 +81,10 @@ def updateUser(note_id):
     
     note = db.session.get(Note, note_id)
     note.content= data['content'].strip()
+    note.updated_at =datetime.datetime.utcnow()
     db.session.commit()
-    return jsonify({"updated":note.content}),200
+    print(note.content)
+    return jsonify({"message":"updated"}),200
 
 @app.route("/get_notes", methods=["GET"])
 def displayData():
@@ -88,6 +92,10 @@ def displayData():
 
 @app.route("/api/search",methods = ['GET'])
 def searchNotes():
+    try:
+        query = request.args.get('q','')
+        note = ()
+        engine.execute("Select * from note")
     return jsonify("")
 
 @app.route("/api/delete_note/<int:note_id>", methods = ['DELETE'])

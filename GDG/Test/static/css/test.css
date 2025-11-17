@@ -1,12 +1,10 @@
 body {
     
     font-family: 'Franklin Gothic light', 'Arial Narrow', Arial, sans-serif;
-    width: 100vw;
     height: 100vh;
     margin: 0;
     /* grid-auto-rows: 200px 100%; */
     background-color: rgb(240, 240, 240);
-
     box-sizing: border-box;
     display: grid;
     gap: .8em;
@@ -16,12 +14,13 @@ body {
 
 aside {
     display: grid;
-    
     gap: .2em;
+    box-sizing: border-box;
     grid-template-rows: repeat(3, 60px) auto;
     align-items: flex-start;
     justify-content: center;
     padding-inline: .6em;
+    padding-block: 12px;
     height: 100%;
     width: 100%;
     background-color: rgb(214, 214, 214);
@@ -30,6 +29,10 @@ aside {
 main {
     margin: 0;
     box-sizing: border-box;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    
 }
 
 .heading {
@@ -40,8 +43,11 @@ main {
 }
 
 textarea {
+    justify-self: start;
+    position: sticky;
+    margin-top: 2em;
     padding: 1em;
-    height: 80%;
+    height: 500px;
     width: 80%;
     resize: none;
     font-family: inherit;
@@ -93,7 +99,7 @@ form {
     align-items: center;
     box-sizing: border-box;
     flex-direction: column;
-    justify-content: center;
+    /* justify-content: center; */
     gap: 4px;
     width: 100%;
     margin: 0;
