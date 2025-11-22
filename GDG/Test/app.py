@@ -1,6 +1,7 @@
 from flask import Flask, render_template, jsonify, request
 from config import app
 from models import db, Note
+import os
 import datetime
 
 #status code
@@ -101,4 +102,5 @@ def deleteNotes(note_id):
     
     return jsonify('deleted'),204
 if __name__ == "__main__":
-    app.run(port=3000, debug=True)
+    port = int(os.environ.get("PORT",5000))
+    app.run(host ="0.0.0.0",port=port debug=True)
