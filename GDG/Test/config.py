@@ -15,8 +15,8 @@ DB_PASSWORD = os.getenv('DB_PASSWORD')
 
 app = Flask(__name__)
 CORS(app)
-URI = 'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
-app.config['SQLALCHEMY_DATABASE_URI'] = URI
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://googledeveloper:of1aTtbfExgy87T4Y3HeSmfob4i8syB3@dpg-d4cv3mggjchc73dlqgdg-a/notes_r71t'
 #specifies a path to the database. 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 #does not track modifications
