@@ -31,7 +31,7 @@ function viewData(id, note_value) {
 //display text area from database
 async function displayNotes() {
 
-    const response = await fetch("http://127.0.0.1:3000/api/allnotes");
+    const response = await fetch("/api/allnotes");
 
     const notes = await response.json()
     console.log(notes)
@@ -133,7 +133,7 @@ textSubmit.addEventListener("submit", (e) => {
         }
         
         if (current_element) {
-            const response = await fetch(`http://127.0.0.1:3000/update_notes/${current_id}`, options2);
+            const response = await fetch(`/update_notes/${current_id}`, options2);
 
 
             console.log(response.status, "updated")
@@ -152,7 +152,7 @@ textSubmit.addEventListener("submit", (e) => {
 
 
         if (currentPage==null) {
-            const response = await fetch("http://127.0.0.1:3000/create_notes", options);
+            const response = await fetch("/create_notes", options);
 
             console.log(response.status, "created")
             const info = await response.json()
