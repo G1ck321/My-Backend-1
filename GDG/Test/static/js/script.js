@@ -50,7 +50,7 @@ async function displayNotes(notes) {
 
 //selects text area
 async function selectTextArea(e) {
-    const response = await fetch("http://127.0.0.1:3000/api/allnotes");
+    const response = await fetch("/api/allnotes");
     
     const notes = await response.json()
     console.log(notes)
@@ -169,7 +169,7 @@ textSubmit.addEventListener("submit", (e) => {
         }
         
         if (current_text) {
-            const response = await fetch(`http://127.0.0.1:3000/update_notes/${current_id}`, options2);
+            const response = await fetch(`/update_notes/${current_id}`, options2);
 
 
             console.log(response.status, "updated")
@@ -187,7 +187,7 @@ textSubmit.addEventListener("submit", (e) => {
 
 
         else if (!current_text) {
-            const response = await fetch("http://127.0.0.1:3000/create_notes", options);
+            const response = await fetch("/create_notes", options);
 
             console.log(response.status, "created")
             const info = await response.json()

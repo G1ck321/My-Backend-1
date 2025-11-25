@@ -24,6 +24,7 @@ aside {
     height: 100%;
     width: 100%;
     background-color: rgb(214, 214, 214);
+    flex-shrink: 7;
 }
 
 main {
@@ -31,8 +32,6 @@ main {
     box-sizing: border-box;
     height: 100%;
     position: relative;
-    overflow: hidden;
-    
 }
 
 .heading {
@@ -151,8 +150,8 @@ button:hover{
 .sideText{
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    width: 93%;
+    white-space: pre-wrap;/*tells browser to keep newline*/
+    width: 15em;
     padding: .6em 4em .6em .6em;
     border-bottom: 3em transparent solid;
     box-sizing: border-box;

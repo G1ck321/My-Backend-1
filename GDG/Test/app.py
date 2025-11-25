@@ -107,6 +107,6 @@ def deleteNotes(note_id):
     db.session.delete(note)
     db.session.commit()
     
-    return jsonify('deleted'),204
+    return jsonify(''),204
 if __name__ == "__main__":
     app.run(host = "0.0.0.0",port=3000, debug=True)

@@ -12,8 +12,8 @@ DB_PORT = os.getenv('DB_PORT')
 DB_USER = os.getenv('DB_USER')
 DB_NAME = os.getenv('DB_NAME')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
-URI = "postgresql://googledeveloper:of1aTtbfExgy87T4Y3HeSmfob4i8syB3@dpg-d4cv3mggjchc73dlqgdg-a/notes_r71t"
-
+# URI = "postgresql://googledeveloper:of1aTtbfExgy87T4Y3HeSmfob4i8syB3@dpg-d4cv3mggjchc73dlqgdg-a/notes_r71t"
+URI= 'postgresql://postgres:Sampled321@localhost:5432/notes'
 app = Flask(__name__)
 CORS(app)
 
