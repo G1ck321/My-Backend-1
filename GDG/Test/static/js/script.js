@@ -30,15 +30,9 @@ function viewData(id, note_value) {
 
 }
 //display text area from database
-async function displayNotes() {
-
-    const response = await fetch("http://127.0.0.1:3000/api/allnotes");
-
-    const notes = await response.json()
-    console.log(notes)
-
-
-
+async function displayNotes(notes) {
+    noteList.innerHTML = ""    
+    
     for (const [id, note] of Object.entries(notes)) {
         viewData(id, note)
         
@@ -56,6 +50,10 @@ async function displayNotes() {
 
 //selects text area
 async function selectTextArea(e) {
+    const response = await fetch("http://127.0.0.1:3000/api/allnotes");
+    
+    const notes = await response.json()
+    console.log(notes)
     
     
     //console.log(e.target)
@@ -66,7 +64,7 @@ async function selectTextArea(e) {
     
         firstElement = 1
         
-        current_id = await displayNotes()
+        current_id = await displayNotes(notes)
         console.log(current_id)
     
     
@@ -105,8 +103,9 @@ textarea.addEventListener('click', selectTextArea)
 function createTextArea() {
 
     noteList.innerHTML += `<br><div class="sideText" id= "${last_id+1}"></div>`
-    myText.value = noteList.lastElementChild.textContent   
-
+    let newNote = noteList.lastElementChild;
+    myText.value = newNote.textContent   
+    current_id = last_id+1
 }
 create.addEventListener('click', createTextArea)
 console.log(currentPage)
@@ -114,12 +113,23 @@ console.log(currentPage)
 // search for notes
 search_bar.addEventListener('input', searchNotes)
 async function searchNotes(e) {
+    
     const search_query = e.target.value;
     try {
-        const response = await fetch(`/api/search/?=${search_query}`);
+        const response = await fetch(`/api/search?q=${search_query}`);
         if (response.ok) {
             const notes = await response.json()
-            console.log(notes.message)
+            console.log(notes,"noted")
+            //if there are no notes with the query
+            if (notes.length>0 ){
+            displayNotes(notes)
+            }
+            else{
+                noteList.innerHTML = ""
+                const note_text = `<div class="sideText" id="">Not Found</div><br>`
+                noteList.innerHTML += note_text;
+                
+            }
         }
     }
     catch (err) {
@@ -133,6 +143,7 @@ textSubmit.addEventListener("submit", (e) => {
     e.preventDefault()
     current_element = document.getElementById(`${current_id}`)
     current_text = String(current_element.innerText)
+    console.log(current_element)
     console.log(current_text)
     let data = {
         content: myText.value,
@@ -164,6 +175,7 @@ textSubmit.addEventListener("submit", (e) => {
             console.log(response.status, "updated")
             const info = await response.json()
             alert(info.message)
+    window.location.reload()
             
 
         // console.log( `${info} yess`)
@@ -183,6 +195,7 @@ textSubmit.addEventListener("submit", (e) => {
             console.log(info)
             
             alert(info.message)
+    window.location.reload()
 
         }
         else{
@@ -206,9 +219,11 @@ async function deleteNote(e) {
         'method':'DELETE',
         'Content-Type':'application/json'
     }
+    current_element = document.getElementById(`${current_id}`)
     const response = await fetch(`/api/delete_note/${current_id}`, options3)
     const data = response.json()
-    noteList.remove(current_element)
+    current_element.style.display = 'none';
+    window.location.reload()
     console.log(data);
     // alert(data);
 

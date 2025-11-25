@@ -1,6 +1,7 @@
 from flask import Flask, render_template, jsonify, request
-from config import app,engine, table
+from config import app, engine, table
 from models import db, Note
+from sqlalchemy import text
 import datetime
 
 #status code
@@ -12,9 +13,6 @@ import datetime
 
 now = datetime.datetime.now().strftime("%D %H:%M")
 
-
-    
-notes = []
 with app.app_context():
     db.init_app(app)
     #binds the sqlalchemy to app
@@ -40,7 +38,7 @@ def displayNotes():
         
         list_notes.append(notes_list)   
         #sort in a particular order
-    list_notes.sort(key=lambda note:note["update"],reverse=True)
+    list_notes.sort(key=lambda noted:noted["update"],reverse=True)
     print(notes_list)
     
     # print(list_notes)
@@ -59,17 +57,6 @@ def createData():
         
         
     
-    # id = request.json.get("id")
-    # note = request.json.get("note")
-
-    # return (jsonify({notes:"created"},201))
-    # notes['id'] = id
-    # notes['note'] = note
-    data['time'] = now
-    notes.append(data)
-    print(notes)
-    
-    return jsonify({"message": "user created"}),201
 
 
 @app.route("/update_notes/<int:note_id>", methods=["PUT"])
@@ -86,17 +73,30 @@ def updateUser(note_id):
     print(note.content)
     return jsonify({"message":"updated"}),200
 
-@app.route("/get_notes", methods=["GET"])
-def displayData():
-    return jsonify(notes), 200
+# @app.route("/get_notes", methods=["GET"])
+# def displayData():
+#     return jsonify(notes), 200
 
 @app.route("/api/search",methods = ['GET'])
 def searchNotes():
+    query = request.args.get('q','')
+    print(query,'lk')
     try:
-        query = request.args.get('q','')
-        note = ()
-        engine.execute("Select * from note")
-    return jsonify("")
+        note_list = []
+        all_result = db.session.execute(text(f"SELECT * FROM note WHERE content LIKE '%{query}%'"))
+        result = all_result.fetchall()
+        for note in result:
+            each_note = {"id":note.id, "content":note.content,"update":note.updated_at}
+            note_list.append(each_note)    
+            print(note_list)    
+        note_list.sort(key=lambda each_note:each_note["update"], reverse=True)
+        if note_list:
+            return jsonify(note_list),200
+        else:
+            print(note_list)
+            return jsonify(""),200
+    except:
+        return jsonify("Not found"),404
 
 @app.route("/api/delete_note/<int:note_id>", methods = ['DELETE'])
 
