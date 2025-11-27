@@ -22,6 +22,9 @@ async function postData() {
     const details = await response.json()
     console.log(details)
     e.target.reset()
+    myName.value = ""
+    myEmail.value = ""
+    
 }
 postData()
 })
