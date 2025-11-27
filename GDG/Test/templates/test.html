@@ -1,45 +1,212 @@
-<!doctype HTML>
+<!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script defer src="{{url_for('static',filename = 'js/script.js')}}"></script>
+    <title>Styles </title>
+    <style>
+        body {
+            display: grid;
+            place-items: center;
+            height: 100dvh;
+            width: 100vw;
+            box-sizing: border-box;
+            margin: 0;
+            background-color: rgb(161, 56, 74);
+            color: white;
+            font-family: poppins, sans-serif;
+            font-size: 17px;
+            gap: 0;
+            align-items: start;
+        }
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Note-Taking App</title>
-    <!-- <link rel="stylesheet" href="{{url_for('static', filename = 'css/test.css')}}"> -->
-    <script defer src ="{{url_for('static',filename ='js/script.js' )}}"></script>
-    <link rel="icon" href="{{url_for('static',filename = 'svg/note1.png')}}" type="image/x-icon">
-</head>
+        .container {
+            clip-path: 30px;
+            border-radius: 18px;
+            box-shadow: 6px 6px 4px rgb(117, 41, 54);
+            overflow: hidden;
+            transition: 0.2s all linear;
+            position: relative;
+            transform: translateZ(2px);
+            box-sizing: border-box;
+        }
 
-<body>
-    
-    
-    <aside id="beside">
-        <div class="heading">
-            <h2>Gbemiga's Notes App</h2>
-        </div>
-        <div id="actionButton"><button id="create" class="new">&plus;</button>
-            <button type="reset" id="delete" > Delete</button>
-        </div>
-        <div id="search"><img src="{{url_for('static',filename = 'svg/Search_light.svg')}}" alt=""><input id="myInput"
-                type="text" placeholder="Search Notes"></div>
-        <div id="textArea">
-            <div id="noteList">
+        .container:hover {
+            box-shadow: 20px 20px 4px rgb(117, 41, 54);
+        }
 
-                <!-- <div id="0"  class="sideText"></div> -->
+        form {
+            background-color: inherit;
+            display: flex;
+            flex-direction: column;
+            gap: 1em;
+            background-color: white;
+            width: 500px;
+            padding: 2em;
+            border-radius: 18px;
+            height: 220px;
+        }
+
+        input {
+            height: 30px;
+            padding: 0.7em;
+            border-radius: 3px;
+            background-color: antiquewhite;
+            border: none;
+            position: relative;
+            padding-block: 14px;
+        }
+
+        input:focus {
+            border: 400px;
+        }
+
+        a {
+            /*margin: .2em;
+            text-decoration: none;
+            display: inline-block;
+            position: relative;
+            
+            background-color: rgb(255, 127, 127);
+            border-radius: 0.35em;
+            color: white;
+            border: 2px solid rgb(184, 74, 74);
+            cursor: pointer;*/
+
+            display: inline-block;
+            width: max-content;
+            background-color: rgb(192, 77, 83);
+            border: none;
+            padding: 0.6em;
+            border-radius: 10px;
+            color: inherit;
+            cursor: pointer;
+            font-family: "Lucida Console", "Courier New";
+            position: relative;
+            text-decoration: none;
+            font-size: .9em;
+            grid-column: 3;
+            grid-row: 1;
+
+        }
+
+        a:hover {
+            border: 3px solid rgb(185, 22, 22);
+        }
+
+        button {
+            display: inline-block;
+            width: max-content;
+            background-color: rgb(192, 77, 83);
+            border: none;
+            padding: 0.8em;
+            border-radius: 10px;
+            color: inherit;
+            cursor: pointer;
+            font-family: "Lucida Console", "Courier New";
+            position: relative;
+            font-size: .9em;
+            transition: 1.8s all linear ease;
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+        button:hover {
+            box-shadow: 6px 6px .4px rgb(117, 41, 54);
+        }
+
+        .lines {
+            width: 700px;
+            height: 500px;
+            position: absolute;
+            transform: translateX(230px) translateY(-50px) rotateX(40deg) translateZ(2px);
+            background-color: rgba(93, 134, 121, 0.521);
+            border-radius: 10em 0em 0em 0em;
+            animation: wavy 3.3s infinite linear;
+
+        }
+
+        .lines1 {
+            width: 800px;
+            height: 600px;
+            position: absolute;
+            transform: translateX(200px) translateY(-60px) rotateX(40deg) translateZ(2px);
+            background-color: rgba(120, 139, 133, 0.521);
+            border-radius: 16em 9em 0em 0em;
+            animation: wavy 3.3s infinite linear reverse;
+
+        }
+
+        @keyframes wavy {
+            0% {
+                border-radius: 0em;
+                transform: rotateZ(0deg);
+            }
+
+            50% {
+                border-radius: 16em 9em 5em 8em;
+
+                transform: rotateZ(90deg);
+            }
+
+            100% {
+                border-radius: 16em 9em 12em 14em;
+
+                border-radius: 0em;
+                transform: rotateZ(360deg);
+            }
+        }
+
+        .container:hover .lines,
+        .container:hover .lines1 {
+            animation: wavy 6s infinite;
+        }
+
+        .footer {
+            display: grid;
+            align-items: center;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        h2 {
+            display: block;
+            grid-column: 1;
+            grid-row: 2;
+        }
+        @media(max-width:800){
+            body{
+
+                 background-color: red; 
+            }
+        }
+    </style>
+  </head>
+  <body>
+    <header class="heading"><h1>Welcome to our Login Page</h1>
+    <h3>Enter your details</h3></header>
+     <div class="container">
+        <div class="lines"></div>
+        <div class="lines1"></div>
+        <form id="userForm" >
+            <input type="text" id="name" name="name" placeholder="Name...">
+<input type="email" id="email" name="email" placeholder="e-mail...">
+
+            
+            <div class="footer">
+                <button type="submit">Submit</button>                
             </div>
-        </div>
-    </aside>
-    <main>
-        <form id="textSubmit">
-
-            <textarea name="" id="yourText"></textarea>
-            <button id="save" type="submit">&check;</button>
         </form>
-        
-    </main>
-    <!-- <button type="button" onclick="bolden()">Bolden</button> -->
-
-
+    </div>
 </body>
-
 </html>
+<!-- <div class="container">
+  <form action="" class="style">
+      <label for="name">Enter your Full name</label>
+      <br>
+    <input placeholder="Nme" type="text" id="name" />
+      <label for="name">Enter your e-mail</label>
+        <br>
+    <input placeholder="" type="email" id="surname" />
+  </form>
+</div> -->
