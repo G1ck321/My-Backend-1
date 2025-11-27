@@ -1,6 +1,6 @@
 from flask import Flask, render_template, jsonify, request
 from config import app
-from models import db, User
+from models import db, User,Note , db
 import os
 from sqlalchemy import text
 import datetime
@@ -17,7 +17,9 @@ now = datetime.datetime.now().strftime("%D %H:%M")
 with app.app_context():
     db.init_app(app)
     #binds the sqlalchemy to app
+    
     db.create_all()
+    
     #creates table
 
 @app.route("/hello")
@@ -25,6 +27,9 @@ def home():
     return "hello world"
 
 @app.route("/")
+def homePage():
+    return render_template("index.html")
+@app.route("/note")
 def renderPage():
     return render_template("test.html")
 
@@ -33,13 +38,13 @@ def displayNotes():
     all_notes = User.query.all()
     list_notes = []
     for note in all_notes:
-        notes_list = {'id':note.name,'content':note.email}
+        notes_list = {'id':note.id,'content':note.content,'update':note.updated_at}
         # if notes_list["id"] ==22:
         #     print(notes_list["content"])
         
         list_notes.append(notes_list)   
         #sort in a particular order
-    list_notes.sort(key=lambda user_key:user_key["email"],reverse=True)
+    list_notes.sort(key=lambda noted:noted["update"],reverse=True)
     print(notes_list)
     
     # print(list_notes)
@@ -48,15 +53,13 @@ def displayNotes():
 @app.route("/create_notes", methods=["POST"])
 def createData():
     data = request.get_json()
-    name = data.get("name")
-    email = data.get("email")
-    if not name or email:
+    content = data.get("content")
+    if not content:
         return jsonify({"message": "Content required"}), 400
-    user = User(name=name, email = email)
-    
-    db.session.add(user)
+    note = Note(content=content)
+    db.session.add(note)
     db.session.commit()
-    return jsonify({"message": "Note created", "note": user.to_dictionary()}), 201
+    return jsonify({"message": "Note created", "note": note.to_dictionary()}), 201
         
         
     
@@ -111,6 +114,37 @@ def deleteNotes(note_id):
     db.session.commit()
     
     return jsonify(''),204
+#stylus stuff
+@app.route("/api/allusers")
+def displayUsers():
+    all_notes = User.query.all()
+    list_notes = []
+    for note in all_notes:
+        notes_list = {'id':note.name,'content':note.email}
+        # if notes_list["id"] ==22:
+        #     print(notes_list["content"])
+        
+        list_notes.append(notes_list)   
+        #sort in a particular order
+    list_notes.sort(key=lambda user_key:user_key["email"],reverse=True)
+    print(notes_list)
+    
+    # print(list_notes)
+    return jsonify(list_notes), 200
+
+@app.route("/api/create", methods=["POST"])
+def createUser():
+    data = request.get_json()
+    name = data.get("name")
+    email = data.get("email")
+    if not name or not email:
+        return jsonify({"message": "Content required"}), 400
+    user = User(name=name, email = email)
+    
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({"message": "Note created", "note": user.to_dictionary()}), 201
+        
 if __name__ == "__main__":
     port = int(os.environ.get("PORT",3000))
     app.run(host = "0.0.0.0",port=port, debug=True)

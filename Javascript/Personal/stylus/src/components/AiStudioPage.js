@@ -74,23 +74,7 @@ export default function AiStudioPage() {
       </div>
 
       {/* Navigation (simplified) */}
-      <nav className="fixed w-full z-40 py-4 bg-white backdrop-blur-md shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-brand-purple rounded-full flex items-center justify-center text-brand-gold border-2 border-brand-gold shadow-md">
-              <span className="font-serif font-bold text-xl">S</span>
-            </div>
-            <span className="text-2xl font-serif font-bold text-brand-purple tracking-wide">Stylus</span>
-          </div>
-          <div className="hidden md:flex space-x-8 items-center">
-            <a href="#features" className="text-gray-600 hover:text-brand-purple font-medium transition-colors">Features</a>
-            <a href="#vision" className="text-gray-600 hover:text-brand-purple font-medium transition-colors">Vision</a>
-          </div>
-          <button onClick={() => document.getElementById('waitlistForm').scrollIntoView({ behavior: 'smooth', block: 'center' })} className="bg-brand-purple text-white px-6 py-2 rounded-full font-bold hover:bg-purple-900 transition-all shadow-md transform hover:scale-105 active:scale-95 text-sm">
-            Get Early Access
-          </button>
-        </div>
-      </nav>
+      
 
       {/* Hero Section and other parts omitted */}
       {/* Form */}
