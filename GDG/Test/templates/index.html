@@ -37,9 +37,23 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-direction: column;
             padding: 1rem;
+            gap: 2em;
         }
-
+        h1{
+            font-size: 5em;
+            font-family: Georgia, 'Times New Roman', Times, serif;
+            transition: all .8s;
+            box-sizing: border-box;
+            padding: 4px;
+            color: #39025f;
+        }
+        h1:hover{
+            box-shadow: rgb(160, 160, 199) 4px 4px 6px 2px;
+            display: inline;
+            cursor: pointer;
+        }
         .glass-panel {
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
@@ -55,7 +69,12 @@
             height: 20px;
             animation: spin 1s linear infinite;
         }
-
+        form{
+            display: flex;
+            flex-direction: column;
+            gap: .7em;
+            padding: .4em;
+        }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -169,6 +188,7 @@
     </style>
 </head>
 <body>
+    <h1>Stylus   </h1>
     <div class="container glass-panel rounded-[1.5rem] p-8 md:p-12 max-w-lg mx-auto w-full">
         <form id="userForm" class="space-y-6">
             <div class="space-y-2">

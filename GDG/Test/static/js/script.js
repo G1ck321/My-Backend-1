@@ -54,6 +54,8 @@
                 successMsg.textContent = "🎉 You're on the list! We'll be in touch.";
                 successMsg.classList.remove('hidden');
                 e.target.reset();
+                myName.value=""
+                myEmail.value = ""
             }
             postData();
         });

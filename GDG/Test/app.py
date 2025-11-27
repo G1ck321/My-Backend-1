@@ -117,10 +117,10 @@ def deleteNotes(note_id):
 #stylus stuff
 @app.route("/api/allusers")
 def displayUsers():
-    all_notes = User.query.all()
+    all_users = User.query.all()
     list_notes = []
-    for note in all_notes:
-        notes_list = {'id':note.name,'content':note.email}
+    for user in all_users:
+        notes_list = {'name':user.name,'email':user.email}
         # if notes_list["id"] ==22:
         #     print(notes_list["content"])
         
