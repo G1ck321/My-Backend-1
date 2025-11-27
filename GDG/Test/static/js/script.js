@@ -20,10 +20,10 @@
             e.preventDefault();
 
             // Check if not in community - redirect to Telegram
-            if (!communityCheckbox.checked) {
-                window.open('https://t.me/styluscommunity', '_blank');
-                return;
-            }
+            // if (!communityCheckbox.checked) {
+            //     window.open('https://t.me/styluscommunity', '_blank');
+            //     return;
+            // }
 
             let data = {
                 name: myName.value,
