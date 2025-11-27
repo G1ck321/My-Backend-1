@@ -7,7 +7,6 @@ class User(db.Model):
     __tablename__ = 'onboard'
     id = db.Column(db.Integer,primary_key = True)
     name = db.Column(db.Text,primary_key = False, nullable = False)
-    number = db.Column(db.Integer,primary_key = False, nullable = False)
     email = db.Column(db.Text, primary_key = True)
     
     def to_dictionary(self):

@@ -1,6 +1,6 @@
 from flask import Flask, render_template, jsonify, request
-from config import app, engine, table
-from models import db, Note
+from config import app
+from models import db, User
 import os
 from sqlalchemy import text
 import datetime
@@ -30,16 +30,16 @@ def renderPage():
 
 @app.route("/api/allnotes")
 def displayNotes():
-    all_notes = Note.query.all()
+    all_notes = User.query.all()
     list_notes = []
     for note in all_notes:
-        notes_list = {'id':note.id,'content':note.content,'update':note.updated_at}
+        notes_list = {'id':note.name,'content':note.email}
         # if notes_list["id"] ==22:
         #     print(notes_list["content"])
         
         list_notes.append(notes_list)   
         #sort in a particular order
-    list_notes.sort(key=lambda noted:noted["update"],reverse=True)
+    list_notes.sort(key=lambda user_key:user_key["email"],reverse=True)
     print(notes_list)
     
     # print(list_notes)
@@ -48,13 +48,15 @@ def displayNotes():
 @app.route("/create_notes", methods=["POST"])
 def createData():
     data = request.get_json()
-    content = data.get("content")
-    if not content:
+    name = data.get("name")
+    email = data.get("email")
+    if not name or email:
         return jsonify({"message": "Content required"}), 400
-    note = Note(content=content)
-    db.session.add(note)
+    user = User(name=name, email = email)
+    
+    db.session.add(user)
     db.session.commit()
-    return jsonify({"message": "Note created", "note": note.to_dictionary()}), 201
+    return jsonify({"message": "Note created", "note": user.to_dictionary()}), 201
         
         
     
