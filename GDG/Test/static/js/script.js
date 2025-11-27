@@ -12,91 +12,124 @@ const delete_note = document.getElementById("delete")
 
 //takes id
 
-let current_id;
-
-let new_id;
+let current_id ;
 let currentPage;
-let last_created_id ;
-let current_element ;
+let first_id = 0;
+let last_id;
+let current_element;
+let current_text;
+let firstElement  =null;
 
 function viewData(id, note_value) {
 
-    console.log(note_value)
-    const note_text = `<br><div class="sideText" id= "${note_value["id"]}">${note_value["content"]}</div>`
+    // console.log(note_value)
+    const note_text = `<div class="sideText" id="${note_value["id"]}">${note_value["content"]}</div><br>`
     noteList.innerHTML += note_text;
 
 
 
 }
 //display text area from database
-async function displayNotes() {
-
-    const response = await fetch("http://127.0.0.1:3000/api/allnotes");
-
-    const notes = await response.json()
-    console.log(notes)
-
-
-
-
+async function displayNotes(notes) {
+    noteList.innerHTML = ""    
+    
     for (const [id, note] of Object.entries(notes)) {
         viewData(id, note)
         
     }
     
     //last element id
+    note_length= notes.length
+    last_id = notes[note_length-1]["id"]
     myText.innerText = `${notes[0]["content"]}`
-    last_created_id = Number(notes[0]["id"])
-    return last_created_id
+    current_id = Number(notes[0]["id"])
+    console.log(notes[0]["id"],"ko")
+    return current_id
 }
-displayNotes()
+
 
 //selects text area
-function selectTextArea(e) {
-
+async function selectTextArea(e) {
+    const response = await fetch("/api/allnotes");
+    
+    const notes = await response.json()
+    console.log(notes)
+    
+    
     //console.log(e.target)
     //this gets the properties of the element
-    console.log(e.target.id)
-
-    for (let each of active) {
-        if (each.id == e.target.id) {
-            myText.value = each.textContent
-            current_id = each.id
+    
+    if (firstElement == null){
+        current_element = document.getElementById(current_id)
+    
+        firstElement = 1
+        
+        current_id = await displayNotes(notes)
+        console.log(current_id)
+    
+    
+    current_text = (current_element,"celem")
+    console.log(current_text)
+        
+    }
+    else{
+        // for (let each of active) {
+        // if (each.id == e.target.id) {
+        
+            current_id = Number(e.target.id)
+            myText.value = e.target.textContent
+            console.log(current_id,'is here')
             
+            // return current_id
+        // }
+    
             
-            current_id = e.target.id
-            console.log(current_id)
-            return current_id
-        }
+            // return current_id
+    // }
+    }
     }
     // current_element = active[String(current_id)]
     //console.log(num)
-}
 
-console.log(current_id,'l')
+
+
+window.addEventListener('DOMContentLoaded',()=>{ selectTextArea()})
+console.log(current_id,"K")
 textarea.addEventListener('click', selectTextArea)
+
+    // console.log(current_text, "cur_text")
+    // console.log(typeof(current_text), "cur_texttype")
 //creates new notes
 function createTextArea() {
 
-    currentPage = null
-
-    noteList.innerHTML += `<br><div class="sideText" id= "${last_created_id+1}"></div>`
-    myText.value = noteList.lastElementChild.textContent
-    
-    
-
+    noteList.innerHTML += `<br><div class="sideText" id= "${last_id+1}"></div>`
+    let newNote = noteList.lastElementChild;
+    myText.value = newNote.textContent   
+    current_id = last_id+1
 }
 create.addEventListener('click', createTextArea)
+console.log(currentPage)
 
 // search for notes
 search_bar.addEventListener('input', searchNotes)
 async function searchNotes(e) {
+    
     const search_query = e.target.value;
     try {
-        const response = await fetch(`/api/search/${search_query}`);
+        const response = await fetch(`/api/search?q=${search_query}`);
         if (response.ok) {
             const notes = await response.json()
-            console.log(notes.message)
+            console.log(notes,"noted")
+            //if there are no notes with the query
+            if (notes.length>0 ){
+            displayNotes(notes)
+            }
+            else{
+                noteList.innerHTML = ""
+                const note_text = `<div class="sideText" id="">Not Found</div><br>`
+                noteList.innerHTML += note_text;
+                
+            }
         }
     }
     catch (err) {
@@ -105,10 +138,13 @@ async function searchNotes(e) {
 }
 
 //submits text from textarea
-current_element = document.getElementById(current_id)
+
 textSubmit.addEventListener("submit", (e) => {
     e.preventDefault()
-
+    current_element = document.getElementById(`${current_id}`)
+    current_text = String(current_element.innerText)
+    console.log(current_element)
+    console.log(current_text)
     let data = {
         content: myText.value,
         id: current_id
@@ -132,17 +168,16 @@ textSubmit.addEventListener("submit", (e) => {
             body: JSON.stringify(data)
         }
         
-        if (current_element) {
-            const response = await fetch(`http://127.0.0.1:3000/update_notes/${current_id}`, options2);
+        if (current_text) {
+            const response = await fetch(`/update_notes/${current_id}`, options2);
 
 
             console.log(response.status, "updated")
             const info = await response.json()
             alert(info.message)
-            console.log(info, "upf")
+    window.location.reload()
+            
 
-            current_element = document.getElementById(current_id)
-            current_element.textContent = info
         // console.log( `${info} yess`)
         
 
@@ -151,18 +186,21 @@ textSubmit.addEventListener("submit", (e) => {
         }
 
 
-        if (currentPage==null) {
-            const response = await fetch("http://127.0.0.1:3000/create_notes", options);
+        else if (!current_text) {
+            const response = await fetch("/create_notes", options);
 
             console.log(response.status, "created")
             const info = await response.json()
-            current_element = document.getElementById(current_id)
+            
             console.log(info)
-            current_element.textContent = info['content']
+            
             alert(info.message)
+    window.location.reload()
 
         }
-
+        else{
+            console.log("what")
+        }
 
         // fetch("http://127.0.0.1:3000/create_notes", options)
         // .then( res => {res.json() ;console.log(res.message)})
@@ -181,9 +219,11 @@ async function deleteNote(e) {
         'method':'DELETE',
         'Content-Type':'application/json'
     }
+    current_element = document.getElementById(`${current_id}`)
     const response = await fetch(`/api/delete_note/${current_id}`, options3)
     const data = response.json()
-    noteList.remove(current_element)
+    current_element.style.display = 'none';
+    window.location.reload()
     console.log(data);
     // alert(data);
 
