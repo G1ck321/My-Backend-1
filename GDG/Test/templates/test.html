@@ -190,7 +190,10 @@
                     <div style="font-size: 0.75rem; color: var(--gray-500); margin-top: 0.125rem;">Check if you're already in our group chats</div>
                 </label>
             </div> -->
-
+            <div id="suggest" style="background: #f0fdf4; border: 1px solid #bbf7d0; color: var(--green-600); padding: 0.75rem; border-radius: 0.5rem; font-weight: 700; text-align: center; ">
+                    <p>Have any suggestions? Let us know</p>
+                    <a href="https://forms.gle/m6n4rr8yE3XFJj217" target="_blank">Fill the form</a>
+                </div>
             <!-- Telegram Link - Hidden by default, shows if NOT in community -->
             <div id="telegramSection" class="telegram-container hidden">
                 <p style="color: #006db3; font-weight: 600; margin-bottom: 0.5rem;">Join our Telegram community first:</p>
@@ -220,13 +223,13 @@
         const successMsg = document.getElementById('successMsg');
 
         // Show/hide Telegram link based on checkbox state
-        communityCheckbox.addEventListener('change', function() {
+      /*  communityCheckbox.addEventListener('change', function() {
             if (this.checked) {
                 telegramSection.classList.add('hidden');
             } else {
                 telegramSection.classList.remove('hidden');
             }
-        });
+        });*/
 
         myForm.addEventListener("submit", (e) => {
             e.preventDefault();
