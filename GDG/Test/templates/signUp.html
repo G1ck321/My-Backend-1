@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Stylus Early Access</title>
+    <link rel="shortcut icon" href="{{url_for('static',filename = 'svg/sedit.jpg')}}" >
+    <script defer src="{{url_for('static',filename = 'js/script.js')}}"></script>
+
+    <style>
+        :root {
+            --brand-gold: #D4AF37;
+            --brand-purple: #4B0082;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --purple-50: #f3e8ff;
+            --purple-100: #e9d5ff;
+            --green-50: #f0fdf4;
+            --green-200: #bbf7d0;
+            --green-600: #16a34a;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: radial-gradient(circle at top right, #f3e8ff 0%, #ffffff 40%, #fff9e6 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 1rem;
+            gap: 2em;
+        }
+        h1{
+            font-size: 5em;
+            font-family: Georgia, 'Times New Roman', Times, serif;
+            transition: all .8s;
+            box-sizing: border-box;
+            padding: 4px;
+            color: #39025f;
+        }
+        h1:hover{
+            box-shadow: rgb(160, 160, 199) 4px 4px 6px 2px;
+            display: inline;
+            cursor: pointer;
+        }
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 25px 50px -12px rgba(75, 0, 130, 0.15);
+            border: 1px solid var(--glass-border);
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--brand-purple);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        form{
+            display: flex;
+            flex-direction: column;
+            gap: .7em;
+            padding: .4em;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 3rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 0.75rem;
+            background: white;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--brand-purple);
+            box-shadow: 0 0 0 2px rgba(75, 0, 130, 0.1);
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--brand-purple);
+            color: white;
+            padding: 1rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            font-size: 1.125rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #3a0066;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 20px rgba(75, 0, 130, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
+
+        .success-msg {
+            background: var(--green-50);
+            border: 1px solid var(--green-200);
+            color: var(--green-600);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--gray-500);
+        }
+
+        .checkbox-container {
+            background: var(--purple-50);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--purple-100);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .telegram-link {
+            background: linear-gradient(135deg, #0088cc, #229ED9);
+            color: white;
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3);
+        }
+
+        
+        .telegram-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(0, 136, 204, 0.4);
+        }
+
+        .telegram-container {
+            background: rgba(0, 136, 204, 0.1);
+            border: 1px solid rgba(0, 136, 204, 0.2);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        @media (min-width: 1024px) {
+            .container { max-width: 72rem; grid-template-columns: 1fr 1fr; gap: 2rem; }
+            .hero-title { font-size: 3rem; line-height: 1.1; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Stylus   </h1>
+    <div class="container glass-panel rounded-[1.5rem] p-8 md:p-12 max-w-lg mx-auto w-full">
+        <form id="userForm" class="space-y-6">
+            <div class="space-y-2">
+                <label class="label" for="name">Full Name</label>
+                <div style="position: relative;">
+                    <span style="position: absolute; left: 1rem; top: 0.875rem; color: var(--gray-400); font-size: 1.125rem;">👤</span>
+                    <input type="text" id="name" name="name" placeholder="Jane Doe..." class="form-input" required>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="label" for="email">Email Address</label>
+                <div style="position: relative;">
+                    <span style="position: absolute; left: 1rem; top: 0.875rem; color: var(--gray-400); font-size: 1.125rem;">✉️</span>
+                    <input type="email" id="email" name="email" placeholder="jane@example.com..." class="form-input" required>
+                </div>
+            </div>
+
+            <!-- <div class="checkbox-container">
+                <input type="checkbox" id="community" class="w-5 h-5 text-var(--brand-purple) border-gray-300 rounded focus:ring-var(--brand-purple) mt-1">
+                <label for="community" style="font-weight: 700; color: var(--gray-800); cursor: pointer; font-size: 0.875rem;">
+                    I'm part of the Stylus Community
+                    <div style="font-size: 0.75rem; color: var(--gray-500); margin-top: 0.125rem;">Check if you're already in our group chats</div>
+                </label>
+            </div> 
+
+            <!-- Telegram Link - Hidden by default, shows if NOT in community -->
+            <div id="telegramSection" class="telegram-container hidden">
+                <p style="color: #006db3; font-weight: 600; margin-bottom: 0.5rem;">Join our Telegram community first:</p>
+                <a href="https://t.me/stylusofficial" class="telegram-link" target="_blank">
+                    <span style="font-size: 1.25rem;">📱</span>
+                    Join Stylus Telegram
+                </a>
+            </div>
+
+            <div id="successMsg" class="success-msg hidden"></div>
+
+            <button type="submit" class="btn-primary">
+                <span id="btnText">Secure My Spot</span>
+                <div id="loader" class="loader hidden"></div>
+            </button>
+        </form>
+    </div>
+
+    
+</body>
+</html>

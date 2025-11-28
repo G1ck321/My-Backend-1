@@ -29,6 +29,11 @@ def home():
 @app.route("/")
 def homePage():
     return render_template("index.html")
+
+@app.route("/signup")
+def userSign():
+    return render_template("signUp.html")
+
 @app.route("/note")
 def renderPage():
     return render_template("test.html")

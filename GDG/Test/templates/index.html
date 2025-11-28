@@ -1,238 +1,372 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Join Stylus Early Access</title>
+    <title>Stylus | AI-Powered Fashion Excellence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
     <link rel="shortcut icon" href="{{url_for('static',filename = 'svg/sedit.jpg')}}" >
-    <script defer src="{{url_for('static',filename = 'js/script.js')}}"></script>
-
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            gold: '#D4AF37',
+                            purple: '#4B0082',
+                            dark: '#1a1a1a',
+                            light: '#f8f9fa'
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['Playfair Display', 'serif'],
+                        sans: ['Lato', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        :root {
-            --brand-gold: #D4AF37;
-            --brand-purple: #4B0082;
-            --glass-bg: rgba(255, 255, 255, 0.85);
-            --glass-border: rgba(255, 255, 255, 0.5);
-            --purple-50: #f3e8ff;
-            --purple-100: #e9d5ff;
-            --green-50: #f0fdf4;
-            --green-200: #bbf7d0;
-            --green-600: #16a34a;
-            --gray-50: #f9fafb;
-            --gray-100: #f3f4f6;
-            --gray-200: #e5e7eb;
-            --gray-300: #d1d5db;
-            --gray-400: #9ca3af;
-            --gray-500: #6b7280;
-            --gray-600: #4b5563;
-            --gray-800: #1f2937;
-            --gray-900: #111827;
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: radial-gradient(circle at top right, #f3e8ff 0%, #ffffff 40%, #fff9e6 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            padding: 1rem;
-            gap: 2em;
+        .gold-gradient-text {
+            background: linear-gradient(135deg, #D4AF37 0%, #FEE581 50%, #B48811 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        h1{
-            font-size: 5em;
-            font-family: Georgia, 'Times New Roman', Times, serif;
-            transition: all .8s;
-            box-sizing: border-box;
-            padding: 4px;
-            color: #39025f;
-        }
-        h1:hover{
-            box-shadow: rgb(160, 160, 199) 4px 4px 6px 2px;
-            display: inline;
-            cursor: pointer;
-        }
-        .glass-panel {
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            box-shadow: 0 25px 50px -12px rgba(75, 0, 130, 0.15);
-            border: 1px solid var(--glass-border);
-        }
-
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--brand-purple);
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-        }
-        form{
-            display: flex;
-            flex-direction: column;
-            gap: .7em;
-            padding: .4em;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .form-input {
+        .slide-image {
+            position: absolute;
+            inset: 0;
             width: 100%;
-            padding: 0.75rem 1rem 0.75rem 3rem;
-            border: 1px solid var(--gray-200);
-            border-radius: 0.75rem;
-            background: white;
-            font-size: 1rem;
-            transition: all 0.2s;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 1.5s ease-in-out;
         }
-
-        .form-input:focus {
-            outline: none;
-            border-color: var(--brand-purple);
-            box-shadow: 0 0 0 2px rgba(75, 0, 130, 0.1);
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.5, 0, 0, 1);
         }
-
-        .btn-primary {
-            width: 100%;
-            background: var(--brand-purple);
-            color: white;
-            padding: 1rem;
-            border: none;
-            border-radius: 0.75rem;
-            font-weight: 700;
-            font-size: 1.125rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background: #3a0066;
-            transform: translateY(-1px);
-            box-shadow: 0 10px 20px rgba(75, 0, 130, 0.3);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.8;
-            cursor: not-allowed;
-        }
-
-        .success-msg {
-            background: var(--green-50);
-            border: 1px solid var(--green-200);
-            color: var(--green-600);
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            font-weight: 700;
-            text-align: center;
-        }
-
-        .label {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--gray-500);
-        }
-
-        .checkbox-container {
-            background: var(--purple-50);
-            padding: 1rem;
-            border-radius: 0.75rem;
-            border: 1px solid var(--purple-100);
-            display: flex;
-            align-items: flex-start;
-            gap: 0.75rem;
-        }
-
-        .telegram-link {
-            background: linear-gradient(135deg, #0088cc, #229ED9);
-            color: white;
-            text-decoration: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.75rem;
-            font-weight: 700;
-            font-size: 0.875rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s;
-            box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3);
-        }
-
-        
-        .telegram-link:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 20px rgba(0, 136, 204, 0.4);
-        }
-
-        .telegram-container {
-            background: rgba(0, 136, 204, 0.1);
-            border: 1px solid rgba(0, 136, 204, 0.2);
-            border-radius: 0.75rem;
-            padding: 1rem;
-            text-align: center;
-        }
-
-        @media (min-width: 1024px) {
-            .container { max-width: 72rem; grid-template-columns: 1fr 1fr; gap: 2rem; }
-            .hero-title { font-size: 3rem; line-height: 1.1; }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
         }
     </style>
 </head>
-<body>
-    <h1>Stylus   </h1>
-    <div class="container glass-panel rounded-[1.5rem] p-8 md:p-12 max-w-lg mx-auto w-full">
-        <form id="userForm" class="space-y-6">
-            <div class="space-y-2">
-                <label class="label" for="name">Full Name</label>
-                <div style="position: relative;">
-                    <span style="position: absolute; left: 1rem; top: 0.875rem; color: var(--gray-400); font-size: 1.125rem;">👤</span>
-                    <input type="text" id="name" name="name" placeholder="Jane Doe..." class="form-input" required>
+<body class="font-sans text-gray-800 bg-gray-50">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-40 transition-all duration-300 py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="glass rounded-full px-6 py-3 flex justify-between items-center shadow-lg">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-brand-purple rounded-full flex items-center justify-center text-brand-gold border-2 border-brand-gold shadow-md">
+                        <span class="font-serif font-bold text-xl">S</span>
+                    </div>
+                    <span class="text-2xl font-serif font-bold text-brand-purple tracking-wide">Stylus</span>
                 </div>
-            </div>
-
-            <div class="space-y-2">
-                <label class="label" for="email">Email Address</label>
-                <div style="position: relative;">
-                    <span style="position: absolute; left: 1rem; top: 0.875rem; color: var(--gray-400); font-size: 1.125rem;">✉️</span>
-                    <input type="email" id="email" name="email" placeholder="jane@example.com..." class="form-input" required>
+                
+                <div class="hidden md:flex space-x-8 items-center">
+                    <a href="#features" class="text-gray-600 hover:text-brand-purple font-medium transition-colors">Features</a>
+                    <a href="#vision" class="text-gray-600 hover:text-brand-purple font-medium transition-colors">Vision</a>
                 </div>
-            </div>
 
-            <!-- <div class="checkbox-container">
-                <input type="checkbox" id="community" class="w-5 h-5 text-var(--brand-purple) border-gray-300 rounded focus:ring-var(--brand-purple) mt-1">
-                <label for="community" style="font-weight: 700; color: var(--gray-800); cursor: pointer; font-size: 0.875rem;">
-                    I'm part of the Stylus Community
-                    <div style="font-size: 0.75rem; color: var(--gray-500); margin-top: 0.125rem;">Check if you're already in our group chats</div>
-                </label>
-            </div> 
-
-            <!-- Telegram Link - Hidden by default, shows if NOT in community -->
-            <div id="telegramSection" class="telegram-container hidden">
-                <p style="color: #006db3; font-weight: 600; margin-bottom: 0.5rem;">Join our Telegram community first:</p>
-                <a href="https://t.me/stylusofficial" class="telegram-link" target="_blank">
-                    <span style="font-size: 1.25rem;">📱</span>
-                    Join Stylus Telegram
+                <!-- Link to Signup Page -->
+                <a href="signup.html" class="bg-brand-purple text-white px-6 py-2 rounded-full font-bold hover:bg-purple-900 transition-all shadow-md transform hover:scale-105 active:scale-95 text-sm">
+                    Get Early Access
                 </a>
             </div>
+        </div>
+    </nav>
 
-            <div id="successMsg" class="success-msg hidden"></div>
+    <!-- Hero Section -->
+    <header class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+        
+        <!-- Background Slider -->
+        <div id="hero-bg-slider" class="absolute inset-0 w-full h-full -z-20">
+            <!-- Fashion Image -->
+            <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=2000&auto=format&fit=crop" class="slide-image opacity-100" alt="Fashion">
+            <!-- Tech Image -->
+            <img src="https://images.unsplash.com/photo-1556656793-02715d8dd660?q=80&w=2000&auto=format&fit=crop" class="slide-image opacity-0" alt="Technology">
+            <!-- Design Image -->
+            <img src="https://images.unsplash.com/photo-1537832816519-689ad163238b?q=80&w=2000&auto=format&fit=crop" class="slide-image opacity-0" alt="Design">
+            
+            <!-- White Gradient Overlay for Readability -->
+            <div class="absolute inset-0 bg-gradient-to-r from-white via-white/95 to-white/40"></div>
+        </div>
 
-            <button type="submit" class="btn-primary">
-                <span id="btnText">Secure My Spot</span>
-                <div id="loader" class="loader hidden"></div>
-            </button>
-        </form>
-    </div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            
+            <!-- Left: Text Content -->
+            <div class="text-center lg:text-left reveal active">
+                <div class="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-purple-100 shadow-sm mb-6">
+                    <span class="animate-pulse w-2 h-2 bg-brand-gold rounded-full"></span>
+                    <span class="text-xs font-bold text-brand-purple tracking-widest uppercase">Big Update: Beta Dropping Soon</span>
+                </div>
+                
+                <h1 class="text-5xl md:text-7xl font-serif font-bold text-gray-900 leading-[1.1] mb-6">
+                    Impeccable Style, <br>
+                    <span class="gold-gradient-text">Technologically Driven.</span>
+                </h1>
+                
+                <p class="text-xl text-gray-600 mb-10 max-w-lg mx-auto lg:mx-0 leading-relaxed">
+                    Stylus is your AI-powered stylist providing budget-friendly, occasion-specific outfits tailored to your unique vibe.
+                </p>
 
-    
+                <!-- Call to Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                    <a href="{{url_for('userSign')}}" class="px-8 py-4 bg-brand-purple text-white text-lg font-bold rounded-full shadow-xl hover:bg-purple-900 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2 group">
+                        Join the Waitlist
+                        <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </a>
+                    <a href="#features" class="px-8 py-4 bg-white text-brand-purple border border-purple-100 text-lg font-bold rounded-full shadow-md hover:bg-gray-50 transition-all duration-300">
+                        Explore Features
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right: Interactive Phone Visual -->
+            <div class="relative hidden lg:block h-[600px] reveal active" style="transition-delay: 0.2s;">
+                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[320px] h-[640px] bg-gray-900 rounded-[3rem] shadow-2xl border-8 border-gray-900 overflow-hidden z-20">
+                    <div class="w-full h-full bg-white relative flex flex-col">
+                        <!-- Phone Header -->
+                        <div class="h-16 bg-white flex items-center justify-between px-6 border-b border-gray-100">
+                            <i class="fas fa-bars text-gray-400"></i>
+                            <span class="font-serif font-bold text-brand-purple">Stylus</span>
+                            <div class="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
+                                <img src="https://ui-avatars.com/api/?name=User&background=random" alt="User">
+                            </div>
+                        </div>
+                        <!-- Phone Content -->
+                        <div class="flex-1 p-6 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                            <div id="phoneBg" class="absolute inset-0 bg-purple-50 transition-colors duration-1000"></div>
+                            <div class="relative z-10 w-full">
+                                <p class="text-xs uppercase tracking-widest text-gray-400 mb-2">AI Suggestion</p>
+                                <h3 id="styleTitle" class="text-2xl font-serif font-bold text-gray-800 mb-4 transition-all duration-500">Casual Chic</h3>
+                                <div class="bg-white p-4 rounded-xl shadow-lg transform transition-all duration-500 hover:scale-105">
+                                    <div class="flex justify-center space-x-2 mb-4">
+                                        <div class="w-8 h-8 rounded-full bg-blue-900"></div>
+                                        <div class="w-8 h-8 rounded-full bg-white border border-gray-200"></div>
+                                        <div class="w-8 h-8 rounded-full bg-orange-400"></div>
+                                    </div>
+                                    <div class="h-2 w-24 bg-gray-100 rounded mx-auto mb-2"></div>
+                                    <div class="h-2 w-16 bg-gray-100 rounded mx-auto"></div>
+                                </div>
+                                <div class="mt-8 flex justify-center gap-4">
+                                    <button class="w-12 h-12 rounded-full bg-white shadow text-gray-400 flex items-center justify-center"><i class="fas fa-times"></i></button>
+                                    <button class="w-12 h-12 rounded-full bg-brand-purple shadow text-white flex items-center justify-center"><i class="fas fa-heart"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Phone Footer -->
+                        <div class="h-20 bg-white border-t border-gray-100 flex justify-around items-center px-6">
+                            <i class="fas fa-home text-brand-purple"></i>
+                            <i class="fas fa-search text-gray-300"></i>
+                            <i class="fas fa-plus-circle text-brand-gold text-4xl -mt-8 shadow-lg rounded-full bg-white border-4 border-white"></i>
+                            <i class="fas fa-comment text-gray-300"></i>
+                            <i class="fas fa-user text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section id="features" class="py-24 bg-white relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 reveal">
+                <h2 class="text-4xl font-serif font-bold text-gray-900 mb-4">The Stylus Experience</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">We are building Stylus with you. Here is what's ready for Beta, and what's coming next.</p>
+            </div>
+
+            <!-- Tab Switcher -->
+            <div class="flex justify-center mb-16 reveal">
+                <div class="bg-gray-100 p-1 rounded-full inline-flex relative cursor-pointer shadow-inner">
+                    <!-- Sliding Background -->
+                    <div id="tabBg" class="absolute top-1 left-1 w-[140px] h-[40px] bg-white rounded-full shadow transition-all duration-300 transform translate-x-0"></div>
+                    
+                    <button onclick="switchTab('beta')" class="relative z-10 w-[140px] py-2 text-sm font-bold text-brand-purple transition-colors duration-300" id="btnBeta">
+                        Beta Features 🚀
+                    </button>
+                    <button onclick="switchTab('future')" class="relative z-10 w-[140px] py-2 text-sm font-bold text-gray-500 transition-colors duration-300" id="btnFuture">
+                        In Pipeline 🚧
+                    </button>
+                </div>
+            </div>
+
+            <!-- Features Grid (Dynamic Content) -->
+            <div id="featuresGrid" class="grid grid-cols-1 md:grid-cols-3 gap-8 transition-opacity duration-300">
+                <!-- Content injected via JS -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Vision / Excellence Section -->
+    <section id="vision" class="py-20 bg-brand-purple text-white relative overflow-hidden">
+        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+        <div class="max-w-4xl mx-auto px-4 text-center relative z-10 reveal">
+            <div class="w-20 h-20 mx-auto bg-white/10 rounded-full flex items-center justify-center mb-8 backdrop-blur-md">
+                <i class="fas fa-crown text-3xl text-brand-gold"></i>
+            </div>
+            <h2 class="text-3xl md:text-5xl font-serif font-bold mb-6">Excellence in Every Stitch</h2>
+            <p class="text-xl text-purple-200 leading-relaxed mb-10">
+                Stylus stands for more than just clothes. We stand for the confidence that comes from a perfectly curated look. 
+                We combine the latest trends, color psychology, and your budget to generate timeless outfits.
+            </p>
+            <a href="signup.html" class="inline-block bg-brand-gold text-brand-purple px-8 py-3 rounded-full font-bold hover:bg-white transition-colors shadow-lg">
+                Join the Movement
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12 border-t border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center gap-2 mb-4 md:mb-0">
+                <span class="text-2xl font-serif font-bold text-brand-gold">S</span>
+                <span class="font-serif text-xl tracking-wide">STYLUS</span>
+            </div>
+            <div class="text-gray-500 text-sm">
+                &copy; 2024 Stylus App. All rights reserved.
+            </div>
+            <div class="flex space-x-6 mt-4 md:mt-0">
+                <a href="#" class="text-gray-400 hover:text-brand-gold transition"><i class="fab fa-instagram"></i></a>
+                <a href="#" class="text-gray-400 hover:text-brand-gold transition"><i class="fab fa-twitter"></i></a>
+                <a href="#" class="text-gray-400 hover:text-brand-gold transition"><i class="fab fa-tiktok"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- INTERACTIVE SCRIPTS -->
+    <script>
+        // --- DATA ---
+        const featureData = {
+            beta: [
+                { icon: 'fa-magic', color: 'text-purple-600', bg: 'bg-purple-100', title: 'AI-Powered Recommendations', desc: 'Personalized looks based on your style, colors you love, and the occasion.' },
+                { icon: 'fa-palette', color: 'text-blue-600', bg: 'bg-blue-100', title: 'Style & Aesthetic Matching', desc: 'Get clean color palettes, trending aesthetics, and vibe-based suggestions.' },
+                { icon: 'fa-wallet', color: 'text-green-600', bg: 'bg-green-100', title: 'Budget-Friendly Styling', desc: 'Tell Stylus your budget, and get outfits that look good without stressing your bank.' }
+            ],
+            future: [
+                { icon: 'fa-camera', color: 'text-gray-600', bg: 'bg-gray-100', title: 'Wardrobe Uploads', desc: 'Upload your own clothes to get smart outfit ideas from what you already own.' },
+                { icon: 'fa-fire', color: 'text-orange-600', bg: 'bg-orange-100', title: 'Trend Discovery', desc: 'Explore curated trends, style boards, and weekly fashion inspiration.' },
+                { icon: 'fa-shopping-bag', color: 'text-pink-600', bg: 'bg-pink-100', title: 'Shop the Look', desc: 'Find pieces — and affordable alternatives — to recreate outfits instantly.' }
+            ]
+        };
+
+        const phoneStates = [
+            { title: "Casual Chic", color: "#F3E8FF" },
+            { title: "Office Siren", color: "#E0F2FE" },
+            { title: "Date Night", color: "#FFE4E6" }
+        ];
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderFeatures('beta');
+            startPhoneAnimation();
+            startBackgroundSlideshow();
+            setupScrollReveal();
+        });
+
+        // --- FEATURES TABS LOGIC ---
+        function switchTab(tab) {
+            const grid = document.getElementById('featuresGrid');
+            const bg = document.getElementById('tabBg');
+            const btnBeta = document.getElementById('btnBeta');
+            const btnFuture = document.getElementById('btnFuture');
+
+            if (tab === 'beta') {
+                bg.style.transform = 'translateX(0)';
+                btnBeta.classList.replace('text-gray-500', 'text-brand-purple');
+                btnFuture.classList.replace('text-brand-purple', 'text-gray-500');
+            } else {
+                bg.style.transform = 'translateX(100%)';
+                btnFuture.classList.replace('text-gray-500', 'text-brand-purple');
+                btnBeta.classList.replace('text-brand-purple', 'text-gray-500');
+            }
+
+            grid.style.opacity = '0';
+            setTimeout(() => {
+                renderFeatures(tab);
+                grid.style.opacity = '1';
+            }, 300);
+        }
+
+        function renderFeatures(type) {
+            const container = document.getElementById('featuresGrid');
+            const data = featureData[type];
+            
+            container.innerHTML = data.map(item => `
+                <div class="group bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-default">
+                    <div class="w-14 h-14 ${item.bg} rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas ${item.icon} ${item.color} text-2xl"></i>
+                    </div>
+                    <h4 class="text-xl font-bold mb-3 text-gray-900">${item.title}</h4>
+                    <p class="text-gray-600 leading-relaxed">${item.desc}</p>
+                </div>
+            `).join('');
+        }
+
+        // --- BACKGROUND SLIDESHOW ---
+        function startBackgroundSlideshow() {
+            const images = document.querySelectorAll('.slide-image');
+            let currentIndex = 0;
+            setInterval(() => {
+                images[currentIndex].classList.remove('opacity-100');
+                images[currentIndex].classList.add('opacity-0');
+                currentIndex = (currentIndex + 1) % images.length;
+                images[currentIndex].classList.remove('opacity-0');
+                images[currentIndex].classList.add('opacity-100');
+            }, 5000);
+        }
+
+        // --- PHONE ANIMATION ---
+        function startPhoneAnimation() {
+            let index = 0;
+            const titleEl = document.getElementById('styleTitle');
+            const bgEl = document.getElementById('phoneBg');
+            
+            setInterval(() => {
+                index = (index + 1) % phoneStates.length;
+                const state = phoneStates[index];
+                
+                titleEl.style.opacity = 0;
+                setTimeout(() => {
+                    titleEl.innerText = state.title;
+                    bgEl.style.backgroundColor = state.color;
+                    titleEl.style.opacity = 1;
+                }, 500);
+            }, 3000);
+        }
+
+        // --- SCROLL REVEAL ---
+        function setupScrollReveal() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        }
+    </script>
 </body>
 </html>
