@@ -28,10 +28,15 @@ def home():
 
 @app.route("/")
 def homePage():
-    return render_template("index.html")
+    return render_template("setup.html")
+
+@app.route("/signup")
+def userSign():
+    return render_template("test.html")
+
 @app.route("/note")
 def renderPage():
-    return render_template("test.html")
+    return render_template("index.html")
 
 @app.route("/api/allnotes")
 def displayNotes():
