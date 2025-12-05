@@ -1,10 +1,12 @@
 from flask import Flask, render_template, jsonify, request
 from config import app
-from models import db, User,Note , db
+from models import db, User,Note
 import os
 from sqlalchemy import text
 import datetime
+from flask_migrate import Migrate
 
+Migrate(app,db)
 #status code
 #env
 #structure, 
@@ -43,16 +45,18 @@ def myNotes():
     return render_template("note.html")
 @app.route("/api/allnotes")
 def displayNotes():
-    all_notes = Note.query.all()
+    # all_notes = Note.query.all()
+    all_notes = Note.query.order_by(Note.updated_at.desc())
     list_notes = []
     for note in all_notes:
-        notes_list = {'id':note.id,'content':note.content,'update':note.updated_at}
+        notes_list = note.to_dictionary()
         # if notes_list["id"] ==22:
         #     print(notes_list["content"])
         
         list_notes.append(notes_list)   
         #sort in a particular order
-    list_notes.sort(key=lambda noted:noted["update"],reverse=True)
+        
+    # list_notes.sort(key=lambda noted:noted["updated_at"] or noted["created_at"],reverse=True)
     print(list_notes)
     
     # print(list_notes)
@@ -97,8 +101,7 @@ def searchNotes():
     print(query,'lk')
     try:
         note_list = []
-        all_result = db.session.execute(text(f"SELECT * FROM note WHERE content LIKE '%{query}%'"))
-        result = all_result.fetchall()
+        result = Note.query.filter(Note.content.ilike(f"%{query}%")).all()
         for note in result:
             each_note = {"id":note.id, "content":note.content,"update":note.updated_at}
             note_list.append(each_note)    
@@ -128,7 +131,7 @@ def displayUsers():
     all_notes = User.query.all()
     list_notes = []
     for note in all_notes:
-        notes_list = {'id':note.name,'content':note.email}
+        notes_list = note.to_dictionary()
         # if notes_list["id"] ==22:
         #     print(notes_list["content"])
         

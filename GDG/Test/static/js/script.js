@@ -54,7 +54,7 @@ let firstElement  =null;
 function viewData(id, note_value) {
 
     // console.log(note_value)
-    const note_text = `<div class="sideText" id="${note_value["id"]}">${note_value["content"]}</div><br>`
+    const note_text = `<div class="sideText" id="${note_value["id"]}">${note_value["content"]}</div>`
     noteList.innerHTML += note_text;
 
 
@@ -140,7 +140,7 @@ textarea.addEventListener('click', selectTextArea)
 //creates new notes
 function createTextArea() {
 
-    noteList.innerHTML += `<br><div class="sideText" id= "${last_id+1}"></div>`
+    noteList.innerHTML = `<div class="sideText" id="${last_id+1}"></div>` + noteList.innerHTML;
     let newNote = noteList.lastElementChild;
     myText.value = newNote.textContent   
     current_id = last_id+1
@@ -213,7 +213,8 @@ textSubmit.addEventListener("submit", (e) => {
             console.log(response.status, "updated")
             const info = await response.json()
             alert(info.message)
-    window.location.reload()
+    current_element.textContent = myText.value;
+
             
 
         // console.log( `${info} yess`)
@@ -233,7 +234,8 @@ textSubmit.addEventListener("submit", (e) => {
             console.log(info)
             
             alert(info.message)
-    window.location.reload()
+    current_element.textContent = myText.value;
+
 
         }
         else{
@@ -261,7 +263,9 @@ async function deleteNote(e) {
     const response = await fetch(`/api/delete_note/${current_id}`, options3)
     const data = response.json()
     current_element.style.display = 'none';
-    window.location.reload()
+    myText.innerText = ""
+    alert("Note Deleteds")
+    
     console.log(data);
     // alert(data);
 

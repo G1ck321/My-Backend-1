@@ -26,7 +26,11 @@ aside {
     background-color: rgb(214, 214, 214);
     flex-shrink: 7;
 }
-
+#noteList{
+    display: flex;
+    flex-direction: column;
+    gap: 1.3em;
+}
 main {
     margin: 0;
     box-sizing: border-box;

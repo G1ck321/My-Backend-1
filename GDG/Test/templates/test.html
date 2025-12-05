@@ -235,15 +235,15 @@
             e.preventDefault();
 
             // Check if not in community - redirect to Telegram
-            if (!communityCheckbox.checked) {
+            /*if (!communityCheckbox.checked) {
                 window.open('https://t.me/styluscommunity', '_blank');
                 return;
-            }
+            }*/
 
             let data = {
                 name: myName.value,
                 email: myEmail.value,
-                inCommunity: true
+                //inCommunity: true
             };
 
             // Show loading
