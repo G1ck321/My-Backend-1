@@ -38,9 +38,12 @@ def userSign():
 def renderPage():
     return render_template("index.html")
 
+@app.route("/mynote")
+def myNotes():
+    return render_template("note.html")
 @app.route("/api/allnotes")
 def displayNotes():
-    all_notes = User.query.all()
+    all_notes = Note.query.all()
     list_notes = []
     for note in all_notes:
         notes_list = {'id':note.id,'content':note.content,'update':note.updated_at}
@@ -50,7 +53,7 @@ def displayNotes():
         list_notes.append(notes_list)   
         #sort in a particular order
     list_notes.sort(key=lambda noted:noted["update"],reverse=True)
-    print(notes_list)
+    print(list_notes)
     
     # print(list_notes)
     return jsonify(list_notes), 200
