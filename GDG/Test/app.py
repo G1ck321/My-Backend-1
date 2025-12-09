@@ -1,10 +1,12 @@
 from flask import Flask, render_template, jsonify, request
 from config import app
-from models import db, User,Note , db
+from models import db, User,Note
 import os
 from sqlalchemy import text
 import datetime
+from flask_migrate import Migrate
 
+Migrate(app,db)
 #status code
 #env
 #structure, 
@@ -28,7 +30,7 @@ def home():
 
 @app.route("/")
 def homePage():
-    return render_template("index.html")
+    return render_template("setup.html")
 
 @app.route("/signup")
 def userSign():
@@ -36,21 +38,26 @@ def userSign():
 
 @app.route("/note")
 def renderPage():
-    return render_template("test.html")
+    return render_template("index.html")
 
+@app.route("/mynote")
+def myNotes():
+    return render_template("note.html")
 @app.route("/api/allnotes")
 def displayNotes():
-    all_notes = User.query.all()
+    # all_notes = Note.query.all()
+    all_notes = Note.query.order_by(Note.updated_at.desc())
     list_notes = []
     for note in all_notes:
-        notes_list = {'id':note.id,'content':note.content,'update':note.updated_at}
+        notes_list = note.to_dictionary()
         # if notes_list["id"] ==22:
         #     print(notes_list["content"])
         
         list_notes.append(notes_list)   
         #sort in a particular order
-    list_notes.sort(key=lambda noted:noted["update"],reverse=True)
-    print(notes_list)
+        
+    # list_notes.sort(key=lambda noted:noted["updated_at"] or noted["created_at"],reverse=True)
+    print(list_notes)
     
     # print(list_notes)
     return jsonify(list_notes), 200
@@ -64,7 +71,7 @@ def createData():
     note = Note(content=content)
     db.session.add(note)
     db.session.commit()
-    return jsonify({"message": "Note created", "note": note.to_dictionary()}), 201
+    return jsonify({"message": "Note created", "note": note.id}), 201
         
         
     
@@ -94,8 +101,7 @@ def searchNotes():
     print(query,'lk')
     try:
         note_list = []
-        all_result = db.session.execute(text(f"SELECT * FROM note WHERE content LIKE '%{query}%'"))
-        result = all_result.fetchall()
+        result = Note.query.filter(Note.content.ilike(f"%{query}%")).all()
         for note in result:
             each_note = {"id":note.id, "content":note.content,"update":note.updated_at}
             note_list.append(each_note)    
@@ -117,15 +123,17 @@ def deleteNotes(note_id):
         return jsonify({'error':f"note with id {note_id} does not exist"}),404
     db.session.delete(note)
     db.session.commit()
-    
-    return jsonify(''),204
+    try:
+        return jsonify({"message":f"Deleted Succesfuly"}),200
+    except:
+        return jsonify({"message":f"Select an notes"}),404
 #stylus stuff
 @app.route("/api/allusers")
 def displayUsers():
     all_users = User.query.all()
     list_notes = []
-    for user in all_users:
-        notes_list = {'name':user.name,'email':user.email}
+    for note in all_notes:
+        notes_list = note.to_dictionary()
         # if notes_list["id"] ==22:
         #     print(notes_list["content"])
         

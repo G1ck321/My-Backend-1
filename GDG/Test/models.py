@@ -16,8 +16,8 @@ class Note(db.Model):
         return{
             'id': self.id,
             'content': self.content,
-            'created_at':self.created_at.isoformat(),
-            'updated_at': self.updated_at.isoformat()
+            'created_at':self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
         
     def __repr__(self):
@@ -28,7 +28,7 @@ class Note(db.Model):
 
 class User(db.Model):
     """Note Model"""
-    __tablename__ = 'onboard'
+    __tablename__ = 'users'
     id = db.Column(db.Integer,primary_key = True)
     name = db.Column(db.Text,unique=True, nullable = False)
     email = db.Column(db.Text, unique=True,  nullable = False)

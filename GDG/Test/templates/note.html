@@ -1,0 +1,40 @@
+<!doctype HTML>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note-Taking App</title>
+    <!-- <link rel="stylesheet" href="{{url_for('static', filename = 'css/test.css')}}"> -->
+    <script defer src ="{{url_for('static',filename ='js/script2.js' )}}"></script>
+    <link rel="icon" href="{{url_for('static',filename = 'svg/note1.png')}}" type="image/x-icon">
+    <link rel="stylesheet" href="{{url_for('static', filename = 'css/test.css')}}">
+</head>
+
+<body>
+    
+    
+    <aside id="beside">
+        <div class="heading">
+            <h2>Gbemiga's Notes App</h2>
+        </div>
+        <div id="actionButton"><button id="create" class="new">&plus;</button>
+            <button type="reset" id="delete" > Delete</button>
+        </div>
+        <div id="search"><img src="{{url_for('static',filename = 'svg/Search_light.svg')}}" alt=""><input id="myInput"
+                type="text" placeholder="Search Notes"></div>
+        <div id="textArea">
+            <div id="noteList">
+
+                <!-- <div id="0"  class="sideText"></div> -->
+            </div>
+        </div>
+    </aside>
+    <main>
+        <form id="textSubmit">
+
+            <textarea id="yourText"></textarea>
+            <button id="save" type="submit">&check;</button>
+        </form>
+        
+    </main>
+</body>
+    <!-- <button type="button" onclick="bolden()">Bolden</button> -->

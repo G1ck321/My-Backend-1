@@ -6,10 +6,13 @@ from flask import Flask, render_template, request, jsonify
 import datetime
 import psycopg2
 from psycopg2 import pool
+from config import Config
+from flask_cors import CORS
 import os
 
 app = Flask(__name__)
 
+CORS(app)
 # CHANGED: Added database connection pool (simple approach)
 # Connection pool prevents opening/closing DB connections repeatedly
 db_pool = None
@@ -19,10 +22,13 @@ def init_db_pool():
     global db_pool
     db_pool = psycopg2.pool.SimpleConnectionPool(
         1, 10,  # Min and max connections
-        host="localhost",
-        database="notes_db",
-        user="postgres",
-        password="your_password"
+        host=Config.DB_HOST,
+        database= Config.DB_NAME,
+        user=Config.DB_USER,
+        password=Config.DB_USER,
+        port = 5432,
+        sslmode = 'require',
+        options="-c channel_binding=require"
     )
 
 # CHANGED: Added route for homepage
@@ -42,7 +48,7 @@ def create_note():
         conn = db_pool.getconn()
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO notes (content, created_at) VALUES (%s, %s) RETURNING id",
+            "INSERT INTO note (content, created_at) VALUES (%s, %s) RETURNING id",
             (content, datetime.datetime.now())
         )
         note_id = cur.fetchone()[0]
@@ -61,7 +67,7 @@ def get_notes():
     try:
         conn = db_pool.getconn()
         cur = conn.cursor()
-        cur.execute("SELECT id, content, created_at FROM notes ORDER BY created_at DESC")
+        cur.execute("SELECT id, content, created_at FROM note ORDER BY created_at DESC")
         notes = cur.fetchall()
         cur.close()
         db_pool.putconn(conn)
@@ -78,7 +84,7 @@ def get_note(note_id):
     try:
         conn = db_pool.getconn()
         cur = conn.cursor()
-        cur.execute("SELECT id, content, created_at FROM notes WHERE id = %s", (note_id,))
+        cur.execute("SELECT id, content, created_at FROM note WHERE id = %s", (note_id,))
         note = cur.fetchone()
         cur.close()
         db_pool.putconn(conn)
@@ -99,7 +105,7 @@ def update_note(note_id):
         
         conn = db_pool.getconn()
         cur = conn.cursor()
-        cur.execute("UPDATE notes SET content = %s WHERE id = %s", (content, note_id))
+        cur.execute("UPDATE note SET content = %s WHERE id = %s", (content, note_id))
         rows_affected = cur.rowcount
         conn.commit()
         cur.close()
@@ -118,7 +124,7 @@ def delete_note(note_id):
     try:
         conn = db_pool.getconn()
         cur = conn.cursor()
-        cur.execute("DELETE FROM notes WHERE id = %s", (note_id,))
+        cur.execute("DELETE FROM note WHERE id = %s", (note_id,))
         rows_affected = cur.rowcount
         conn.commit()
         cur.close()
@@ -139,7 +145,7 @@ def search_notes():
         conn = db_pool.getconn()
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, content, created_at FROM notes WHERE content ILIKE %s ORDER BY created_at DESC",
+            "SELECT id, content, created_at FROM note WHERE content ILIKE %s ORDER BY created_at DESC",
             (f'%{query}%',)
         )
         notes = cur.fetchall()
@@ -153,4 +159,4 @@ def search_notes():
 
 if __name__ == '__main__':
     init_db_pool()  # CHANGED: Initialize DB connection on startup
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5000, host="0.0.0.0")

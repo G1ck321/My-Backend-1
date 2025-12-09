@@ -5,6 +5,7 @@ flask-cors==6.0.1
 Flask-SQLAlchemy==3.1.1
 frozenlist==1.7.0
 greenlet==3.2.4
+flask-migrate
 
 
 Jinja2==3.1.6
