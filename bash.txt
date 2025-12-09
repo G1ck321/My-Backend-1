@@ -3,3 +3,9 @@ then cd firstfolder/secondfolder has to be forward slash
 then to run pythom virtual environment enter folder the .venv
 and run "source scripts/activate" 
 do cd .. to go back
+
+#Works for current user
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+RemoteSigned implies downloaded scripts must be signed
+Only worksfor the current open window
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass

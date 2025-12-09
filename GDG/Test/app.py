@@ -71,7 +71,7 @@ def createData():
     note = Note(content=content)
     db.session.add(note)
     db.session.commit()
-    return jsonify({"message": "Note created", "note": note.to_dictionary()}), 201
+    return jsonify({"message": "Note created", "note": note.id}), 201
         
         
     
@@ -123,8 +123,10 @@ def deleteNotes(note_id):
         return jsonify({'error':f"note with id {note_id} does not exist"}),404
     db.session.delete(note)
     db.session.commit()
-    
-    return jsonify(''),204
+    try:
+        return jsonify({"message":f"Deleted Succesfuly"}),200
+    except:
+        return jsonify({"message":f"Select an notes"}),404
 #stylus stuff
 @app.route("/api/allusers")
 def displayUsers():

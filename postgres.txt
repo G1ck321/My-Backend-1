@@ -1,0 +1,2 @@
+If password contains @ it can break connection string best to use %40
+Remove format on save Ctrl +,
