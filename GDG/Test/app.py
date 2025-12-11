@@ -27,6 +27,9 @@ with app.app_context():
 @app.route("/hello")
 def home():
     return "hello world"
+@app.get("/hola")
+def Hola():
+    return render_template("hola.html")
 
 @app.route("/")
 def homePage():
