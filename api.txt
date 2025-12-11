@@ -47,3 +47,4 @@ behaviors.
                              │   Mail │
                              │Service │
                              └────────┘
+python -m pip install --upgrade pip
