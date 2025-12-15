@@ -1,11 +1,16 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask
 from flask_cors import CORS
+import os
+from dotenv import load_dotenv
+from supabase import create_client, Client
 
+load_dotenv()
 app = Flask(__name__)
 
 CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:Sampled321@localhost:5432/onboard'
-#database path
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+url = os.getenv("SUPABASE_URL")
+key = os.getenv("SUPABASE_KEY")
+
+supabase = create_client(url,key)

@@ -1,19 +1,10 @@
-from flask_sqlalchemy import SQLAlchemy
+from config import supabase
 
-db = SQLAlchemy()
-
-class User(db.Model):
-    """Note Model"""
-    __tablename__ = 'onboard'
-    id = db.Column(db.Integer,primary_key = True)
-    name = db.Column(db.Text,primary_key = False, nullable = False)
-    email = db.Column(db.Text, primary_key = True)
-    
-    def to_dictionary(self):
-        return {
-            'id':self.id,
-            'name':self.name,
-            'surname':self.surname
-        }
-        
-    
+def get_all_todos():
+    "Reads all tasks from todo table"
+    response = supabase.from_("ToDo").select("*").execute()
+    return response.data
+def create_todo_task():
+    """Inserts new task in ToDo table"""
+    data = {}
+    return response.data
