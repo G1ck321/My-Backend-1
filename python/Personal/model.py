@@ -4,7 +4,7 @@ db = SQLAlchemy()
 
 class User(db.Model):
     """Note Model"""
-    __tablename__ = 'onboard'
+    __tablename__ = 'toDO'
     id = db.Column(db.Integer,primary_key = True)
     name = db.Column(db.Text,primary_key = False, nullable = False)
     email = db.Column(db.Text, primary_key = True)
