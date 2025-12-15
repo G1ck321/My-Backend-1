@@ -11,6 +11,10 @@ with app.app_context():
 @app.route("/")
 def home():
     return render_template("index.html")
-
+@app.route("/submit",methods=["POST"])
+def subMit():
+    data = request.form.get('name')
+    print(data)
+    return render_template("index.html")
 if __name__ == "__main__":
     app.run( port=5000, debug=True)

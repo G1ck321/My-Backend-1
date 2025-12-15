@@ -1,0 +1,34 @@
+[
+    {
+        "id":"10",
+        "firstname":"Jeffery",
+        "lastname":"Santiago",
+        "email":"jololzi@vu.ly",
+        "gender":"m",
+        "dob":"1/11/2077"
+    },
+     {
+        "id":"24",
+        "firstname":"Ida",
+        "lastname":"Douglas",
+        "email":"vo@fozhephiv.fk",
+        "gender":"m",
+        "dob":"2/1/2042"
+    },
+     {
+        "id":"20",
+        "firstname":"Agnes",
+        "lastname":"Burton",
+        "email":"rimpudrev@towitove.sz",
+        "gender":"m",
+        "dob":"10/22/2083"
+    },
+     {
+        "id":"90",
+        "firstname":"Brett",
+        "lastname":"McCormick",
+        "email":"vourjo@wiwri.aq",
+        "gender":"m",
+        "dob":"8/14/2092"
+    }
+]

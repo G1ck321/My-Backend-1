@@ -130,7 +130,7 @@ def deleteNotes(note_id):
 #stylus stuff
 @app.route("/api/allusers")
 def displayUsers():
-    all_users = User.query.all()
+    all_notes = User.query.all()
     list_notes = []
     for note in all_notes:
         notes_list = note.to_dictionary()

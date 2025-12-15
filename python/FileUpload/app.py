@@ -15,7 +15,7 @@ app.config["MAX_CONTENT_LENGTH"] = 16*1024*1024 #16MB max limit
 app.secret_key = "mysert!5477"
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
+print(os.listdir(UPLOAD_FOLDER))
 #file validation
 def allowed_file(filename:str):
     return "." in filename and filename.rsplit(".",1)[1].lower() in ALLOWED
@@ -38,7 +38,18 @@ def upload():
         return redirect(url_for("home"))
     
     file = request.files["file"]
-    
+    #if file exists
+    def fileExists(fileName):
+        
+        if fileName in os.listdir(UPLOAD_FOLDER):
+            fileNamed = fileName.split(".",1)[0]+"(1)"+".md"
+            safe_name =secure_filename(fileNamed)
+            save_path = os.path.join(app.config["UPLOAD_FOLDER"], safe_name)
+            file.save(save_path)
+            flash(f"Upload successful:{safe_name}")
+            print(f"Upload successful:{safe_name}")
+            return redirect(url_for("home"))
+        
     #No selected file
     if file.filename =="":
         flash("Error: No file selected")
@@ -46,6 +57,7 @@ def upload():
     
     #Validate file extension
     if file and allowed_file(file.filename):
+        
         #convert txt to md
         print((file.filename.rsplit(".",1)[0]),"dhdh")
         if file.filename[:-4:-1]=="txt":
@@ -53,13 +65,18 @@ def upload():
             safe_name =secure_filename(file.filename)
             save_path = os.path.join(app.config["UPLOAD_FOLDER"], safe_name)
             file.save(save_path)
+            fileExists(file.filename)
             flash(f"Upload successful:{safe_name}")
-            return(redirect(url_for("home")))
+            print(f"Upload successful:{safe_name}")
+            return redirect(url_for("home"))
+            
         
+        #if valid filename
         safe_name = secure_filename(file.filename)
         save_path = os.path.join(app.config["UPLOAD_FOLDER"], safe_name)
         file.save(save_path)
-        flash(f"Upload successful:{safe_name}")
+        
+        print(31)
         return redirect(url_for("home"))
     
     else:
