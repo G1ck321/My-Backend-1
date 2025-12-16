@@ -1,0 +1,17 @@
+Part One:
+    - Hashing is a mathematical function that turns data into a scrambled string of characters
+    - Encryption is like a suitcase with a key you can unlock it(decrypt)
+    - When a user logs in you don't decrypt, you take the password, hash it, and see if the hash matches
+    - Salting, if 2 users have same passwords, their hashes will look exactly the same 
+    a hacker  could use a "Rainbow Table" (a giant list of pre-calculated hashes), to reverse them 
+Fix: Salting: we can add a random string before it goes into the hash
+
+Part Two:
+    - We will use werkzeug.security, It comes installed with Flask,
+    and handles comples math (algorithms like, scrypt or pdbkdf2) and automatic salting for you
+    - functions used, generate_password_hash(password): Turns "monkey123" into scrypt:32768:8:1$kPv...,
+    check_password_hash(hash, password): Takes the stored hash and the guess, and returns True or False
+
+Part 3:
+    - The Project (Admin Signup & Verification)
+

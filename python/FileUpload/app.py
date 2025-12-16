@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 import os
 
 UPLOAD_FOLDER= "uploads"
-ALLOWED = {"png","jpg","jpeg","gif","txt","pdf","md"}
+ALLOWED = {"png","jpg","jpeg","gif","txt","pdf","md","docx","zip"}
 
 app = Flask(__name__)
 

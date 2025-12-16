@@ -20,6 +20,18 @@ class Book(BaseModel):
 
 #4 Create a POST endpoint that consumes the Pydantic Model
 @app.post("/books/")    
-    def create_book(book:Book):#The magic: FastAPI expects a Book Object here
+def create_book(book:Book):# FastAPI expects a Book Object here
     #FastAPI automatically:
     # 1. Reads the JSON request body. 
+    #2. Validates against book model
+    #3 pases valid book object
+    print(f"Received new book {book.title} by {book.author}")
+    return {"status":"Book created", "data":book}
+#Analogy Python is single threaded 
+#await lets you switch while a task is cooking, making it never idle
+#Uvicorn is the store manager /switchboard, Fastapi is the guy switching
+#but the guy speaks in python(objects) the customer(web browser) HTTP
+#uvicorn catches the customer coming in (HTTP request)
+# it translates to the python form
+#Uvicorn creates the socket, listens on the port, 
+# parses raw HTTP bytes into ASGI scope and gives FastAPI app

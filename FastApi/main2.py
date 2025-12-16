@@ -22,6 +22,8 @@ async def async_task():
     print ("Async task started waiting...")
     #await is mandatory when calling an asychronous function (like asyncio.sleep)
     #The main thread yields control here to handle other requests.
-    await asyncio.sleep(2) #Simulates a 2-second I/O delay
+    await asyncio.sleep(2) #Simulates a 2-second I/O delay, main thread yeilds control to other requests
     print("Async task resumed and finished. ")
     return {"message":"Async task finished after 2s delay."}
+# async is used for tasks that are I/O bound (waitining for external systems, db or API)
+#You must use await in these functions 
