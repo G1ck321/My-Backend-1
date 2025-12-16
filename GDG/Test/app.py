@@ -26,7 +26,7 @@ with app.app_context():
 
 @app.route("/hello")
 def home():
-    return "hello world"
+    return jsonify("hello world")
 
 @app.route("/")
 def homePage():
