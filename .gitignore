@@ -1,2 +1,4 @@
 .env
 Javascript\Personal
+__pycache__/
+*.pyc
