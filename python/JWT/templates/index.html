@@ -208,14 +208,21 @@
                 username: e.target.username.value,
                 password:e.target.password.value
             }
-            let options = {
-                method: "POST",
-                headers:{
-                    
-                    "Content-Type":"application/json"
-                },
-                body: JSON.stringify(data)
+            if (data.username.includes(" ")){
+                alert("Username can not contain space\n\
+                Sign in again")
+                e.target.reset()
             }
+            else{
+
+                let options = {
+                    method: "POST",
+                    headers:{
+                    
+                        "Content-Type":"application/json"
+                    },
+                    body: JSON.stringify(data)
+                }
             function signUp(){
                 fetch('/signup',options)
                 .then(res=>res.json())
@@ -224,6 +231,7 @@
             }
             signUp()
             e.target.reset();
+        }
         })
     </script>
 </body>

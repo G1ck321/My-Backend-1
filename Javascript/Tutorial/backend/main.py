@@ -54,7 +54,7 @@ def update_contact(user_id):
     contact.email = data.get("email", contact.email)
 
     # since contact already exist commiting makes it permanent
-    db.session.commit
+    db.session.commit()
 
     return jsonify({"message": "User updated"}), 200
 

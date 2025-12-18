@@ -14,4 +14,25 @@ Part Two:
 
 Part 3:
     - The Project (Admin Signup & Verification)
+Day-Two:
+    The secret_key is the most important component of your security system.
+    if a hacker gets this key they can impersonate anyone, (even CEO)
+    -You can get a security key by typing any string (for learning and development)
+    -For production you must generate a long, random unguessable string.(nebver type it).
+    run these two lines in your terminal `import secrets print(secrets.token_hex(32))
 
+Part One:
+send data(clent)->server generatestoken and hashes password
+client saves login in browser->sends get and verifies
+    A JSON Web Token is just a text string seperated by dots(.):
+    Header.Payload.Signature:
+    * Header(The "What"): Describes the token("I am JWT using HS256 alg)
+    * Payload(The "Who"): Contains the data. We put the user ID e.g{"sub":1,"role":"admin"}
+    Anyone can read this part(It's just Base 64 Encoded, not encrypted don't put password here)
+    * Signature (The Proof): The server takes the Header+Payload+Your Secret Key and mixes them mathematically
+    Why the Secret key matters:
+    When a user sends a token back to you, your Flask app recalculates the Signature
+    using the secret key you have on the server.
+    * if the user tries to change the Payload(change role to admin) signature won't match
+    * Flask will instantly reject with "Signature Verification faiiled"
+    
