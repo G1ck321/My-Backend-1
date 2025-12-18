@@ -5,7 +5,7 @@ body{
 
 }
 .intro{
-    background: url(../svg/ou.png);
+    background: url(../svg/note2.png);
     background-repeat: no-repeat;
     background-size: 110% ;
     position: relative;
@@ -33,23 +33,43 @@ body{
 }
 .nav-item{
     padding: 0;
-    transition: all .4s;
+    transition: all .4s ;
 }
 .nav-item:hover{
         background-color: #20c997;
         border-radius: 10px;
     }
 
-    @media(max-width:576px){
-        .nav-item:nth-child(n+4){
-            display: none;
+    .drop{
+     display: none;
+    }
 
+    @media(max-width:576px){
+        .nav-item:nth-child(n+5){
+            display: none;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease-out, transform 0.4s ease-out, ;
         }
         .navbar{
             max-width: 90%;
+            
+            
         }
         .navbar-expand{
             flex-direction: column;
-
         }
+    .drop{
+        display: block;
+    }
+    section{
+        max-height: 400px;
+    }
+    }
+    .display-vis{
+        display: block !important;
+        visibility:visible !important;
+        transform: translateY(0) !important;
+        opacity: 1 !important;
     }
