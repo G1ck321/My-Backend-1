@@ -2,7 +2,7 @@ const {MongoClient} = require('mongodb')
 
 let dbConnection;
 
-let uri = 'mongodb://localhost:27017/dbNxtWave'
+let uri = 'mongodb://0.0.0.0:27017/dbNxtWave'
 
 //define two methods
 module.exports = {
@@ -18,6 +18,6 @@ module.exports = {
         })
         
     },
-    getDb: () => { },
+    getDb: () => dbConnection,
 
 }
