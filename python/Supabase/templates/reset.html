@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Todo App – Reset Password</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #9bb8d4ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .heading {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            width: 320px;
+            padding:4em;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        form input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 10px ;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="heading">
+    <h1>Welcome to our Todo App</h1>
+    <h3>Reset your password</h3>
+</header>
+
+<div class="container">
+    <div class="lines"></div>
+    <div class="lines1"></div>
+
+    <form id="userForm">
+        
+        <input type="password" name="password" placeholder="New password..." required>
+
+        <div class="footer">
+            <button type="submit">Submit</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    
+   // 1. Use a different name for your instance to avoid conflicts
+let supabaseClient;
+
+// We wrap the initialization to ensure the library is loaded
+window.onload = () => {
+    supabaseClient = supabase.createClient(
+        "https://pzttawvvneekxusckjzh.supabase.co",
+        "sb_publishable_SUXifdLsOrOiUlsOjqbx_w_nLHhyJNB"
+    );
+    
+    initializeForm();
+};
+
+async function initializeForm() {
+    const form = document.getElementById("userForm");
+
+    // 2. Check session
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+    
+    if (sessionError || !session) {
+        console.log(session)
+        alert("Reset link expired or invalid");
+        window.location.href = "login"; // Ensure this path is correct
+        return;
+    }
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const newPassword = form.password.value;
+        const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+
+        if (error) {
+            alert("Update failed: " + error.message);
+            return;
+        }
+        console.log(form.password.value)
+        alert("Password reset successful!");
+        window.location.href = "./dashboard"; // Make sure the .html extension is there if needed
+    });
+}
+</script>
+
+
+</body>
+</html>
