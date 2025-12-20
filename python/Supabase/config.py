@@ -13,5 +13,6 @@ CORS(app)
 url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_KEY")
 tablename = os.getenv("TABLE_NAME")
-
+print(url)
+print(key)
 supabase = create_client(url,key)

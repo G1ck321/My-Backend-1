@@ -4,7 +4,7 @@ from model import get_all_todos, create_todo, get_todo, delete_todo, update_todo
 #pip install --force-reinstall supabase FIx conflicts
 
 
-signIn()
+
 @app.route("/login")
 def login():
     return render_template("index.html")
@@ -21,7 +21,10 @@ def listTodo():
 @app.get("/api/user/<int:user_id>")
 def getUser(user_id):
     todo = get_todo(user_id)
-    return jsonify(todo),200
+    if not todo:  # None or empty list
+        return jsonify({"error": "Todo not found"}), 404
+    return jsonify(todo[0]), 200  # return the single todo as dict
+
 
 @app.post("/api/newuser")
 def createUser():
