@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+        table{
+            text-align: center;
+            border-collapse: collapse;
+        }
+    </style>
+  </head>
+  <body>
+    <h2>
+        Welcome
+    </h2>
+    <table id="mytab" border="solid">
+      <tr>
+        <th>id</th>
+        <th>First name</th>
+        <th>Last name</th>
+        <th>email</th>
+        <th>gender</th>
+      </tr>
+      <tr>
+        <td></td>
+        <td></td>
+        <td>45</td>
+        <td></td>
+        <td></td>
+      </tr>
+    </table>
+    <script>
+        function getData(){
+            const myTab = document.getElementById("mytab")
+            fetch("http://localhost:3001/allstudents")
+            .then(res=>res.json())
+            .then(resp=>{console.log(resp);
+            
+            for (const[id,arr] of Object.entries(resp))
+                
+                myTab.innerHTML += `<tr>
+        <td>${arr["id"]}</td>
+        <td>${arr["first_name"]}</td>
+        <td>${arr["last_name"]}</td>
+        <td>${arr["email"]}</td>
+        <td>${arr["gender"]}</td>
+      </tr>`
+            })
+            .catch(err=>{
+                alert("There was an error")
+                console.log("There was an error",err)
+            })
+            
+        }
+        getData()
+        async function putData(){
+            data  = {
+                first_name:"Elisabeth"
+            }
+            let options={
+                method:'PUT',
+                headers:{
+                    "Content-Type":"application/json"
+                },
+                body:JSON.stringify(data)
+            }
+            const response = await fetch('/api/update/6',options);
+            try{
+
+                if (response.status ==200){
+                    console.log(response.status)
+                    const apires = await response.json()
+                    alert(JSON.stringify(apires))
+                    console.log(JSON.stringify(apires))
+                }
+            }
+            catch{
+                console.log("Network Error")
+            }
+        }
+        putData()
+    </script>
+  </body>
+</html>

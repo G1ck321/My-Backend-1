@@ -1,0 +1,257 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: #121212; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #1e1e1e; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; border-top: 4px solid #e50914; /* Netflix Red */ }
+        button { margin-top: 20px; padding: 10px 20px; cursor: pointer; background: #e50914; color: white; border: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+   <div id="loader">Loading your personalized experience...</div>
+<div id="content" style="display:none;">
+    <h1 id="welcome-text"></h1>
+    <p id="secret-info"></p>
+</div>
+
+    <script>
+    /*    async function loadDashboard() {
+    // 1. Grab the 'wristband' from storage
+    const token = localStorage.getItem('access_token');
+
+    // 2. If no token, they aren't logged in! Send them away.
+    if (!token) {
+        window.location.href = "/login";
+        return;
+    }
+
+    try {
+        // 3. The "Magic" Step: Attaching the Header
+        const response = await fetch('/api/me', {
+            method: 'GET',
+            headers: {
+                // This is what the Flask-JWT-Extended extension is looking for!
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            const userData = await response.json();
+            // 4. Update the UI with the user's name
+            document.getElementById('welcome-msg').innerText = `Welcome back, ${userData.username}!`;
+            document.getElementById('user-id').innerText = `User ID: #00${userData.id}`;
+        } else {
+            // Token might be expired or invalid
+            localStorage.removeItem('access_token');
+            window.location.href = "/login";
+        }
+    } catch (err) {
+        console.error("Network error:", err);
+    }
+//}
+
+// Run this as soon as the page loads
+window.onload = loadDashboard;
+        // ... include the loadDashboard function here ...
+
+        function logout() {
+            localStorage.removeItem('access_token');
+            window.location.href = "/login";
+        }*/
+        async function hydrateDashboard() {
+    const token = localStorage.getItem('access_token');
+
+    // If no token, redirect to login immediately
+    if (!token) {
+        window.location.href = "/login";
+        return;
+    }
+
+    // Call the PROTECTED data route
+    const response = await fetch('/api/dashboard-data', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    });
+
+    if (response.status === 200) {
+        const data = await response.json();
+        
+        // Fill the UI with data (Hydration)
+        document.getElementById('welcome-text').innerText = `Welcome, ${data.username}`;
+        document.getElementById('secret-info').innerText = data.secret_info;
+        
+        // Toggle visibility
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+    } else {
+        // Token invalid or expired
+        localStorage.removeItem('access_token');
+        window.location.href = "/login";
+    }
+}
+
+hydrateDashboard();
+    </script>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netflix | Dashboard</title>
+    <style>
+        :root {
+            --netflix-red: #E50914;
+            --dark-bg: #141414;
+            --card-bg: #181818;
+            --text-white: #FFFFFF;
+            --text-gray: #A3A3A3;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--dark-bg);
+            color: var(--text-white);
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* The Dashboard Card */
+        .dashboard-card {
+            background-color: var(--card-bg);
+            padding: 3rem;
+            border-radius: 8px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            border-top: 5px solid var(--netflix-red);
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: scale(1.02);
+        }
+
+        h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        p { color: var(--text-gray); margin-bottom: 2rem; }
+
+        .user-badge {
+            display: inline-block;
+            background: #2f2f2f;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: bold;
+            color: var(--netflix-red);
+            margin-bottom: 2rem;
+        }
+
+        /* Buttons */
+        .btn-group { display: flex; gap: 1rem; justify-content: center; }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        .btn-logout { background-color: var(--netflix-red); color: white; }
+        .btn-signup { background-color: transparent; color: white; border: 1px solid var(--text-gray); }
+        .btn:hover { opacity: 0.8; }
+
+        /* Loading Spinner */
+        #loader {
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top: 4px solid var(--netflix-red);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-card">
+        <div id="loading-state">
+            <div id="loader"></div>
+            <p style="margin-top: 1rem;">Retrieving Secure Profile...</p>
+        </div>
+
+        <div id="main-content" class="hidden">
+            <h1>Welcome Back</h1>
+            <div class="user-badge" id="username-display">User</div>
+            <p id="secret-message">Loading secret info...</p>
+            
+            <div class="btn-group">
+                <button onclick="logout()" class="btn btn-logout">Logout</button>
+                <a href="/" class="btn btn-signup">Sign Up Page</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchProtectedData() {
+            const token = localStorage.getItem('access_token');
+
+            // If no token, the bouncer kicks you out
+            if (!token) {
+                window.location.href = "/login";
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/dashboard-data', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // HYDRATION: Putting data into the UI
+                    document.getElementById('username-display').innerText = data.username;
+                    document.getElementById('secret-message').innerText = data.secret_info;
+                    
+                    // Toggle UI
+                    document.getElementById('loading-state').classList.add('hidden');
+                    document.getElementById('main-content').classList.remove('hidden');
+                } else {
+                    // Token is likely expired or malformed
+                    logout();
+                }
+            } catch (err) {
+                console.error("Network Error:", err);
+            }
+        }
+
+        function logout() {
+            // First Principles: Logging out is just clearing local state
+            localStorage.removeItem('access_token');
+            window.location.href = "/";
+        }
+
+        // Run on load
+        window.onload = fetchProtectedData;
+    </script>
+</body>
+</html>
