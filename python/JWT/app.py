@@ -5,6 +5,7 @@ from flask_jwt_extended import JWTManager, create_access_token
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_cors import CORS
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 app = Flask(__name__)
 
@@ -24,6 +25,18 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # os.path.join(basedir,'project.db')adds correct / between
 
 db = SQLAlchemy(app)
+#Global error handler
+@app.errorhandler(Exception)
+def handle_global(e):
+    """GLobal error handler"""
+    return jsonify({"error":"Internal Server Error"})
+#400
+@app.errorhandler(400)
+def handle_bad_req(e):
+    return jsonify({"error":"Bad Request"})
+@app.errorhandler(404)
+def handle_not_found():
+    return jsonify({"error":"Not found"})
 
 class User(db.Model):
     id = db.Column( db.Integer, primary_key = True)
@@ -47,18 +60,29 @@ def signup():
     
     hashed_pw = generate_password_hash(data["password"])
     
-    new_user  = User(username = data["username"], password_hash = hashed_pw)
-    db.session.add(new_user)
-    db.session.commit()
-    return jsonify({"msg":"User Created!"}),201
+    try:
+        new_user  = User(username = data["username"], password_hash = hashed_pw)
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({"msg":"User Created!"}),201
+    except IntegrityError: 
+        # This happens when a unique constraint fails(dulicate data)
+        db.session.rollback()#important undo failed transaction
+        return jsonify({"msg":"Username alreeady exists"}),409
+    except SQLAlchemyError as e:
+        #catch any other errors
+        db.session.rollback()
+        return jsonify({"msg":"Database Error ","error":str(e)})
 @app.post('/login-check')
 def login_check(): 
     data = request.get_json() 
     user = User.query.filter_by(username = data["username"]).first()
     #Verify Hash
-    if user and check_password_hash(user.password_hash, data["password"]):
-        return jsonify({"msg":"You have been verified"}), 200
-    return jsonify({"msg":"Wrong credentials"}),401
+    try:
+        if user and check_password_hash(user.password_hash, data["password"]):
+            return jsonify({"msg":"You have been verified"}), 200
+    except SQLAlchemyError as e:
+        return jsonify({"msg":"Wrong credentials"}),401
 
 @app.route("/api/allusers", methods=['GET'])
 def getUsers():

@@ -216,13 +216,28 @@
             }
             
             async function existUser(){
+                const response = await fetch('/login-check', options);
+            try{
+                if (response.status ===200){
+                
+                console.log(response.status )
+                const info = await response.json()
+                alert(JSON.stringify(info))
+                console.log(JSON.stringify(info))
+                localStorage.setItem('access_token', info.access_token)
+                setTimeout(() => {
+                    window.location.href = "/dashboard";
+                }, 1500);
+            }
             
-            const response = await fetch('/login-check', options);
-
-            console.log(response.status, )
-            const info = await response.json()
-            alert(JSON.stringify(info))
-            console.log(JSON.stringify(info))
+                else {
+            
+            alert("Login Failed: " + info.msg);
+            }
+        }
+            catch(err){
+                console.error("Network Error:", err);
+            }
         }
             existUser();
             e.target.reset()
