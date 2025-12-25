@@ -156,7 +156,7 @@ def createUser():
     
     db.session.add(user)
     db.session.commit()
-    return jsonify({"message": "Note created", "note": user.to_dictionary()}), 201
+    return jsonify({"message": "user created"}), 201
         
 if __name__ == "__main__":
     port = int(os.environ.get("PORT",3000))
