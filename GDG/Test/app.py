@@ -1,104 +1,163 @@
+from flask import Flask, render_template, jsonify, request
+from config import app
+from models import db, User,Note
 import os
-from flask import Flask, request, jsonify, render_template
-from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager, create_access_token
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_cors import CORS
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy import text
+import datetime
+from flask_migrate import Migrate
 
-app = Flask(__name__)
-CORS(app)
+Migrate(app,db)
+#status code
+#env
+#structure, 
+#presentation 
+# JWT Authentication, deploy on render, github
+# storage bucket  and external storage bucket for file, pagination, git
 
-# ---- Configuration ----
-basedir = os.path.abspath(os.path.dirname(__file__))
-os.makedirs(basedir + "/instance", exist_ok=True)
-app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///' + os.path.join(basedir, 'instance', 'project.db')
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-db = SQLAlchemy(app)
-
-# ---- Models ----
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(60), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-    
-    def to_json(self):
-        return {"id": self.id, "username": self.username}
+now = datetime.datetime.now().strftime("%D %H:%M")
 
 with app.app_context():
+    db.init_app(app)
+    #binds the sqlalchemy to app
+    
     db.create_all()
-
-# ---- Global error handler ----
-@app.errorhandler(SQLAlchemyError)
-def handle_db_errors(error):
-    """Handles any database errors globally."""
-    db.session.rollback()
-    return jsonify({"msg": "Database error", "error": str(error)}), 500
-
-@app.errorhandler(404)
-def handle_404(error):
-    return jsonify({"msg": "Resource not found"}), 404
-
-@app.errorhandler(400)
-def handle_400(error):
-    return jsonify({"msg": "Bad request"}), 400
-
-# ---- Routes ----
-@app.post("/signup")
-def signup():
-    data = request.get_json()
-    hashed_pw = generate_password_hash(data.get("password"))
     
-    new_user = User(username=data.get("username"), password_hash=hashed_pw)
-    db.session.add(new_user)
-    
-    try:
-        db.session.commit()
-        return jsonify({"msg": "User created!"}), 201
-    except IntegrityError:
-        # Duplicate username
-        db.session.rollback()
-        return jsonify({"msg": "Username already exists"}), 400
+    #creates table
 
-@app.post('/login-check')
-def login_check():
-    data = request.get_json()
-    user_stmt = db.select(User).filter_by(username=data.get("username"))
-    user = db.session.scalar(user_stmt)
-    
-    if user and check_password_hash(user.password_hash, data.get("password")):
-        return jsonify({"msg": "You have been verified"}), 200
-    return jsonify({"msg": "Wrong credentials"}), 401
-
-@app.route("/api/allusers", methods=['GET'])
-def getUsers():
-    users_stmt = db.select(User)
-    users = db.session.scalars(users_stmt).all()  # Returns a list
-    json_users = [user.to_json() for user in users]
-    return jsonify(json_users), 200
-
-@app.delete("/api/delete/<int:user_id>")
-def deleteUser(user_id):
-    user_stmt = db.select(User).filter_by(id=user_id)
-    user = db.session.scalar(user_stmt)
-    
-    if not user:
-        return jsonify({"msg": "User not found"}), 404
-    
-    db.session.delete(user)
-    db.session.commit()
-    return jsonify({"msg": "User deleted"}), 200
-
-# ---- Pages ----
-@app.route("/")
+@app.route("/hello")
 def home():
+    return jsonify("hello world")
+
+@app.route("/")
+def homePage():
+    return render_template("setup.html")
+
+@app.route("/signup")
+def userSign():
+    return render_template("signUp.html")
+
+@app.route("/note")
+def renderPage():
     return render_template("index.html")
 
-@app.route("/login")
-def login():
-    return render_template("login.html")
+@app.route("/mynote")
+def myNotes():
+    return render_template("note.html")
+@app.route("/api/allnotes")
+def displayNotes():
+    # all_notes = Note.query.all()
+    all_notes = Note.query.order_by(Note.updated_at.desc())
+    list_notes = []
+    for note in all_notes:
+        notes_list = note.to_dictionary()
+        # if notes_list["id"] ==22:
+        #     print(notes_list["content"])
+        
+        list_notes.append(notes_list)   
+        #sort in a particular order
+        
+    # list_notes.sort(key=lambda noted:noted["updated_at"] or noted["created_at"],reverse=True)
+    print(list_notes)
+    
+    # print(list_notes)
+    return jsonify(list_notes), 200
 
-# ---- Run App ----
+@app.route("/create_notes", methods=["POST"])
+def createData():
+    data = request.get_json()
+    content = data.get("content")
+    if not content:
+        return jsonify({"message": "Content required"}), 400
+    note = Note(content=content)
+    db.session.add(note)
+    db.session.commit()
+    return jsonify({"message": "Note created", "note": note.id}), 201
+        
+        
+    
+
+
+@app.route("/update_notes/<int:note_id>", methods=["PUT"])
+def updateUser(note_id):
+    data = request.get_json()
+    print(data)
+    if not data or 'content' not in data:
+        return jsonify({'error':f"note with id {note_id} has no content"}),404
+    
+    note = db.session.get(Note, note_id)
+    note.content= data['content'].strip()
+    note.updated_at =datetime.datetime.utcnow()
+    db.session.commit()
+    print(note.content)
+    return jsonify({"message":"updated"}),200
+
+# @app.route("/get_notes", methods=["GET"])
+# def displayData():
+#     return jsonify(notes), 200
+
+@app.route("/api/search",methods = ['GET'])
+def searchNotes():
+    query = request.args.get('q','')
+    print(query,'lk')
+    try:
+        note_list = []
+        result = Note.query.filter(Note.content.ilike(f"%{query}%")).all()
+        for note in result:
+            each_note = {"id":note.id, "content":note.content,"update":note.updated_at}
+            note_list.append(each_note)    
+            print(note_list)    
+        note_list.sort(key=lambda each_note:each_note["update"], reverse=True)
+        if note_list:
+            return jsonify(note_list),200
+        else:
+            print(note_list)
+            return jsonify(""),200
+    except:
+        return jsonify("Not found"),404
+
+@app.route("/api/delete_note/<int:note_id>", methods = ['DELETE'])
+
+def deleteNotes(note_id):
+    note = db.session.get(Note, note_id)
+    if  not  note:
+        return jsonify({'error':f"note with id {note_id} does not exist"}),404
+    db.session.delete(note)
+    db.session.commit()
+    try:
+        return jsonify({"message":f"Deleted Succesfuly"}),200
+    except:
+        return jsonify({"message":f"Select an notes"}),404
+#stylus stuff
+@app.route("/api/allusers")
+def displayUsers():
+    all_notes = User.query.all()
+    list_notes = []
+    for note in all_notes:
+        notes_list = note.to_dictionary()
+        # if notes_list["id"] ==22:
+        #     print(notes_list["content"])
+        
+        list_notes.append(notes_list)   
+        #sort in a particular order
+    list_notes.sort(key=lambda user_key:user_key["email"],reverse=True)
+    print(notes_list)
+    
+    # print(list_notes)
+    return jsonify(list_notes), 200
+
+@app.route("/api/create", methods=["POST"])
+def createUser():
+    data = request.get_json()
+    name = data.get("name")
+    email = data.get("email")
+    if not name or not email:
+        return jsonify({"message": "Content required"}), 400
+    user = User(name=name, email = email)
+    
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({"message": "Note created", "note": user.to_dictionary()}), 201
+        
 if __name__ == "__main__":
-    app.run(debug=True, port=3500)
+    port = int(os.environ.get("PORT",3000))
+    app.run(host = "0.0.0.0",port=port, debug=True)
