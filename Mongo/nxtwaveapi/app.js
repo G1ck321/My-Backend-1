@@ -96,7 +96,7 @@ app.get("/allstudents", (req, res) => {
     db.collection("students")
         .find()
         .sort({
-            "id": 1
+            "id":   1
         })
         .limit(allstudents)
         .forEach(student => allstuds.push(student))
@@ -115,7 +115,7 @@ app.post("/api/students", (req, res) => {
         .then((result) => {
             console.log(result)
             //result is mongodb response
-            res.status(200).json({
+            res.status(201).json({
                 result
             })
         })
@@ -125,7 +125,7 @@ app.post("/api/students", (req, res) => {
             })
         })
 })
-app.put("/api/update/:id", (req, res) => {
+app.patch("/api/update/:id", (req, res) => {
     let update = req.body;
     const studentId = parseInt(req.params.id)
     if (!isNaN(studentId)) {
@@ -157,5 +157,24 @@ app.put("/api/update/:id", (req, res) => {
         res.status(400).json({
             "Error": "Student id must be a valid number."
         })
+    }
+})
+//delete a student
+app.delete("/api/students/:id", (req, res) => {
+    const studentId = parseInt(req.params.id)
+    if (!isNaN(studentId)) {
+        db.collection("students")
+            .deleteOne({ id: studentId })
+            .then((result) => {
+                res.status(200).json({result})//if we use 204 it does not have a body
+                //we use 200 to see body
+                    .catch(() => {
+                res.status(500).json("Error creating student")
+            })
+        })
+        //delete
+    }
+    else {
+        res.status(400).json({Error:"Student Id must be a number"})
     }
 })
