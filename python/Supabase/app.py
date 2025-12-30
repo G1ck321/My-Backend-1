@@ -1,47 +1,16 @@
-from flask import Flask, jsonify, request,render_template
-from config import app
-from model import get_all_todos, create_todo, get_todo, delete_todo, update_todo, signIn
-#pip install --force-reinstall supabase FIx conflicts
+# backend/app.py
+from stylus_api import create_app
+from flask import Flask
+from flask_cors import CORS
+from dotenv import load_dotenv
+from stylus_api import get_current_user_id
+load_dotenv()
+app = create_app()
+CORS(app)
 
+@app.route("/api/health", methods=["GET"])
+def health():
+    return {"status": "Flask running!", "user_id": get_current_user_id()}
 
-
-@app.route("/login")
-def login():
-    return render_template("index.html")
-
-@app.route("/")
-def home():
-    return render_template("toDo.html")
-
-@app.get("/api/todo")
-def listTodo():
-    todos = get_all_todos()
-    return jsonify(todos),200
-
-@app.get("/api/user/<int:user_id>")
-def getUser(user_id):
-    todo = get_todo(user_id)
-    if not todo:  # None or empty list
-        return jsonify({"error": "Todo not found"}), 404
-    return jsonify(todo[0]), 200  # return the single todo as dict
-
-
-@app.post("/api/newuser")
-def createUser():
-    new_todo = request.get_json()
-    todo = create_todo(new_todo)
-    return jsonify (todo),201
-
-@app.delete("/api/delete_todo/<int:user_id>")
-def deleteTodo(user_id):
-    todo = delete_todo(id = user_id)
-    return jsonify(todo),204
-
-@app.patch("/api/update_todo/<int:user_id>")
-def updateTodo(user_id):
-    data = request.get_json()
-    todo = update_todo(id = user_id,new_todo={"name":data["name"]})
-    return jsonify(todo),201
-    
 if __name__ == "__main__":
-    app.run( port=5000, debug=True)
+    app.run(debug=True, host="0.0.0.0", port=8080)

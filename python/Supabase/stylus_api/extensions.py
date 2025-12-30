@@ -1,0 +1,1 @@
+# shared objects (e.g. supabase client)
