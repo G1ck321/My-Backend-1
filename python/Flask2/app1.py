@@ -2,7 +2,14 @@ from flask import Flask, jsonify, send_from_directory,render_template
 import json
 from flask import request
 from flask_cors import CORS
-app = Flask(__name__)
+from config import app,db
+from model import User
+
+with app.app_context():
+    #binds the sqlalchemy to app
+    
+    db.create_all()
+    
 CORS(app, origins=["http://127.0.0.1:5001","http://127.0.0.1:5000"])#from,to
 #CORS(app, origins=["current port or domain", "port that wants to receive"])
 
@@ -51,47 +58,33 @@ def create_users():
         if not all(key in data for key in ['username','age','job']):
             #ensures all the fields are sent if there are less than 3 keys in data all be false
             return{"error:missing required fields"},400
-        #duplicates
-        for user in users:
-            for user_data in user:
-                if data["username"] == user_data[0]:
-                    return jsonify({"error":"Username already exists"})
-        new_id = len(users)+1
-        new_user = "user"+str(new_id)
-        data.update({"id":new_user})
-        users.append(data)
+        age = data["age"]
+        job = data["job"]
+        username = data["username"]
+        new_user = User(age=age, job=job, username=username)
+        try:
+            db.session.add(new_user)
+            db.session.commit()
+        except Exception as e:
+        # if any error it catches it
+            db.session.rollback()
+            print("Database error:", str(e))
+            return (jsonify({"message": str(e)}), 400)
         return jsonify({"message": "User added successfully","users":users[-1]}),201
+    
+    #     #duplicates
+    #     for user in users:
+    #         for user_data in user:
+    #             if data["username"] == user_data[0]:
+    #                 return jsonify({"error":"Username already exists"})
+    #     new_id = len(users)+1
+    #     new_user = "user"+str(new_id)
+    #     data.update({"id":new_user})
+    #     users.append(data)
     if request.method =="GET":
         return jsonify(users),200
     
-#flawed logic
-# def get_users():
-# if request.method == 'POST':
-# data = request.get_json()
-# list_data = list(data.values())#was a dict
-# for user_key, user_value in users[-1].items():
-# #gets "users" text
-# user_dict = {}
-
-# print(int(user_key[-1])+1)#removes the number from users
-# for i,p in enumerate(users):
-# print(users[i].get("user"+str(i+1)))#gets the value of each user +1 is because i=0
-# if list_data[0] in users[i].get("user"+str(i+1)) or users[i]!=users[-1]:
-# continue
-
-
-# elif list_data[1] not in users[i].get("user"+str(i+1)) and users[i]==users[-1]:
-# user_dict["user"+f'{(int(user_key[-1])+1)}'] = list_data
-# users.append(user_dict)
-# return jsonify({"message": "User added successfully", "users": users[-1]}), 201
-
-# else:
-# return jsonify({"message": "Username already exists"}), 200
-# return jsonify({"message": "Username already exists"}), 200
-# print(users)
-# if request.method =='GET':
-# return jsonify(users),200
-
+    
 @app.route("/")
 def serve():
 # return send_from_directory('.', 'index.html')
@@ -119,6 +112,14 @@ def update_users(username):
                 
 
     return jsonify({"Success":"You have updated your details"})
+@app.route("/api/migrate", methods=["GET"])
+def getAll():
+    users = User.query.all()
+    json_users = list(map(lambda x:x.to_json(), users))
+    return jsonify(json_users),200
+
+
+
 
 if __name__ == "__main__":
     app.run(port=5001, debug=True)
