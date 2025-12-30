@@ -5,7 +5,8 @@ from flask import current_app
 from datetime import datetime
 
 def _storage_client():
-    url = current_app.config["SUPABASE_URL"].rstrip("/") + "/storage/v1"
+    # Note the / at the end of the string
+    url = current_app.config["SUPABASE_URL"].rstrip("/") + "/storage/v1/"
     key = current_app.config["SUPABASE_SERVICE_ROLE_KEY"]
     headers = {"apiKey": key, "Authorization": f"Bearer {key}"}
     return create_client(url, headers, is_async=False)

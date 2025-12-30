@@ -11,11 +11,9 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    CORS(app, resources={r"/api/*": {
-        "origins": ["http://localhost:3000", "https://*.vercel.app"]
-    }},
-        supports_credentials= True
-        )
+    CORS(app, 
+     resources={r"/api/*": {"origins": "http://localhost:3000"}}, 
+     supports_credentials=True)
     
     # Register blueprints
     app.register_blueprint(profile_bp, url_prefix="/api")

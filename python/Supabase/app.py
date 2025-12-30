@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from stylus_api import get_current_user_id
 load_dotenv()
 app = create_app()
-CORS(app)
+
 
 @app.route("/api/health", methods=["GET"])
 def health():

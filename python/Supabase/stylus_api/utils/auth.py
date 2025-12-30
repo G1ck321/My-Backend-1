@@ -1,46 +1,38 @@
-# backend/stylus_api/utils/auth.py - FIXED
+# backend/stylus_api/utils/auth.py
 import jwt
-import requests
 from flask import request, current_app
-import json
 
 def get_current_user_id():
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        print("DEBUG: No Bearer token found in header")
         return None
-    
-    token = auth_header.split(" ")[1]
+
+    # Extract the token
+    token = auth_header.split(" ", 1)[1]
     
     try:
-        # FIXED: Correct Supabase JWKS endpoint
-        jwks_url = f"{current_app.config['SUPABASE_URL']}/.well-known/jwks.json"
-        print(f"🔍 Fetching JWKS from: {jwks_url}")  # DEBUG
+        # 1. Get the secret from your config (loaded from .env)
+        jwt_secret = current_app.config["SUPABASE_JWT_SECRET"]
         
-        res = requests.get(jwks_url, timeout=5)
-        if res.status_code != 200:
-            print(f"❌ JWKS failed: {res.status_code}")
-            return None
-            
-        jwks = res.json()
-        print(f"✅ JWKS loaded: {len(jwks['keys'])} keys")  # DEBUG
-        
-        header = jwt.get_unverified_header(token)
-        key = next((k for k in jwks["keys"] if k["kid"] == header["kid"]), None)
-        
-        if not key:
-            print(f"❌ No JWKS key for kid: {header['kid']}")
-            return None
-            
-        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(key)
+        # 2. Decode using HS256 (the Supabase default)
+        # Note: we add audience="authenticated" because Supabase sets this in every token
         payload = jwt.decode(
-            token, 
-            public_key, 
-            algorithms=["RS256"], 
+            token,
+            jwt_secret,
+            algorithms=["HS256"],
             audience="authenticated"
         )
-        print(f"✅ User verified: {payload['sub'][:8]}...")  # DEBUG
-        return payload["sub"]
         
+        print(f"DEBUG: Successfully verified user: {payload.get('sub')}")
+        return payload.get("sub") # 'sub' is the unique User ID
+        
+    except jwt.ExpiredSignatureError:
+        print("DEBUG: Token has expired")
+        return None
+    except jwt.InvalidTokenError as e:
+        print(f"DEBUG: JWT Decode failed: {str(e)}")
+        return None
     except Exception as e:
-        print(f"❌ JWT decode failed: {str(e)}")
+        print(f"DEBUG: Unexpected Auth Error: {str(e)}")
         return None
