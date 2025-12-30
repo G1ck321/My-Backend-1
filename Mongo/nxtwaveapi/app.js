@@ -19,7 +19,7 @@ let db;
 
 connectToDb((err) => {
     if (!err) {
-        app.listen(port, () => console.log(`Example app listening on port ${port}!`))
+        app.listen(port, () => console.log(`Example app listening on port http://127.0.0.1:${port} !`))
         db = getDb();
     }
 })
@@ -166,11 +166,11 @@ app.delete("/api/students/:id", (req, res) => {
         db.collection("students")
             .deleteOne({ id: studentId })
             .then((result) => {
-                res.status(200).json({result})//if we use 204 it does not have a body
+                res.status(204).json({ result })//if we use 204 it does not have a body
                 //we use 200 to see body
-                    .catch(() => {
-                res.status(500).json("Error creating student")
             })
+            .catch(() => {
+        res.status(500).json("Error creating student")
         })
         //delete
     }
