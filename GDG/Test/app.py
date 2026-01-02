@@ -102,6 +102,7 @@ def searchNotes():
     try:
         note_list = []
         result = Note.query.filter(Note.content.ilike(f"%{query}%")).all()
+        #list objects .all(), .first() actual str or int
         for note in result:
             each_note = {"id":note.id, "content":note.content,"update":note.updated_at}
             note_list.append(each_note)    

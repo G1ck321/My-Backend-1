@@ -4,8 +4,10 @@ from flask import request
 from flask_cors import CORS
 from config import app,db
 from model import User
+from flask_migrate import Migrate
 
 with app.app_context():
+    # db.init_app(app)
     #binds the sqlalchemy to app
     
     db.create_all()
@@ -15,6 +17,7 @@ CORS(app, origins=["http://127.0.0.1:5001","http://127.0.0.1:5000"])#from,to
 
 #this is flask code to receieve data from an index.html
 #This data will update the users list
+migrate = Migrate(app,db)
 users = [
     {"id":"user1",
     "username":"Agbejimi Oluwagbemiga",
@@ -53,8 +56,8 @@ users = [
 def create_users():
     #validate input
     if request.method=="POST":
-        
         data = request.get_json()
+        
         if not all(key in data for key in ['username','age','job']):
             #ensures all the fields are sent if there are less than 3 keys in data all be false
             return{"error:missing required fields"},400
@@ -82,8 +85,16 @@ def create_users():
     #     data.update({"id":new_user})
     #     users.append(data)
     if request.method =="GET":
-        return jsonify(users),200
-    
+        try:
+            user = User.query.all()
+            json_users = list(map(lambda x: x.to_json(),user))
+            return jsonify(json_users),200
+        except Exception as e:
+        # if any error it catches it
+            db.session.rollback()
+            print("Database error:", str(e))
+            return (jsonify({"message": str(e)}), 400)
+        
     
 @app.route("/")
 def serve():
@@ -97,21 +108,54 @@ def serve():
 def update_user():
     return render_template('update.html')
 
-@app.route("/api/users/<username>",methods = ['PUT','GET'])
+@app.route("/api/users/<username>",methods = ['PUT','GET', 'DELETE'])
 def update_users(username):
 
-    data = request.get_json()
     if request.method == 'PUT':
+        data = request.get_json()
         # users[0]["username"] = data["username"].title()
         # users[0]["age"] = data["age"]
         # users[0]["job"] = data["job"].title()
-        for user in users:
-            if user["username"] == username:
-                user["age"] = data["age"]
-                user["job"] = data["job"].title()
-                
+        age = data["age"]
+        job = data["job"].title()
+        try:
+            
+            User.query.filter_by(username=username).update({"age":age, "job":job})
+            db.session.commit()
+        except Exception as e:
+        # if any error it catches it
+            db.session.rollback()
+            print("Database error:", str(e))
+            return (jsonify({"message": str(e)}), 400)
+        return jsonify("User successfully updated"),200
+    if request.method == "GET":
+        # user = User.query.get(username)
+        try:
+            user = User.query.filter(User.username.ilike(f'%{username}%')).first()
+            #list objects .all(), .first() actual str or int
+        
+            this_user = {"age":user.age, "id":user.id,"job":user.job,"username": username}
+            return jsonify(this_user),200
+        except Exception as e:
+        # if any error it catches it
+            db.session.rollback()
+            print("Database error:", str(e))
+            return (jsonify({"message": str(e)}), 400)
+    if request.method == "DELETE":
+        try:
+            User.query.filter_by(username = username).delete()
+            db.session.commit()
+            return jsonify("Done"),204
+        except Exception as e:
+        # if any error it catches it
+            db.session.rollback()
+            print("Database error:", str(e))
+            return (jsonify({"message": str(e)}), 400)
+        
 
-    return jsonify({"Success":"You have updated your details"})
+
+    
+
 @app.route("/api/migrate", methods=["GET"])
 def getAll():
     users = User.query.all()
