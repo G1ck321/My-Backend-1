@@ -16,7 +16,26 @@
  - **3.** On future request the JWT is sent with the Authorization Header prefix, by the Bearer of the token. The server only needs to validate the signature.
  - **4.** In session the authentication state is handled on the server. The JWT are managed on the client
 
+**Part One:**
+-
+send data(clent)->server generatestoken and hashes password
+client saves login in browser->sends get and verifies.
 
+**example:  `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30`**
+-
+    A JSON Web Token is just a text string seperated by dots(.):
+    Header.Payload.Signature:
+    * Header(The "What"): Describes the token("I am JWT using HS256 alg)
+    - 
+    * Payload(The "Who"): Contains the data. We put the user ID e.g{"sub":1,"role":"admin"}
+    Anyone can read this part(It's just Base 64 Encoded, not encrypted don't put password here)
+    -
+    * Signature (The Proof): The server takes the Header+Payload+Your Secret Key and mixes them mathematically
+    Why the Secret key matters:
+    When a user sends a token back to you, your Flask app recalculates the Signature
+    using the secret key you have on the server.
+    * if the user tries to change the Payload(change role to admin) signature won't match
+    * Flask will instantly reject with "Signature Verification faiiled"
 Part One:
     - Hashing is a mathematical function that turns data into a scrambled string of characters
     - Encryption is like a suitcase with a key you can unlock it(decrypt)
@@ -33,5 +52,3 @@ Part Two:
 
 Part 3:
     - The Project (Admin Signup & Verification)
-
-

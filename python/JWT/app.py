@@ -1,89 +1,76 @@
-import os
-from flask import Flask, request, jsonify, render_template
-from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager, create_access_token
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_cors import CORS
+from flask import Flask, jsonify, request, make_response
+from flask import render_template, session
+import jwt
+from datetime import datetime, timedelta
+from functools import wraps 
 
 app = Flask(__name__)
+# SECRET KEY is with underscore
+app.config['SECRET_KEY'] = 'U_Hq29Q6m_-bUJcuTMaI'
+app.permanent_session_lifetime = timedelta(seconds=240)
+#first method import; os.urandom(num of char)
+#import uuid; uuid.uiud4().hex gives different every single time
+#import secrets(py-3.6) secrets.token_urlsafe(12)
+def tokenRequired(func):
+    #returns a decorater that invokes a method called update_wrapper()
+    @wraps(func)
+    def decorated(*args, **kwargs):
+        token = request.args.get('token')
+        # 2) Call the protected route with the token (as query param, per your current code)
+        # curl "http://localhost:5000/auth?token=<JWT_STRING>"
+        if not token:
+            return jsonify({"Alert":"token is missing."})
+            print(token,"tok")
+        #jwt allows you store on the client
+        try:
+            #mordern versions require you specify 
+            payload = jwt.decode(token, app.config["SECRET_KEY"],
+            options={"require": ["exp"]})
+        # If exp is in the payload, PyJWT will raise ExpiredSignatureError after it passes
+        except jwt.ExpiredSignatureError: 
+            return jsonify({"Alert": "Token expired"}), 401 
+        except jwt.InvalidTokenError: 
+            return jsonify({"Alert": "Invalid Token!"}), 401
+        return func(*args, **kwargs)#call original function
+    return decorated
+@app.route('/public')
+def public():
+    return 'For Public'
 
-CORS(app)
-#---- Configuration ----
-#1. valid SQLite URL: sqlite:///project.db
-#creates file in an instance folder in your project directory
-basedir = os.path.abspath(os.path.dirname(__file__))
+@app.route('/auth')
+@tokenRequired
+def auth():
+    return 'JWT is verified welcome to dashboard'
 
-os.makedirs(basedir+"/instance",exist_ok = True)
-app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///'+os.path.join(basedir,'instance','project.db')
-#suppresses warnings fro SQLALCHEMy we don't need to worry about
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-#windows uses backslashes \ Mac uses / code will crash on Mac
-# os.path.dirname(__file__): Where does this file(app.py, filename)live
-#os.path.abspath(...)"Absolute address not just a relative shortcut,"
-# os.path.join(basedir,'project.db')adds correct / between
-
-db = SQLAlchemy(app)
-
-class User(db.Model):
-    id = db.Column( db.Integer, primary_key = True)
-    username = db.Column(db.String(60), unique = True, nullable = False)
-    password_hash= db.Column(db.String(128), nullable = False)
-    
-    def to_json(self):
-        """"Allows us convert the fields to JSON
-        camelCase is the best for JSON object values use snake_casing"""
-        return {
-            "id": self.id,
-            "username": self.username
-            # Do not include password_hash
-        }
-with app.app_context():
-    db.create_all()
-    
-@app.post("/signup")
-def signup():
-    data = request.get_json()
-    
-    hashed_pw = generate_password_hash(data["password"])
-    
-    new_user  = User(username = data["username"], password_hash = hashed_pw)
-    db.session.add(new_user)
-    db.session.commit()
-    return jsonify({"msg":"User Created!"}),201
-@app.post('/login-check')
-def login_check(): 
-    data = request.get_json() 
-    user = User.query.filter_by(username = data["username"]).first()
-    #Verify Hash
-    if user and check_password_hash(user.password_hash, data["password"]):
-        return jsonify({"msg":"Password","pass":user.password_hash}), 200
-    return jsonify({"msg":"Wrong credentials"}),401
-
-@app.route("/api/allusers", methods=['GET'])
-def getUsers():
-    users = User.query.all()
-    json_users = list(map(lambda x: x.to_json(), users))
-    return jsonify(json_users)
-
-@app.delete("/api/delete/<int:user_id>")
-def deleteUser(user_id):
-    user = User.query.get(user_id)
-    
-    if not user:
-        return jsonify({"message":"user not found"})
-    
-    db.session.delete(user)
-    db.session.commit()
-    
-    return jsonify({"message":"User deleted "})
-#pages
 @app.route("/")
 def home():
-    return render_template("index.html")
-
-@app.route("/login")
+    if not session.get('logged_in'):
+        return render_template('index.html')
+    else:
+        
+        return 'Logged in currently!'
+@app.route("/login",methods=['POST'])
 def login():
-    return render_template("login.html")
-if __name__=="__main__":
-    app.run(debug=True, port=3500)
+    if request.form["username"] and request.form["password"] =='123456':
+        session.permanent = True
+        
+        session["logged_in"] = True
+        token = jwt.encode({
+            'user' : request.form["username"],
+            #exp not expiration
+            'exp':str(datetime.utcnow()+timedelta(seconds=240))
+        },
+        app.config['SECRET_KEY'])
+        print(token,"tok2")
+        
+        # return jsonify({'token':token.decode('utf-8')}),201
+        
+        return jsonify({'token':token}),201
+    else:
+        return make_response("Unable to verify",403,{"WWW-Authenticate":'Basic realm : "Authenticaion Failed!"'})
+@app.post("/logout") 
+def logout(): 
+    session.pop("logged_in", None) 
+    return jsonify({"message": "logged out"})
+if __name__ == "__main__":
+    app.run(debug=True)
