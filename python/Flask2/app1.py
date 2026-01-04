@@ -5,6 +5,7 @@ from flask_cors import CORS
 from config import app,db
 from model import User
 from flask_migrate import Migrate
+from sqlalchemy.exc import NoResultFound
 
 with app.app_context():
     # db.init_app(app)
@@ -17,7 +18,7 @@ CORS(app, origins=["http://127.0.0.1:5001","http://127.0.0.1:5000"])#from,to
 
 #this is flask code to receieve data from an index.html
 #This data will update the users list
-migrate = Migrate(app,db)
+migrate = Migrate()
 users = [
     {"id":"user1",
     "username":"Agbejimi Oluwagbemiga",
@@ -51,7 +52,7 @@ users = [
 # response.headers.add('Acess-Control-Allow-Methods','GET,PUT,POST,DELETE,OPTIONS')
 # return response
 
-
+migrate.init_app(app,db)
 @app.route("/api/users",methods=['GET','POST','PUT','DELETE'])
 def create_users():
     #validate input
@@ -131,11 +132,21 @@ def update_users(username):
     if request.method == "GET":
         # user = User.query.get(username)
         try:
-            user = User.query.filter(User.username.ilike(f'%{username}%')).first()
             #list objects .all(), .first() actual str or int
-        
+            
+            # user = db.session.get(User, username)
+            user = db.session.scalar(db.select(User).where(User.username==username))
             this_user = {"age":user.age, "id":user.id,"job":user.job,"username": username}
             return jsonify(this_user),200
+            if user is None:
+                raise NoResultFound(f"User with username {username} not found.")
+            # if type(int(username)) is int:
+            # if isinstance(int(username), int) :
+                #checks whether the value is an integer or a subclass of int
+                #like bool, it inherits from int
+            # user = User.query.filter(User.username.ilike(f'%{username}%')).first()
+        
+            
         except Exception as e:
         # if any error it catches it
             db.session.rollback()
@@ -158,8 +169,12 @@ def update_users(username):
 
 @app.route("/api/migrate", methods=["GET"])
 def getAll():
-    users = User.query.all()
-    json_users = list(map(lambda x:x.to_json(), users))
+    # users = User.query.all()
+    stmt = db.select(User).order_by(User.username)
+    user = db.session().scalars(stmt).all()
+    print(type(user))
+    json_users = list(map(lambda x:x.to_json(), user))
+    print(type(json_users))
     return jsonify(json_users),200
 
 

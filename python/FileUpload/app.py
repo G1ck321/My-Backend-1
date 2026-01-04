@@ -6,12 +6,12 @@ from werkzeug.utils import secure_filename
 import os
 
 UPLOAD_FOLDER= "uploads"
-ALLOWED = {"png","jpg","jpeg","gif","txt","pdf","md","docx","zip"}
+ALLOWED = {"png","jpg","jpeg","gif","txt","pdf","md","docx","zip","exe"}
 
 app = Flask(__name__)
 
 app.config["UPLOAD_FOLDER"]= UPLOAD_FOLDER
-app.config["MAX_CONTENT_LENGTH"] = 16*1024*1024 #16MB max limit
+app.config["MAX_CONTENT_LENGTH"] = 811*1024*1024 #16MB max limit
 app.secret_key = "mysert!5477"
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
