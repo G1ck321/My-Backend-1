@@ -12,7 +12,7 @@ def create_app():
     app.config.from_object(Config)
     
     CORS(app, 
-     resources={r"/api/*": {"origins": "http://localhost:3000"}}, 
+     resources={r"/api/*": {"origins": "https://stylus-host.vercel.app"}}, 
      supports_credentials=True)
     
     # Register blueprints
