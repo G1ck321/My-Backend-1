@@ -12,7 +12,7 @@ def get_wardrobe():
         return jsonify({"error": "unauthorized"}), 401
     
     items = call_rpc("get_user_wardrobe", {"p_user_id": user_id})
-    return jsonify({"items": items or []})
+    return jsonify({"items": items or []}),200
 
 @wardrobe_bp.route("/items", methods=["POST"])
 def create_wardrobe_item():
@@ -35,12 +35,12 @@ def create_wardrobe_item():
         category = request.form.get("category", "top")
         tags = request.form.getlist("tags[]") or []
         
-        item = call_rpc("create_wardrobe_item", {
-            "p_user_id": user_id,
-            "p_image_path": image_path,
-            "p_category": category,
-            "p_tags": tags
-        })
+        item = call_rpc("create_wardrobe_item",  {
+    "p_user_id": user_id,
+    "p_image_url": image_url, # Check: Did you accidentally use p_image_path?
+    "p_category": category,
+    "p_tags": tags
+})
         
         return jsonify({"item": item}), 201
         

@@ -1,39 +1,52 @@
 from flask import Blueprint, request, jsonify
 from ..utils.auth import get_current_user_id
-from ..services.supabase import get_table
+from ..config import Config
+from supabase import create_client
 
+# 1. Keep the name simple (internal name, not a URL)
 profile_bp = Blueprint("profile", __name__)
+supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_SERVICE_ROLE_KEY)
 
-@profile_bp.route("/me/profile", methods=["GET"])
-def get_profile():
+@profile_bp.route("/profile", methods=["GET", "POST"])
+def manage_profile():
     user_id = get_current_user_id()
+    
+    # Check 1: Is the user logged in?
     if not user_id:
         return jsonify({"error": "unauthorized"}), 401
-    
-    profile = get_table("user_profiles", {"user_id": user_id})
-    return jsonify({"profile": profile[0] if profile else None})
 
-@profile_bp.route("/me/profile", methods=["PUT"])
-def update_profile():
-    user_id = get_current_user_id()
-    if not user_id:
-        return jsonify({"error": "unauthorized"}), 401
-    
-    data = request.get_json() or {}
-    profile_data = {
-        "user_id": user_id,
-        **data
-    }
-    
-    url = f"{current_app.config['SUPABASE_URL']}/rest/v1/user_profiles?user_id=eq.{user_id}"
-    res = requests.patch(url, headers=supabase_headers(), json=[profile_data])
-    
-    if res.status_code == 200 and res.json():
-        return jsonify({"profile": res.json()[0]}), 200
-    elif res.status_code == 404:
-        # Create if not exists
-        url = f"{current_app.config['SUPABASE_URL']}/rest/v1/user_profiles"
-        res = requests.post(url, headers=supabase_headers(), json=[profile_data])
-        return jsonify({"profile": res.json()[0]}), 201
-    
-    return jsonify({"error": "failed to update profile"}), 500
+    # PATH A: FETCHING DATA (GET)
+    if request.method == "GET":
+        try:
+            # We use the official client for better error handling
+            result = supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()
+            
+            if not result.data:
+                # Return a default if no profile exists yet
+                return jsonify({"profile": {"display_name": "New User", "user_id": user_id}}), 200
+            
+            return jsonify({"profile": result.data[0]}), 200
+        except Exception as e:
+            print(f"❌ GET Error: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    # PATH B: SAVING DATA (POST)
+    if request.method == "POST":
+        try:
+            data = request.get_json()
+            display_name = data.get('display_name', 'Anonymous')
+
+            # Upsert: Update if ID exists, otherwise Insert
+            result = supabase.table("user_profiles").upsert({
+                "user_id": user_id,
+                "display_name": display_name,
+                "updated_at": "now()"
+            }).execute()
+            
+            return jsonify({"message": "Saved", "profile": result.data[0]}), 201
+        except Exception as e:
+            print(f"❌ POST Error: {e}")
+            return jsonify({"error": str(e)}), 500
+
+    # SAFETY NET: If somehow it's not GET or POST
+    return jsonify({"error": "Method not allowed"}), 405

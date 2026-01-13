@@ -12,10 +12,11 @@ def create_app():
     app.config.from_object(Config)
     
     CORS(app, 
-     resources={r"/api/*": {"origins": "https://stylus-host.vercel.app"}}, 
+     resources={r"/api/*": {"origins": ["https://stylus-host.vercel.app","http://localhost:3000"]}}, 
      supports_credentials=True)
     
     # Register blueprints
+    # In backend/stylus_api/__init__.py
     app.register_blueprint(profile_bp, url_prefix="/api")
     app.register_blueprint(wardrobe_bp, url_prefix="/api/wardrobe")
     app.register_blueprint(events_bp, url_prefix="/api/events")

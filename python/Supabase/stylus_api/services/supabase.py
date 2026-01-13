@@ -40,6 +40,7 @@ def call_rpc(function_name: str, params: dict) -> Any:
         return None
 def get_table(table: str, filters: Dict[str, str] = None) -> List[Dict]:
     url = f"{current_app.config['SUPABASE_URL']}/rest/v1/{table}"
+    print(f"📡 Requesting URL: {url}")
     params: Dict[str, str] = {"select": "*"}
     if filters:
         for key, value in filters.items():

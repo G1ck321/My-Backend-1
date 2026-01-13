@@ -1,0 +1,107 @@
+To understand why your images aren't showing up yet, we need to look at the **"Three Pillars of Content"** in a web app.
+
+Think of your app like a **High-End Photo Gallery**:
+
+1. **The Warehouse (Supabase Storage):** This is where the actual physical "painting" (your image file) is kept in a box.
+2. **The Catalog (Supabase Database):** This is the ledger that says, "Painting #101 is located in Box A-1." It doesn't hold the painting; it just holds the *location* (the path).
+3. **The Gallery Wall (React Frontend):** This is where you want to hang the painting. To do that, the gallery needs the **Full Mailing Address** of the warehouse box.
+
+---
+
+### 1. The First Principle: "Path vs. Address"
+
+Your `upload_wardrobe_image` function returns a **Path**, like this:
+`344fb3b9/20240520_shirt.jpg`
+
+This is NOT a URL. If you put that in an `<img>` tag, the browser will look for it on your own computer (`localhost:3000/...`) and find nothing. To see the image, you must turn that **Path** into a **Public URL**.
+
+**The Formula:**
+`Base URL` + `Bucket Name` + `File Path` = **The Image you can see.**
+
+---
+
+### 2. Step-by-Step implementation
+
+#### Step A: Ensure your Bucket is "Public"
+
+By default, Supabase buckets are private. Your gallery is "locked."
+
+1. Go to **Supabase Dashboard** -> **Storage**.
+2. Click the three dots `...` next to your `wardrobe-images` bucket.
+3. Select **Make Public**. (This allows the browser to see the image without needing a secret key).
+
+#### Step B: Fix the Frontend "Gallery Wall" (`page.tsx`)
+
+When you fetch your items, you get a list of objects. Each object has an `image_url` (which is actually just the path). You need to prepend the Supabase Storage URL.
+
+**Update your Wardrobe Grid in `page.tsx`:**
+
+```tsx
+const SUPABASE_PROJECT_ID = "your-project-id"; // Found in your settings
+
+// ... inside your return/map function
+{wardrobeItems.map((item) => (
+  <div key={item.id} className="relative aspect-square rounded-xl overflow-hidden bg-slate-800">
+    <img 
+      // This is the "Full Address" construction
+      src={`https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/wardrobe-images/${item.image_url}`}
+      alt={item.category}
+      className="w-full h-full object-cover"
+      onError={(e) => {
+        // Fallback if image fails to load
+        (e.target as any).src = "https://via.placeholder.com/150?text=No+Image";
+      }}
+    />
+    <div className="absolute bottom-2 left-2 bg-black/50 px-2 py-1 rounded text-xs uppercase">
+      {item.category}
+    </div>
+  </div>
+))}
+
+```
+
+---
+
+### 3. Answering your "Type" Question
+
+> **"Should the type be file?"**
+
+**No.** Here is the distinction:
+
+* **During Upload:** The type is `File` (from the `<input type="file">`). This is the raw data you send to Flask.
+* **In the Wardrobe (Loading):** The type is a **Plain JavaScript Object**.
+
+Think of it like this: A `File` is the actual heavy box being moved. An `Item Object` is just the line of text in the ledger.
+
+**Define a proper Interface for your items:**
+
+```tsx
+interface WardrobeItem {
+  id: string;
+  user_id: string;
+  image_url: string; // This will be the path string "user_id/timestamp-file.jpg"
+  category: string;
+  tags: string[];
+  created_at: string;
+}
+
+// Then use it in your state:
+const [wardrobeItems, setWardrobeItems] = useState<WardrobeItem[]>([]);
+
+```
+
+---
+
+### 4. Why "200 OK" but no image? (The Analogy)
+
+If your Flask console says **200 OK**, it means the messenger (Flask) successfully handed the letter (Data) to the recipient (React).
+
+But if the letter says "The painting is in Box A-1" and the recipient doesn't know which warehouse Box A-1 is in, they can't show you the painting. By adding the `https://...` prefix in Step B, you are giving React the "Warehouse Address" it was missing.
+
+### Summary Checklist:
+
+1. **Check Supabase:** Is the bucket `wardrobe-images` set to **Public**?
+2. **Check the Database:** Go to your `wardrobe_items` table. Does the `image_url` column look like `uuid/filename.jpg`?
+3. **Check React:** Are you adding the `https://[ID].supabase.co/storage/v1/object/public/wardrobe-images/` prefix to the source?
+
+**Once you combine the "Warehouse Address" with the "Box Path," your images will instantly appear on the gallery wall.**
