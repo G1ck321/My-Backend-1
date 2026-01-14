@@ -7,7 +7,7 @@ from supabase import create_client
 profile_bp = Blueprint("profile", __name__)
 supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_SERVICE_ROLE_KEY)
 
-@profile_bp.route("/profile", methods=["GET", "POST"])
+@profile_bp.route("/", methods=["GET", "POST"])
 def manage_profile():
     user_id = get_current_user_id()
     
