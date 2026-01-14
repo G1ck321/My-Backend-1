@@ -17,7 +17,7 @@ def create_app():
     
     # Register blueprints
     # In backend/stylus_api/__init__.py
-    app.register_blueprint(profile_bp, url_prefix="/api/profile")
+    app.register_blueprint(profile_bp, url_prefix="/api")
     app.register_blueprint(wardrobe_bp, url_prefix="/api/wardrobe")
     app.register_blueprint(events_bp, url_prefix="/api/events")
     
