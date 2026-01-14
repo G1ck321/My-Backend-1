@@ -20,30 +20,30 @@ def create_wardrobe_item():
     if not user_id:
         return jsonify({"error": "unauthorized"}), 401
 
-    if "file" not in request.files:
-        return jsonify({"error": "file required"}), 400
-
-    file = request.files["file"]
-    if not file.filename or file.filename == "":
-        return jsonify({"error": "invalid file"}), 400
+    # ... file validation ...
 
     try:
-        # 1. Upload image
-        image_path = upload_image(user_id, file.read(), file.filename)
+        # Read file data once
+        file_data = file.read()
         
-        # 2. Create DB record
-        category = request.form.get("category", "top")
-        tags = request.form.getlist("tags[]") or []
+        # 1. Upload - Make sure this returns a string!
+        uploaded_path = upload_image(user_id, file_data, file.filename)
         
-        item = call_rpc("create_wardrobe_item",  {
-    "p_user_id": user_id,
-    "p_image_url": image_url, # Check: Did you accidentally use p_image_path?
-    "p_category": category,
-    "p_tags": tags
-})
-        
+        if not uploaded_path:
+            return jsonify({"error": "Failed to upload to storage"}), 500
+
+        # 2. Match your SQL function parameters exactly
+        # REMOVE "created_at" unless your SQL function specifically asks for it!
+        rpc_params = {
+            "p_user_id": user_id,
+            "p_image_url": uploaded_path,
+            "p_category": request.form.get("category", "top"),
+            "p_tags": request.form.getlist("tags[]") or []
+        }
+
+        item = call_rpc("create_wardrobe_item", rpc_params)
         return jsonify({"item": item}), 201
         
     except Exception as e:
-        print(f"❌ Create item failed: {str(e)}")
+        print(f"❌ Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
