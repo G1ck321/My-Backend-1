@@ -11,8 +11,18 @@ def get_wardrobe():
     if not user_id:
         return jsonify({"error": "unauthorized"}), 401
     
+    # 1. Call the RPC
     items = call_rpc("get_user_wardrobe", {"p_user_id": user_id})
-    return jsonify({"items": items or []}),200
+    
+    # 2. DEBUG PRINT: See the actual data in your Render/Terminal logs
+    print(f"📦 Data from DB: {items}") 
+    
+    # 3. Check if it's None or Empty
+    if items is None:
+        print("❌ RPC returned None - Check if function 'get_user_wardrobe' exists!")
+        return jsonify({"items": [], "debug_msg": "RPC returned None"}), 200
+
+    return jsonify({"items": items}), 200
 
 @wardrobe_bp.route("/items", methods=["POST"])
 def create_wardrobe_item():
@@ -20,30 +30,37 @@ def create_wardrobe_item():
     if not user_id:
         return jsonify({"error": "unauthorized"}), 401
 
-    # ... file validation ...
+    # Check for file BEFORE the try block
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    
+    file = request.files["file"] # <--- 'file' is now defined in this scope
+    
+    if file.filename == "":
+        return jsonify({"error": "No selected file"}), 400
 
     try:
-        # Read file data once
-        file_data = file.read()
-        
-        # 1. Upload - Make sure this returns a string!
-        uploaded_path = upload_image(user_id, file_data, file.filename)
-        
-        if not uploaded_path:
-            return jsonify({"error": "Failed to upload to storage"}), 500
+        # Read the content into a variable immediately
+        file_data = file.read() 
+        file_name = file.filename
 
-        # 2. Match your SQL function parameters exactly
-        # REMOVE "created_at" unless your SQL function specifically asks for it!
+        # Pass the DATA, not the file object, to the service
+        uploaded_path = upload_image(user_id, file_data, file_name)
+        
+        # Now use p_image_url to match your SQL function exactly
         rpc_params = {
             "p_user_id": user_id,
             "p_image_url": uploaded_path,
             "p_category": request.form.get("category", "top"),
-            "p_tags": request.form.getlist("tags[]") or []
+            "p_tags": request.form.getlist("tags[]") or ["blue", "summer"]
         }
 
+        print(f"🚀 Calling RPC with: {rpc_params}")
         item = call_rpc("create_wardrobe_item", rpc_params)
+        
         return jsonify({"item": item}), 201
         
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
+        # If 'file' was the problem, it will be caught here
+        print(f"❌ Upload Error: {str(e)}")
         return jsonify({"error": str(e)}), 500

@@ -66,6 +66,22 @@ def upload_image(user_id: str, file_bytes: bytes, filename: str) -> str:
         bucket.upload(path, file_bytes)
         print(f"✅ Uploaded: wardrobe-images/{path}")
         return path
+# def upload_image(user_id, file_bytes, filename):
+#     # Create a unique path: user_id/timestamp_filename
+#     from datetime import datetime
+#     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+#     storage_path = f"{user_id}/{timestamp}_{filename}"
+#     try:
+#         # Use the supabase client to upload to your bucket
+#         # Note: 'supabase' must be initialized in this file or imported
+#         res = supabase.storage.from_("wardrobe-images").upload(
+#             path=storage_path,
+#             file=file_bytes, # This is the raw data
+#             file_options={"content-type": "image/png"} # Or detect type
+#         )
+
+#         # Supabase returns the path on success
+#         return storage_path
     except Exception as e:
         print(f"❌ Storage upload failed: {str(e)}")
         raise e
