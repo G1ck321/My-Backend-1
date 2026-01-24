@@ -8,6 +8,10 @@ load_dotenv()
 NEWS_API_KEY = news_key
 NEWS_URL = "https://newsapi.org/v2/everything"
 
+@app.route("/test")
+def keepUp():
+    return jsonify({"message":"I'm up"})
+
 @app.route("/api/news", methods=["GET"])
 def get_personalized_news():
     """
