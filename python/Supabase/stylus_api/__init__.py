@@ -6,6 +6,7 @@ from .routes.wardrobe import wardrobe_bp
 from .routes.events import events_bp
 from .routes.profile import profile_bp
 from .utils.auth import get_current_user_id
+from .routes.chat import chat_bp
 
 def create_app():
     app = Flask(__name__)
@@ -20,5 +21,5 @@ def create_app():
     app.register_blueprint(profile_bp, url_prefix="/api")
     app.register_blueprint(wardrobe_bp, url_prefix="/api/wardrobe")
     app.register_blueprint(events_bp, url_prefix="/api/events")
-    
+    app.register_blueprint(chat_bp,url_prefix="/api/chat-message")
     return app
