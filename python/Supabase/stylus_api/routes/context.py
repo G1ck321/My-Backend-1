@@ -33,3 +33,17 @@ def get_calendar(user_id):
     # Pulls from the new user_events table we created in SQL
     events = supabase.table('user_events').select('*').eq('user_id', user_id).execute()
     return jsonify(events.data)
+@wardrobe_bp.route("/log-wear", methods=["POST"])
+def log_wear():
+    user_id = get_current_user_id()
+    data = request.get_json()
+    item_ids = data.get("item_ids") # Array of IDs worn
+
+    # Log to the 'outfit_logs' table for Style Insights
+    supabase.table("outfit_logs").insert({
+        "user_id": user_id,
+        "items": item_ids,
+        "weather_context": get_weather().get_json()
+    }).execute()
+    
+    return jsonify({"status": "logged"})

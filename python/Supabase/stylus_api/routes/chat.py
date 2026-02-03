@@ -131,33 +131,36 @@ def chat():
         wardrobe_res = (
             supabase
             .table("wardrobe_items")
-            .select("*")
+            .select("category, color, weight, tags") # Fetch more columns!
             .eq("user_id", user_id)
             .execute()
         )
 
-        items_list = [
-            f"{item['category']} ({item.get('color', 'unknown')})"
-            for item in wardrobe_res.data
-        ]
+        # Create a more descriptive list
+        items_descriptions = []
+        for item in wardrobe_res.data:
+            desc = f"{item['category']}"
+            if item.get('color') and item['color'] != 'unknown':
+                desc += f" in {item['color']}"
+            if item.get('weight'):
+                desc += f" (suitable for {item['weight']} weather)"
+            items_descriptions.append(desc)
 
-        # ------------------------------------------
-        # F. SYSTEM PROMPT (LEAN & TOKEN-EFFICIENT)
-        # ------------------------------------------
+        # --- F. SYSTEM PROMPT (More Directive) ---
         system_prompt = f"""
-You are StyluS, a friendly personal fashion assistant.
+You are StyluS, a personal stylist. 
+Weather: {temp}°C, {cond}.
 
-Context:
-- Weather in Lagos: {temp}°C, {cond}
-- User wardrobe: {", ".join(items_list) or "Empty"}
+Closet Inventory:
+{chr(10).join(items_descriptions) if items_descriptions else "The closet is currently empty."}
 
-User message:
-{user_query}
+User's Request: "{user_query}"
 
 Rules:
-- Be conversational and practical
-- Suggest ONLY items from the wardrobe
-- Keep answers concise
+1. Suggest a specific outfit using ONLY the items listed above.
+2. If the user asks for a recommendation, explain WHY it fits the {temp}°C weather.
+3. If the wardrobe is empty, tell the user to upload photos of their clothes first.
+4. DO NOT ask the user for colors or styles; use the inventory provided.
 """
 
         # ------------------------------------------
