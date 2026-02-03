@@ -1,56 +1,184 @@
 from flask import Blueprint, request, jsonify
-from google import genai # NEW PACKAGE
-from google.genai import types
+import google.generativeai as genai
+import time
+
 from .profile import supabase
 from ..routes.context import get_weather
 from ..utils.auth import get_current_user_id
 from ..config import Config
-gem_key = Config.GEM
 
-chat_bp = Blueprint('chat', __name__)
-client = genai.Client(api_key=gem_key)
+# ==================================================
+# 1. CONFIGURE GEMINI / GEMMA
+# ==================================================
 
-@chat_bp.route('/chat-message', methods=['POST'])
-def chat():
-    # 1. FIX: Define the user_id (Bouncer check)
-    user_id = get_current_user_id() 
-    
-    data = request.json
-    user_query = data.get('message')
+genai.configure(api_key=Config.GEM)
 
-    # 2. Get Weather (Safe Handling to avoid KeyError 'main')
-    weather_res = get_weather().get_json()
-    temp = weather_res.get('temp', 25) # Default to 25 if API fails
-    cond = weather_res.get('condition', "Clear")
+# Primary (fast, smart, but quota-limited)
+GEMINI_MODEL = "gemini-flash-latest"
 
-    # 3. Get Wardrobe (So Gemini knows what Chioma owns)
-    # The 'user_id' is now defined above, fixing your NameError
-    wardrobe_data = supabase.table('wardrobe_items').select('*').eq('user_id', user_id).execute()
-    items_list = [f"{i['category']} ({i.get('color', 'unknown')})" for i in wardrobe_data.data]
+# Fallback (cheaper, weaker, more available)
+GEMMA_MODEL = "gemma-3-4b-it"
 
-    # 4. Build the AI Context (Per AI Style Assistant Doc)
-    system_prompt = f"""
-    You are the StyluS AI Assistant. 
-    Weather in Lagos: {temp}°C, {cond}.
-    User's Wardrobe: {", ".join(items_list) if items_list else "Empty"}.
-    
-    User Query: {user_query}
-    
-    Task: Give a friendly, conversational style tip. 
-    If they ask 'What should I wear?', suggest items from their wardrobe list above.
+# ==================================================
+# 2. BASIC IN-MEMORY RATE LIMIT (PER USER)
+# Prevents accidental spam & quota burn
+# ==================================================
+
+LAST_CALL = {}
+
+def rate_limit(user_id: str, cooldown: int = 3) -> bool:
+    """
+    Allows 1 request per user every `cooldown` seconds.
+    Returns True if allowed, False if blocked.
+    """
+    now = time.time()
+    last = LAST_CALL.get(user_id, 0)
+
+    if now - last < cooldown:
+        return False
+
+    LAST_CALL[user_id] = now
+    return True
+
+# ==================================================
+# 3. AI GENERATION WITH FALLBACK LOGIC
+# ==================================================
+
+def generate_with_fallback(prompt: str) -> tuple[str, str]:
+    """
+    Attempts Gemini first.
+    Falls back to Gemma ONLY on quota / rate limit errors.
+
+    Returns:
+        (reply_text, model_used)
     """
 
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(system_prompt)
-        
-        # 5. Logging (As required by MVP Doc)
-        # You should save this interaction to a chat_history table here
-        
-        return jsonify({
-            "reply": response.text,
-            "weather": {"temp": temp, "condition": cond}
-        })
+        # --- Try Gemini first ---
+        gemini = genai.GenerativeModel(GEMINI_MODEL)
+        response = gemini.generate_content(prompt)
+
+        return response.text, GEMINI_MODEL
+
     except Exception as e:
-        print(f"Gemini Error: {e}")
-        return jsonify({"reply": "I'm having a bit of a fashion block. Try again in a second!"}), 500
+        error_msg = str(e).lower()
+
+        # --- Detect quota / rate limit errors ---
+        quota_errors = ["429", "quota", "rate", "exceeded", "resource_exhausted"]
+
+        if any(err in error_msg for err in quota_errors):
+            print("⚠️ Gemini quota hit. Falling back to Gemma.")
+
+            # --- Use Gemma as fallback ---
+            gemma = genai.GenerativeModel(GEMMA_MODEL)
+
+            # Gemma works better with shorter prompts
+            shortened_prompt = prompt[:2000]
+
+            response = gemma.generate_content(shortened_prompt)
+            return response.text, GEMMA_MODEL
+
+        # --- Unknown error: re-raise ---
+        raise
+
+# ==================================================
+# 4. FLASK BLUEPRINT
+# ==================================================
+
+chat_bp = Blueprint("chat", __name__)
+
+# ==================================================
+# 5. CHAT ENDPOINT
+# ==================================================
+
+@chat_bp.route("/chat-message", methods=["POST"])
+def chat():
+    try:
+        # ------------------------------------------
+        # A. AUTHENTICATION
+        # ------------------------------------------
+        user_id = get_current_user_id()
+        if not user_id:
+            return jsonify({"reply": "Unauthorized"}), 401
+
+        # ------------------------------------------
+        # B. RATE LIMIT CHECK
+        # ------------------------------------------
+        if not rate_limit(user_id):
+            return jsonify({
+                "reply": "Hold on 😅 Give me a second before asking again."
+            }), 429
+
+        # ------------------------------------------
+        # C. USER MESSAGE
+        # ------------------------------------------
+        data = request.get_json()
+        user_query = data.get("message", "").strip()
+
+        if not user_query:
+            return jsonify({"reply": "Say something first 🙂"}), 400
+
+        # ------------------------------------------
+        # D. WEATHER CONTEXT
+        # ------------------------------------------
+        weather_res = get_weather().get_json()
+        temp = weather_res.get("temp", 25)
+        cond = weather_res.get("condition", "Clear")
+
+        # ------------------------------------------
+        # E. USER WARDROBE CONTEXT
+        # ------------------------------------------
+        wardrobe_res = (
+            supabase
+            .table("wardrobe_items")
+            .select("*")
+            .eq("user_id", user_id)
+            .execute()
+        )
+
+        items_list = [
+            f"{item['category']} ({item.get('color', 'unknown')})"
+            for item in wardrobe_res.data
+        ]
+
+        # ------------------------------------------
+        # F. SYSTEM PROMPT (LEAN & TOKEN-EFFICIENT)
+        # ------------------------------------------
+        system_prompt = f"""
+You are StyluS, a friendly personal fashion assistant.
+
+Context:
+- Weather in Lagos: {temp}°C, {cond}
+- User wardrobe: {", ".join(items_list) or "Empty"}
+
+User message:
+{user_query}
+
+Rules:
+- Be conversational and practical
+- Suggest ONLY items from the wardrobe
+- Keep answers concise
+"""
+
+        # ------------------------------------------
+        # G. AI GENERATION (WITH FALLBACK)
+        # ------------------------------------------
+        reply, model_used = generate_with_fallback(system_prompt)
+
+        # ------------------------------------------
+        # H. RESPONSE
+        # ------------------------------------------
+        return jsonify({
+            "reply": reply,
+            "model": model_used,
+            "weather": {
+                "temp": temp,
+                "condition": cond
+            }
+        })
+
+    except Exception as e:
+        print("🔥 Chat Error:", str(e))
+        return jsonify({
+            "reply": "I'm having a fashion brain freeze 😵 Try again shortly."
+        }), 500
