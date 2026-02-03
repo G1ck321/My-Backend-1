@@ -166,5 +166,5 @@ Werkzeug==3.1.3
 
 yarl==1.22.0
 
-google-generativeai
+google-genai
 protobuf

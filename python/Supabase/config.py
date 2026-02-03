@@ -10,7 +10,6 @@ app = Flask(__name__)
 
 CORS(app)
 
-gem = os.getenv("GEMINI_KEY")
 url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_ANON_KEY")
 # tablename = os.getenv("TABLE_NAME")

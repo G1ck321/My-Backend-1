@@ -2,7 +2,7 @@
 from flask import Blueprint, request, jsonify
 from ..utils.auth import get_current_user_id
 from ..services.supabase import call_rpc, upload_image  # ← FIXED: upload_image
-
+from .profile import supabase   
 wardrobe_bp = Blueprint("wardrobe", __name__)
 
 @wardrobe_bp.route("/items", methods=["GET"])
@@ -64,3 +64,23 @@ def create_wardrobe_item():
         # If 'file' was the problem, it will be caught here
         print(f"❌ Upload Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
+@wardrobe_bp.route('/simple-ootd', methods=['GET'])
+def get_simple_ootd():
+    user_id = get_current_user_id()
+    
+    # 1. Fetch items from Supabase
+    # In a real scenario, your Rule-Based Engine would run here.
+    # For now, let's return a basic set of items to fix the 404.
+    items = supabase.table('wardrobe_items').select('*').eq('user_id', user_id).limit(3).execute()
+    
+    # Format to match your Frontend OutfitItem interface
+    ootd = []
+    for item in items.data:
+        ootd.append({
+            "id": item['id'],
+            "type": item['category'],
+            "color": item.get('color', 'Neutral'),
+            "image_url": item['image_url']
+        })
+        
+    return jsonify(ootd)

@@ -1,38 +1,56 @@
 from flask import Blueprint, request, jsonify
-import google.generativeai as genai
-from lib.supabase_client import supabase
-from ..config import gem
+from google import genai # NEW PACKAGE
+from google.genai import types
+from .profile import supabase
+from ..routes.context import get_weather
+from ..utils.auth import get_current_user_id
+from ..config import Config
+gem_key = Config.GEM
+
 chat_bp = Blueprint('chat', __name__)
-gem_key = gem
-genai.configure(api_key="YOUR_GEMINI_API_KEY")
-model = genai.GenerativeModel('gemini-1.5-flash')
+client = genai.Client(api_key=gem_key)
 
-@chat_bp.route('/api/chat-message', methods=['POST'])
+@chat_bp.route('/chat-message', methods=['POST'])
 def chat():
+    # 1. FIX: Define the user_id (Bouncer check)
+    user_id = get_current_user_id() 
+    
     data = request.json
-    user_id = data.get('user_id')
-    user_message = data.get('message')
+    user_query = data.get('message')
 
-    # 1. Fetch user's wardrobe context so AI knows what they own
-    items = supabase.table('wardrobe_items').select('*').eq('user_id', user_id).execute()
-    wardrobe_summary = [f"{i['color']} {i['category']}" for i in items.data]
+    # 2. Get Weather (Safe Handling to avoid KeyError 'main')
+    weather_res = get_weather().get_json()
+    temp = weather_res.get('temp', 25) # Default to 25 if API fails
+    cond = weather_res.get('condition', "Clear")
 
-    # 2. Craft the System Prompt
-    prompt = f"""
-    You are 'Stylus', a professional AI fashion stylist. 
-    The user owns: {', '.join(wardrobe_summary)}.
-    User asks: {user_message}
-    Give a concise, stylish, and helpful answer. Use emojis.
+    # 3. Get Wardrobe (So Gemini knows what Chioma owns)
+    # The 'user_id' is now defined above, fixing your NameError
+    wardrobe_data = supabase.table('wardrobe_items').select('*').eq('user_id', user_id).execute()
+    items_list = [f"{i['category']} ({i.get('color', 'unknown')})" for i in wardrobe_data.data]
+
+    # 4. Build the AI Context (Per AI Style Assistant Doc)
+    system_prompt = f"""
+    You are the StyluS AI Assistant. 
+    Weather in Lagos: {temp}°C, {cond}.
+    User's Wardrobe: {", ".join(items_list) if items_list else "Empty"}.
+    
+    User Query: {user_query}
+    
+    Task: Give a friendly, conversational style tip. 
+    If they ask 'What should I wear?', suggest items from their wardrobe list above.
     """
 
-    response = model.generate_content(prompt)
-    bot_message = response.text
-
-    # 3. Save to History (Supabase)
-    supabase.table('chat_history').insert({
-        "user_id": user_id,
-        "message": user_message,
-        "response": bot_message
-    }).execute()
-
-    return jsonify({"response": bot_message})
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(system_prompt)
+        
+        # 5. Logging (As required by MVP Doc)
+        # You should save this interaction to a chat_history table here
+        
+        return jsonify({
+            "reply": response.text,
+            "weather": {"temp": temp, "condition": cond}
+        })
+    except Exception as e:
+        print(f"Gemini Error: {e}")
+        return jsonify({"reply": "I'm having a bit of a fashion block. Try again in a second!"}), 500
