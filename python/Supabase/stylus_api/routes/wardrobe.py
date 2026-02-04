@@ -23,6 +23,26 @@ def get_wardrobe():
         return jsonify({"items": [], "debug_msg": "RPC returned None"}), 200
 
     return jsonify({"items": items}), 200
+@wardrobe_bp.route("/items/<item_id>", methods=["DELETE"])
+def delete_wardrobe_item(item_id):
+    user_id = get_current_user_id()
+    if not user_id:
+        return jsonify({"error": "unauthorized"}), 401
+
+    try:
+        # Delete item that belongs to this user only
+        supabase.table("wardrobe_items") \
+            .delete() \
+            .eq("id", item_id) \
+            .eq("user_id", user_id) \
+            .execute()
+
+        return jsonify({"success": True}), 200
+
+    except Exception as e:
+        print(f"❌ Delete error: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 @wardrobe_bp.route("/items", methods=["POST"])
 def create_wardrobe_item():
