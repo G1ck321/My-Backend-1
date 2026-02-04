@@ -10,7 +10,7 @@ WEATHER_API_KEY = key
 @context_bp.route('/api/weather', methods=['GET'])
 def get_weather():
     # Use a real API Key from OpenWeatherMap
-    api_key = "YOUR_REAL_API_KEY" 
+    api_key = key 
     city = "Lagos"
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
     

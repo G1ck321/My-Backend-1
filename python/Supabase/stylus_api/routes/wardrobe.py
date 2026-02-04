@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 from ..utils.auth import get_current_user_id
 from ..services.supabase import call_rpc, upload_image  # ← FIXED: upload_image
 from .profile import supabase   
+import random
 wardrobe_bp = Blueprint("wardrobe", __name__)
 
 @wardrobe_bp.route("/items", methods=["GET"])
@@ -15,7 +16,7 @@ def get_wardrobe():
     items = call_rpc("get_user_wardrobe", {"p_user_id": user_id})
     
     # 2. DEBUG PRINT: See the actual data in your Render/Terminal logs
-    print(f"📦 Data from DB: {items}") 
+    # print(f"📦 Data from DB: {items}") 
     
     # 3. Check if it's None or Empty
     if items is None:
@@ -88,33 +89,36 @@ def create_wardrobe_item():
 def get_simple_ootd():
     user_id = get_current_user_id()
     
-    # 1. Fetch items from Supabase
-    # In a real scenario, your Rule-Based Engine would run here.
-    # For now, let's return a basic set of items to fix the 404.
-    items = supabase.table('wardrobe_items').select('*').eq('user_id', user_id).limit(3).execute()
-    
-    # Format to match your Frontend OutfitItem interface
-    ootd = []
-    for item in items.data:
-        ootd.append({
-            "id": item['id'],
-            "type": item['category'],
-            "color": item.get('color', 'Neutral'),
-            "image_url": item['image_url']
-        })
+    # Fetch all items to allow for rule-based picking
+    res = supabase.table('wardrobe_items').select('*').eq('user_id', user_id).execute()
+    all_items = res.data
+
+    if not all_items:
+        return jsonify([])
+
+    # Logic: Try to pick one of each category
+    tops = [i for i in all_items if i['category'] == 'top']
+    bottoms = [i for i in all_items if i['category'] == 'bottom']
+    shoes = [i for i in all_items if i['category'] == 'shoes']
+
+    # Select one of each (or empty if category missing)
+    selection = []
+    if tops: selection.append(random.choice(tops))
+    if bottoms: selection.append(random.choice(bottoms))
+    if shoes: selection.append(random.choice(shoes))
+
+    # Format for Frontend
+    ootd = [{
+        "id": item['id'],
+        "type": item['category'],
+        "color": item.get('color', 'Neutral'),
+        "image_url": item['image_url']
+    } for item in selection]
         
     return jsonify(ootd)
-@wardrobe_bp.route("/log-wear", methods=["POST"])
-def log_wear():
+@wardrobe_bp.route("/insights/colors", methods=["GET"])
+def get_color_insights():
     user_id = get_current_user_id()
-    data = request.get_json()
-    item_ids = data.get("item_ids") # Array of IDs worn
-
-    # Log to the 'outfit_logs' table for Style Insights
-    supabase.table("outfit_logs").insert({
-        "user_id": user_id,
-        "items": item_ids,
-        "weather_context": get_weather().get_json()
-    }).execute()
-    
-    return jsonify({"status": "logged"})
+    # Count occurrences of each color
+    res = supabase.rpc('get_color_distribution', {'p_user_id': user_id}).execute()
+    return jsonify(res.data)

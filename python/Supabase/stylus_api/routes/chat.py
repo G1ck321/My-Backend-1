@@ -124,6 +124,13 @@ def chat():
         weather_res = get_weather().get_json()
         temp = weather_res.get("temp", 25)
         cond = weather_res.get("condition", "Clear")
+        profile_res = supabase.table("profiles").select("style_vibe").eq("id", user_id).maybe_single().execute()
+
+        # B. Improved extraction logic
+        if profile_res.data and profile_res.data.get("style_vibe"):
+            vibe = profile_res.data["style_vibe"]
+        else:
+            vibe = "Versatile" # Better fallback than "None"
 
         # ------------------------------------------
         # E. USER WARDROBE CONTEXT
@@ -140,27 +147,27 @@ def chat():
         items_descriptions = []
         for item in wardrobe_res.data:
             desc = f"{item['category']}"
-            if item.get('color') and item['color'] != 'unknown':
-                desc += f" in {item['color']}"
-            if item.get('weight'):
-                desc += f" (suitable for {item['weight']} weather)"
+            if item.get('tags'):
+                desc += f" (Style: {', '.join(item['tags'])})"
             items_descriptions.append(desc)
 
         # --- F. SYSTEM PROMPT (More Directive) ---
         system_prompt = f"""
-You are StyluS, a personal stylist. 
+You are StyluS, a high-end fashion concierge. 
+Style Vibe: {vibe}
 Weather: {temp}°C, {cond}.
 
-Closet Inventory:
-{chr(10).join(items_descriptions) if items_descriptions else "The closet is currently empty."}
-
-User's Request: "{user_query}"
+Inventory:
+{chr(10).join(items_descriptions)}
 
 Rules:
-1. Suggest a specific outfit using ONLY the items listed above.
-2. If the user asks for a recommendation, explain WHY it fits the {temp}°C weather.
-3. If the wardrobe is empty, tell the user to upload photos of their clothes first.
-4. DO NOT ask the user for colors or styles; use the inventory provided.
+1. Suggest an outfit that fits the "{vibe}" aesthetic.
+2. Suggest a specific outfit using ONLY the items listed above.
+3. If the user asks for a recommendation, explain WHY it fits the {temp}°C weather.
+4. If the wardrobe is empty, tell the user to upload photos of their clothes first.
+5. DO NOT ask the user for colors or styles; use the inventory provided.
+6. NEVER say "one of your items."
+7. If the user asks "Which top?", pick the ONE item from the inventory that best fits the weather.
 """
 
         # ------------------------------------------
@@ -185,3 +192,34 @@ Rules:
         return jsonify({
             "reply": "I'm having a fashion brain freeze 😵 Try again shortly."
         }), 500
+@chat_bp.route("/chat-history", methods=["GET"])
+def get_chat_history():
+    user_id = get_current_user_id()
+    limit = int(request.args.get('limit', 10))
+    offset = int(request.args.get('offset', 0))
+
+    history = supabase.table("chat_history") \
+        .select("*") \
+        .eq("user_id", user_id) \
+        .order("created_at", desc=True) \
+        .range(offset, offset + limit - 1) \
+        .execute()
+    
+    return jsonify({"history": history.data})
+
+# Inside your existing @chat_bp.route("/chat-message")
+# Save User Message
+    supabase.table("chat_history").insert({
+        "user_id": user_id, 
+        "role": "user", 
+        "content": user_query
+    }).execute()
+
+    # ... (AI Logic) ...
+
+    # Save AI Reply
+    supabase.table("chat_history").insert({
+        "user_id": user_id, 
+        "role": "ai", 
+        "content": reply
+    }).execute()
