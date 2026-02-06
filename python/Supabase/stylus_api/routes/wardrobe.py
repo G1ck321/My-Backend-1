@@ -66,6 +66,7 @@ def async_tag_and_update(item_id: str, image_bytes: bytes):
         # Cleaner JSON extraction
         clean_text = gm_resp.text.strip().lstrip('```json').rstrip('```').strip()
         tags = json.loads(clean_text)
+        print(f"✅ Tags generated: {tags}")
     except Exception as e:
         print(f"Fallback to HF due to: {e}")
         tags = hf_clip_tag(image_bytes)
@@ -78,6 +79,7 @@ def async_tag_and_update(item_id: str, image_bytes: bytes):
             "color": tags.get("color"),
             "tags": [tags.get("material"), tags.get("style_vibe"), tags.get("fit")]
         }
+        print(f"💾 DB Update result: {res}")
         supabase.table("wardrobe_items").update(update_payload).eq("id", item_id).execute()
 
 # ===========================
@@ -134,6 +136,9 @@ def create_wardrobe_item():
             "p_tags": [None, None, None]
         }
         new_item = call_rpc("create_wardrobe_item", rpc_params)
+        if not new_item:
+            return jsonify({"error": "Failed to create item"}), 500
+
         item_id = new_item.get("id")
 
         # Kick off async tagging thread
@@ -142,8 +147,18 @@ def create_wardrobe_item():
         return jsonify({"item": new_item}), 201
 
     except Exception as e:
-        print(f"❌ Upload Error: {e}")
-        return jsonify({"error": str(e)}), 500
+        err_str = str(e)
+        print(f"❌ Upload Error: {err_str}")
+
+        # Handle common Supabase 409 duplicate
+        if "statusCode" in err_str and "409" in err_str:
+            return jsonify({
+                "error": "Item already exists",
+                "details": err_str
+            }), 409
+
+        # Generic fallback
+        return jsonify({"error": err_str}), 500
 
 @wardrobe_bp.route("/simple-ootd", methods=["GET"])
 def get_simple_ootd():
@@ -190,3 +205,22 @@ def toggle_favorite():
         return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+@wardrobe_bp.route("/repair-null-tags", methods=["GET"])
+def repair_tags():
+    user_id = get_current_user_id()
+    # 1. Fetch items with missing tags
+    res = supabase.table("wardrobe_items").select("*").eq("user_id", user_id).execute()
+    items = res.data or []
+    
+    repaired_count = 0
+    for item in items:
+        if not item.get("color") or item.get("color") == "Neutral":
+            # 2. Get the image from Supabase Storage to re-tag it
+            # (This assumes image_url is the path in your bucket)
+            img_res = supabase.storage.from_("wardrobe-images").download(item["image_url"])
+            
+            # 3. Trigger the tagging
+            threading.Thread(target=async_tag_and_update, args=(item["id"], img_res)).start()
+            repaired_count += 1
+            
+    return jsonify({"msg": f"Attempting to repair {repaired_count} items"}), 200

@@ -58,40 +58,17 @@ def rate_limit(user_id: str, cooldown_seconds: int = 3) -> bool:
 # AI GENERATION WITH SAFE FALLBACK
 # ==================================================
 
-def generate_ai_response(prompt: str) -> tuple[str, str]:
-    """
-    1. Try Gemini first
-    2. Fall back to Gemma only on quota / rate limit errors
-    """
-
+def generate_ai_response(prompt):
     try:
-        model = genai.GenerativeModel(GEMINI_MODEL)
+        model = genai.GenerativeModel("gemini-1.5-flash-latest")
         response = model.generate_content(prompt)
-        return response.text, GEMINI_MODEL
-
-    except Exception as error:
-        error_text = str(error).lower()
-
-        quota_errors = [
-            "429",
-            "quota",
-            "rate",
-            "exceeded",
-            "resource_exhausted"
-        ]
-
-        if not any(code in error_text for code in quota_errors):
-            raise
-
-        print("⚠️ Gemini unavailable, falling back to Gemma")
-
-        # Gemma performs best with short prompts
-        shortened_prompt = prompt[:2000]
-
-        fallback_model = genai.GenerativeModel(GEMMA_MODEL)
-        response = fallback_model.generate_content(shortened_prompt)
-
-        return response.text, GEMMA_MODEL
+        return response.text, "gemini-1.5-flash-latest"
+    except Exception as e:
+        # ADD THIS PRINT LINE TO SEE THE REAL ERROR
+        print(f"❌ Gemini Real Error: {e}") 
+        model = genai.GenerativeModel("gemma-2-9b-it")
+        response = model.generate_content(prompt)
+        return response.text, "gemma-2-9b-it"
 
 
 # ==================================================
@@ -203,6 +180,7 @@ def chat():
         # ------------------------------------------
         # 7. BUILD SYSTEM PROMPT
         # ------------------------------------------
+        user_name  = {"name":supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()}
         system_prompt = f"""
 You are StyluS, a professional fashion consultant. 
 User's Aesthetic: {style_vibe}
@@ -216,6 +194,8 @@ STRICT RULES:
 2. BE DECISIVE. Do not say "I suggest a top." Say "Wear the [ID: 123] Grey Streetwear Top."
 3. REASONING: Explain why that specific item works for {temperature}°C. (e.g., "Grey is a neutral that won't absorb too much heat under the {condition} sky.")
 4. If the user asks a follow-up, refer to the IDs mentioned in the chat history.
+5. Do not repeat Okay in every response.
+6. refer to the user's name {user_name} or user
 """
 
         # ------------------------------------------
