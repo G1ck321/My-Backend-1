@@ -7,219 +7,289 @@ from ..routes.context import get_weather
 from ..utils.auth import get_current_user_id
 from ..config import Config
 
+
 # ==================================================
-# 1. CONFIGURE GEMINI / GEMMA
+# AI MODEL CONFIGURATION
 # ==================================================
 
 genai.configure(api_key=Config.GEM)
 
-# Primary (fast, smart, but quota-limited)
-GEMINI_MODEL = "gemini-flash-latest"
+GEMINI_MODEL = "gemini-flash-latest"   # Smart, fast, limited quota
+GEMMA_MODEL  = "gemma-3-4b-it"         # Cheaper fallback
 
-# Fallback (cheaper, weaker, more available)
-GEMMA_MODEL = "gemma-3-4b-it"
 
 # ==================================================
-# 2. BASIC IN-MEMORY RATE LIMIT (PER USER)
-# Prevents accidental spam & quota burn
+# SIMPLE IN-MEMORY RATE LIMIT
 # ==================================================
 
-LAST_CALL = {}
+genai.configure(api_key=Config.GEM)
 
-def rate_limit(user_id: str, cooldown: int = 3) -> bool:
+def list_available_models():
+    print("--- Available Stylus-Compatible Models ---")
+    for m in genai.list_models():
+        # Look for models that support content generation
+        if 'generateContent' in m.supported_generation_methods:
+            # Note: 'gemini-1.5-flash' is the best free-tier model for Vision
+            # 'gemma' models are typically text-only in this SDK
+            print(f"Model Name: {m.name}")
+            print(f"Description: {m.description}")
+            print(f"Capabilities: {m.supported_generation_methods}\n")
+
+# Run this once in your terminal to see the list
+# list_available_models()
+LAST_CALL_TIME = {}
+
+def rate_limit(user_id: str, cooldown_seconds: int = 3) -> bool:
     """
-    Allows 1 request per user every `cooldown` seconds.
-    Returns True if allowed, False if blocked.
+    Allow one request per user every `cooldown_seconds`.
+    Prevents spam and accidental quota burn.
     """
     now = time.time()
-    last = LAST_CALL.get(user_id, 0)
+    last_call = LAST_CALL_TIME.get(user_id, 0)
 
-    if now - last < cooldown:
+    if now - last_call < cooldown_seconds:
         return False
 
-    LAST_CALL[user_id] = now
+    LAST_CALL_TIME[user_id] = now
     return True
 
+
 # ==================================================
-# 3. AI GENERATION WITH FALLBACK LOGIC
+# AI GENERATION WITH SAFE FALLBACK
 # ==================================================
 
-def generate_with_fallback(prompt: str) -> tuple[str, str]:
+def generate_ai_response(prompt: str) -> tuple[str, str]:
     """
-    Attempts Gemini first.
-    Falls back to Gemma ONLY on quota / rate limit errors.
-
-    Returns:
-        (reply_text, model_used)
+    1. Try Gemini first
+    2. Fall back to Gemma only on quota / rate limit errors
     """
 
     try:
-        # --- Try Gemini first ---
-        gemini = genai.GenerativeModel(GEMINI_MODEL)
-        response = gemini.generate_content(prompt)
-
+        model = genai.GenerativeModel(GEMINI_MODEL)
+        response = model.generate_content(prompt)
         return response.text, GEMINI_MODEL
 
-    except Exception as e:
-        error_msg = str(e).lower()
+    except Exception as error:
+        error_text = str(error).lower()
 
-        # --- Detect quota / rate limit errors ---
-        quota_errors = ["429", "quota", "rate", "exceeded", "resource_exhausted"]
+        quota_errors = [
+            "429",
+            "quota",
+            "rate",
+            "exceeded",
+            "resource_exhausted"
+        ]
 
-        if any(err in error_msg for err in quota_errors):
-            print("⚠️ Gemini quota hit. Falling back to Gemma.")
+        if not any(code in error_text for code in quota_errors):
+            raise
 
-            # --- Use Gemma as fallback ---
-            gemma = genai.GenerativeModel(GEMMA_MODEL)
+        print("⚠️ Gemini unavailable, falling back to Gemma")
 
-            # Gemma works better with shorter prompts
-            shortened_prompt = prompt[:2000]
+        # Gemma performs best with short prompts
+        shortened_prompt = prompt[:2000]
 
-            response = gemma.generate_content(shortened_prompt)
-            return response.text, GEMMA_MODEL
+        fallback_model = genai.GenerativeModel(GEMMA_MODEL)
+        response = fallback_model.generate_content(shortened_prompt)
 
-        # --- Unknown error: re-raise ---
-        raise
+        return response.text, GEMMA_MODEL
+
 
 # ==================================================
-# 4. FLASK BLUEPRINT
+# BLUEPRINT
 # ==================================================
 
 chat_bp = Blueprint("chat", __name__)
 
+
 # ==================================================
-# 5. CHAT ENDPOINT
+# CHAT ENDPOINT
 # ==================================================
 
 @chat_bp.route("/chat-message", methods=["POST"])
 def chat():
     try:
         # ------------------------------------------
-        # A. AUTHENTICATION
+        # 1. AUTH & BASIC GUARDS
         # ------------------------------------------
         user_id = get_current_user_id()
         if not user_id:
             return jsonify({"reply": "Unauthorized"}), 401
 
-        # ------------------------------------------
-        # B. RATE LIMIT CHECK
-        # ------------------------------------------
         if not rate_limit(user_id):
-            return jsonify({
-                "reply": "Hold on 😅 Give me a second before asking again."
-            }), 429
+            return jsonify({"reply": "Hold on 😅 Give me a second before asking again."}), 429
 
-        # ------------------------------------------
-        # C. USER MESSAGE
-        # ------------------------------------------
         data = request.get_json()
-        user_query = data.get("message", "").strip()
+        user_message = (data.get("message") or "").strip()
 
-        if not user_query:
+        if not user_message:
             return jsonify({"reply": "Say something first 🙂"}), 400
 
         # ------------------------------------------
-        # D. WEATHER CONTEXT
+        # 2. FETCH RECENT CHAT HISTORY
         # ------------------------------------------
-        weather_res = get_weather().get_json()
-        temp = weather_res.get("temp", 25)
-        cond = weather_res.get("condition", "Clear")
-        profile_res = supabase.table("profiles").select("style_vibe").eq("id", user_id).maybe_single().execute()
-
-        # B. Improved extraction logic
-        if profile_res.data and profile_res.data.get("style_vibe"):
-            vibe = profile_res.data["style_vibe"]
-        else:
-            vibe = "Versatile" # Better fallback than "None"
-
-        # ------------------------------------------
-        # E. USER WARDROBE CONTEXT
-        # ------------------------------------------
-        wardrobe_res = (
+        history_rows = (
             supabase
-            .table("wardrobe_items")
-            .select("category, color, weight, tags") # Fetch more columns!
+            .table("chat_history")
+            .select("role, content")
             .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .limit(14)
             .execute()
+            .data
         )
 
-        # Create a more descriptive list
-        items_descriptions = []
-        for item in wardrobe_res.data:
-            desc = f"{item['category']}"
-            if item.get('tags'):
-                desc += f" (Style: {', '.join(item['tags'])})"
-            items_descriptions.append(desc)
+        # Format history into readable conversation text
+        formatted_history = []
+        for row in reversed(history_rows or []):
+            speaker = "User" if row["role"] == "user" else "StyluS"
+            formatted_history.append(f"{speaker}: {row['content']}")
 
-        # --- F. SYSTEM PROMPT (More Directive) ---
+        GEMINI_HISTORY_LIMIT = 5
+        chat_history_text = "\n".join(formatted_history[-GEMINI_HISTORY_LIMIT:])
+
+        # ------------------------------------------
+        # 3. SAVE USER MESSAGE
+        # ------------------------------------------
+        supabase.table("chat_history").insert({
+            "user_id": user_id,
+            "role": "user",
+            "content": user_message
+        }).execute()
+
+        # ------------------------------------------
+        # 4. FETCH CONTEXT (WEATHER + STYLE VIBE)
+        # ------------------------------------------
+        weather = get_weather().get_json()
+        temperature = weather.get("temp", 25)
+        condition = weather.get("condition", "Clear")
+
+        profile = (
+            supabase
+            .table("profiles")
+            .select("style_vibe")
+            .eq("id", user_id)
+            .maybe_single()
+            .execute()
+            .data
+        )
+
+        style_vibe = (profile.get("style_vibe") if profile and profile.get("style_vibe") else "Versatile")
+
+        # ------------------------------------------
+        # 5. FETCH USER WARDROBE
+        # ------------------------------------------
+        wardrobe_items = (
+            supabase
+            .table("wardrobe_items")
+            .select("category, color, tags")
+            .eq("user_id", user_id)
+            .execute()
+            .data
+        )
+
+        # ------------------------------------------
+        # 6. FORMAT INVENTORY LINES SAFELY (FIX)
+        # ------------------------------------------
+        inventory_lines = []
+        for item in wardrobe_items:
+            category = item.get('category', 'unknown')
+            color = item.get('color') or 'Neutral'  # Avoid None
+            tags = [str(t) for t in (item.get("tags") or []) if t]  # Remove None from tags
+            line = f"{category} ({color})"
+            if tags:
+                line += f" – {', '.join(tags)}"
+            inventory_lines.append(line)
+
+        # ------------------------------------------
+        # 7. BUILD SYSTEM PROMPT
+        # ------------------------------------------
         system_prompt = f"""
-You are StyluS, a high-end fashion concierge. 
-Style Vibe: {vibe}
-Weather: {temp}°C, {cond}.
+You are StyluS, a professional fashion consultant. 
+User's Aesthetic: {style_vibe}
+Weather: {temperature}°C, {condition}.
 
-Inventory:
-{chr(10).join(items_descriptions)}
+USER'S CLOSET:
+{inventory_lines}
 
-Rules:
-1. Suggest an outfit that fits the "{vibe}" aesthetic.
-2. Suggest a specific outfit using ONLY the items listed above.
-3. If the user asks for a recommendation, explain WHY it fits the {temp}°C weather.
-4. If the wardrobe is empty, tell the user to upload photos of their clothes first.
-5. DO NOT ask the user for colors or styles; use the inventory provided.
-6. NEVER say "one of your items."
-7. If the user asks "Which top?", pick the ONE item from the inventory that best fits the weather.
+STRICT RULES:
+1. NEVER use the word "unknown." If data is missing, describe the item by its ID.
+2. BE DECISIVE. Do not say "I suggest a top." Say "Wear the [ID: 123] Grey Streetwear Top."
+3. REASONING: Explain why that specific item works for {temperature}°C. (e.g., "Grey is a neutral that won't absorb too much heat under the {condition} sky.")
+4. If the user asks a follow-up, refer to the IDs mentioned in the chat history.
 """
 
         # ------------------------------------------
-        # G. AI GENERATION (WITH FALLBACK)
+        # 8. GENERATE AI RESPONSE
         # ------------------------------------------
-        reply, model_used = generate_with_fallback(system_prompt)
+        ai_reply, model_used = generate_ai_response(system_prompt)
 
         # ------------------------------------------
-        # H. RESPONSE
+        # 9. SAVE AI RESPONSE
+        # ------------------------------------------
+        supabase.table("chat_history").insert({
+            "user_id": user_id,
+            "role": "ai",
+            "content": ai_reply
+        }).execute()
+
+        # ------------------------------------------
+        # 10. RETURN RESPONSE
         # ------------------------------------------
         return jsonify({
-            "reply": reply,
+            "reply": ai_reply,
             "model": model_used,
             "weather": {
-                "temp": temp,
-                "condition": cond
+                "temp": temperature,
+                "condition": condition
             }
         })
 
-    except Exception as e:
-        print("🔥 Chat Error:", str(e))
+    except Exception as error:
+        print("🔥 Chat Error:", error)
         return jsonify({
             "reply": "I'm having a fashion brain freeze 😵 Try again shortly."
         }), 500
+
 @chat_bp.route("/chat-history", methods=["GET"])
 def get_chat_history():
-    user_id = get_current_user_id()
-    limit = int(request.args.get('limit', 10))
-    offset = int(request.args.get('offset', 0))
+    """
+    Fetches paginated chat history for the logged-in user.
+    Query Params:
+        limit: Number of messages to fetch (default 10)
+        offset: Number of messages to skip (for pagination)
+    """
+    try:
+        # 1. Authenticate User
+        user_id = get_current_user_id()
+        if not user_id:
+            return jsonify({"error": "Unauthorized"}), 401
 
-    history = supabase.table("chat_history") \
-        .select("*") \
-        .eq("user_id", user_id) \
-        .order("created_at", desc=True) \
-        .range(offset, offset + limit - 1) \
-        .execute()
-    
-    return jsonify({"history": history.data})
+        # 2. Get Pagination Parameters
+        # limit: how many rows to fetch
+        # offset: where to start (e.g., offset 10 starts at the 11th row)
+        limit = int(request.args.get('limit', 10))
+        offset = int(request.args.get('offset', 0))
 
-# Inside your existing @chat_bp.route("/chat-message")
-# Save User Message
-    supabase.table("chat_history").insert({
-        "user_id": user_id, 
-        "role": "user", 
-        "content": user_query
-    }).execute()
+        # 3. Query Supabase
+        # .order() ensures we get the most recent messages first
+        # .range() handles the pagination logic
+        response = (
+            supabase.table("chat_history")
+            .select("id, role, content, created_at")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True) 
+            .range(offset, offset + limit - 1)
+            .execute()
+        )
 
-    # ... (AI Logic) ...
+        # 4. Return data
+        # Note: We return it 'as is', but the frontend may need to .reverse() 
+        # it to show chronologically (oldest at top).
+        return jsonify({
+            "history": response.data,
+            "hasMore": len(response.data) == limit
+        }), 200
 
-    # Save AI Reply
-    supabase.table("chat_history").insert({
-        "user_id": user_id, 
-        "role": "ai", 
-        "content": reply
-    }).execute()
+    except Exception as e:
+        print(f"❌ History Error: {str(e)}")
+        return jsonify({"error": "Could not load history"}), 500

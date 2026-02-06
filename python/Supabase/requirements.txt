@@ -169,3 +169,5 @@ yarl==1.22.0
 google-genai
 google-generativeai
 protobuf
+huggingface_hub
+transformers
