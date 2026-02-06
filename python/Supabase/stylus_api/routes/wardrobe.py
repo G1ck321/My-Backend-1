@@ -22,7 +22,7 @@ vision_model = genai.GenerativeModel("models/gemini-2.5-flash-lite")
 
 # ---- Hugging Face Fallback ----
 HF_API_KEY = Config.HUGGING_FACE  # Hugging Face API key (store in Config)
-HF_CLIP_URL = "https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32"
+HF_CLIP_URL = "https://router.huggingface.co/hf-inference/models/openai/clip-vit-base-patch32"
 
 def hf_clip_tag(image_bytes: bytes) -> dict:
     """
@@ -56,44 +56,29 @@ def hf_clip_tag(image_bytes: bytes) -> dict:
         return {}
 
 def async_tag_and_update(item_id: str, image_bytes: bytes):
-    """
-    Run AI tagging in the background.
-    1. Try Gemini
-    2. If fails (quota or error), try Hugging Face CLIP
-    3. Update Supabase only if new tags are present
-    """
-
-    # TRY: Gemini
+    # 1. Try Gemini (Use the stable 1.5 Flash)
     try:
-        prompt = """
-        Analyze this clothing item & return ONLY JSON:
-        { category, color, occasion, material, style_vibe, fit }
-        """
-        gm_resp = vision_model.generate_content([{"mime_type": "image/jpeg", "data": image_bytes}, prompt])
-        text = gm_resp.text.replace("```json", "").replace("```", "").strip()
-        tags = json.loads(text)
-
-    except Exception as gem_err:
-        print(f"⚠️ Gemini tagging failed (async): {gem_err}")
+        model = genai.GenerativeModel("gemini-1.5-flash-latest")
+        # Added a system instruction to force strict JSON
+        prompt = "Return ONLY JSON for this clothing: {category, color, material, style_vibe, fit}"
+        gm_resp = model.generate_content([{"mime_type": "image/jpeg", "data": image_bytes}, prompt])
+        
+        # Cleaner JSON extraction
+        clean_text = gm_resp.text.strip().lstrip('```json').rstrip('```').strip()
+        tags = json.loads(clean_text)
+    except Exception as e:
+        print(f"Fallback to HF due to: {e}")
         tags = hf_clip_tag(image_bytes)
 
-    # If no tags returned, stop
-    if not tags:
-        print(f"ℹ️ No tags returned for item {item_id}, skipping update.")
-        return
-
-    update_data = {}
-    if tags.get("category"): update_data["category"] = tags["category"]
-    if tags.get("color"): update_data["color"] = tags["color"]
-    # We store other tag fields in “tags” array
-    update_data["tags"] = [tags.get("material"), tags.get("style_vibe"), tags.get("fit")]
-
-    try:
-        supabase.table("wardrobe_items") \
-            .update(update_data).eq("id", item_id).execute()
-        print(f"✅ Async tags updated for {item_id}")
-    except Exception as e:
-        print(f"❌ Failed DB update for {item_id}: {e}")
+    # 2. Update Database
+    if tags:
+        # Map the AI response to your database structure
+        update_payload = {
+            "category": tags.get("category"),
+            "color": tags.get("color"),
+            "tags": [tags.get("material"), tags.get("style_vibe"), tags.get("fit")]
+        }
+        supabase.table("wardrobe_items").update(update_payload).eq("id", item_id).execute()
 
 # ===========================
 # ROUTES
