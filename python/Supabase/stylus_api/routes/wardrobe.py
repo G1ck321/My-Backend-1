@@ -9,6 +9,7 @@ import random
 import threading
 import requests
 from ..config import Config
+import base64
 
 wardrobe_bp = Blueprint("wardrobe", __name__)
 
