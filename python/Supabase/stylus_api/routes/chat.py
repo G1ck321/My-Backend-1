@@ -12,17 +12,20 @@ from ..config import Config
 # AI MODEL CONFIGURATION
 # ==================================================
 
+
 genai.configure(api_key=Config.GEM)
 
-GEMINI_MODEL = "gemini-flash-latest"   # Smart, fast, limited quota
-GEMMA_MODEL  = "gemma-3-4b-it"         # Cheaper fallback
+GEMINI_MODEL_NAME = "models/gemini-flash-latest"
+GEMMA_MODEL_NAME  = "models/gemma-3-4b-it"
+
+
+# primary_model  = genai.GenerativeModel(PRIMARY_MODEL)
+# fallback_model = genai.GenerativeModel(FALLBACK_MODEL)        # Cheaper fallback
 
 
 # ==================================================
 # SIMPLE IN-MEMORY RATE LIMIT
 # ==================================================
-
-genai.configure(api_key=Config.GEM)
 
 def list_available_models():
     print("--- Available Stylus-Compatible Models ---")
@@ -40,35 +43,53 @@ def list_available_models():
 LAST_CALL_TIME = {}
 
 def rate_limit(user_id: str, cooldown_seconds: int = 3) -> bool:
-    """
-    Allow one request per user every `cooldown_seconds`.
-    Prevents spam and accidental quota burn.
-    """
     now = time.time()
     last_call = LAST_CALL_TIME.get(user_id, 0)
-
     if now - last_call < cooldown_seconds:
         return False
-
     LAST_CALL_TIME[user_id] = now
     return True
+
 
 
 # ==================================================
 # AI GENERATION WITH SAFE FALLBACK
 # ==================================================
 
-def generate_ai_response(prompt):
+def generate_ai_response(prompt: str):
+    """
+    1. Try Gemini ONCE
+    2. On ANY Gemini error → fall back to Gemma
+    3. Never retry Gemini
+    """
+
+    # --- Try Gemini first ---
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
-        response = model.generate_content(prompt)
-        return response.text, "gemini-1.5-flash-latest"
-    except Exception as e:
-        # ADD THIS PRINT LINE TO SEE THE REAL ERROR
-        print(f"❌ Gemini Real Error: {e}") 
-        model = genai.GenerativeModel("gemma-2-9b-it")
-        response = model.generate_content(prompt)
-        return response.text, "gemma-2-9b-it"
+        gemini_model = genai.GenerativeModel(GEMINI_MODEL_NAME)
+        response = gemini_model.generate_content(prompt)
+        return response.text, GEMINI_MODEL_NAME
+
+    except Exception as gemini_error:
+        error_msg = str(gemini_error)
+        print(f"❌ Gemini Error: {error_msg}")
+        print("🔁 Falling back to Gemma")
+
+    # --- Fallback to Gemma ---
+    try:
+        gemma_model = genai.GenerativeModel(GEMMA_MODEL_NAME)
+        response = gemma_model.generate_content(
+            prompt,
+            generation_config={
+                "temperature": 0.6,
+                "top_p": 0.9,
+                "max_output_tokens": 512
+            }
+        )
+        return response.text, GEMMA_MODEL_NAME
+
+    except Exception as gemma_error:
+        print(f"🔥 Gemma Error: {gemma_error}")
+        raise RuntimeError("All models failed")
 
 
 # ==================================================
@@ -190,12 +211,17 @@ USER'S CLOSET:
 {inventory_lines}
 
 STRICT RULES:
-1. NEVER use the word "unknown." If data is missing, describe the item by its ID.
-2. BE DECISIVE. Do not say "I suggest a top." Say "Wear the [ID: 123] Grey Streetwear Top."
+1. Explain briefly why it works for the weather.
+2. BE DECISIVE. Do not say "I suggest a top." Say "Wear the [ID: 123] Grey Streetwear Top. no hedging"
 3. REASONING: Explain why that specific item works for {temperature}°C. (e.g., "Grey is a neutral that won't absorb too much heat under the {condition} sky.")
 4. If the user asks a follow-up, refer to the IDs mentioned in the chat history.
 5. Do not repeat Okay in every response.
 6. refer to the user's name {user_name} or user
+7. NEVER use the word "unknown." If data is missing, describe the item by its ID.
+FORMAT:
+- Outfit name
+- Bullet list of items
+- Short reasoning
 """
 
         # ------------------------------------------

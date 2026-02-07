@@ -25,35 +25,43 @@ HF_API_KEY = Config.HUGGING_FACE  # Hugging Face API key (store in Config)
 HF_CLIP_URL = "https://router.huggingface.co/hf-inference/models/openai/clip-vit-base-patch32"
 
 def hf_clip_tag(image_bytes: bytes) -> dict:
-    """
-    Send the image to Hugging Face CLIP for basic clothing & color tagging.
-    This is used as a cheaper fallback or async alternative to Gemini.
-    """
-    headers = {"Authorization": f"Bearer {HF_API_KEY}"}
-    try:
-        response = requests.post(
-            HF_CLIP_URL,
-            headers=headers,
-            files={"file": image_bytes},
-            timeout=30
-        )
+    headers = {
+        "Authorization": f"Bearer {HF_API_KEY}",
+        "Content-Type": "application/json",
+    }
 
-        if response.status_code == 200:
-            result = response.json()
-            labels = result.get("labels", [])
-            return {
-                "category": labels[0] if len(labels) > 0 else None,
-                "color": labels[1] if len(labels) > 1 else None,
-                "material": labels[2] if len(labels) > 2 else None,
-                "style_vibe": None,
-                "fit": None
-            }
-        else:
-            print(f"⚠️ HF CLIP returned {response.status_code} - {response.text}")
-            return {}
-    except Exception as e:
-        print(f"❌ HF CLIP error: {e}")
+    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+
+    payload = {
+        "inputs": {
+            "image": image_b64,
+            "candidate_labels": [
+                "t-shirt", "shirt", "jacket", "hoodie",
+                "jeans", "trousers", "shorts",
+                "sneakers", "boots", "sandals",
+                "black", "white", "blue", "red", "green",
+                "cotton", "denim", "leather",
+                "streetwear", "formal", "casual",
+                "oversized", "slim fit"
+            ]
+        }
+    }
+
+    r = requests.post(HF_CLIP_URL, headers=headers, json=payload, timeout=30)
+
+    if r.status_code != 200:
+        print(f"⚠️ HF CLIP returned {r.status_code} - {r.text}")
         return {}
+
+    result = r.json()
+
+    return {
+        "category": result["labels"][0] if result["labels"] else None,
+        "color": next((l for l in result["labels"] if l in ["black","white","blue","red","green"]), None),
+        "material": next((l for l in result["labels"] if l in ["cotton","denim","leather"]), None),
+        "style_vibe": next((l for l in result["labels"] if l in ["streetwear","formal","casual"]), None),
+        "fit": next((l for l in result["labels"] if l in ["oversized","slim fit"]), None),
+    }
 
 def async_tag_and_update(item_id: str, image_bytes: bytes):
     # 1. Try Gemini (Use the stable 1.5 Flash)
@@ -79,8 +87,8 @@ def async_tag_and_update(item_id: str, image_bytes: bytes):
             "color": tags.get("color"),
             "tags": [tags.get("material"), tags.get("style_vibe"), tags.get("fit")]
         }
+        res = supabase.table("wardrobe_items").update(update_payload).eq("id", item_id).execute()
         print(f"💾 DB Update result: {res}")
-        supabase.table("wardrobe_items").update(update_payload).eq("id", item_id).execute()
 
 # ===========================
 # ROUTES

@@ -7,7 +7,7 @@ key = Config.WEATHER
 # Replace with a real key from OpenWeatherMap (Free tier)
 WEATHER_API_KEY = key
 
-@context_bp.route('/api/weather', methods=['GET'])
+@context_bp.route('/weather', methods=['GET'])
 def get_weather():
     # Use a real API Key from OpenWeatherMap
     api_key = key 
