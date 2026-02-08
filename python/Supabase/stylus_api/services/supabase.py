@@ -3,6 +3,7 @@ import requests
 from flask import current_app
 from storage3 import create_client
 from typing import Any, Dict, List
+import uuid
 
 def supabase_headers():
     key = current_app.config["SUPABASE_SERVICE_ROLE_KEY"]
@@ -52,36 +53,30 @@ def get_table(table: str, filters: Dict[str, str] = None) -> List[Dict]:
     return res.json()
 
 def upload_image(user_id: str, file_bytes: bytes, filename: str) -> str:
-    """Upload to wardrobe-images/{user_id}/{filename} - SERVICE ROLE ONLY"""
+    """
+    Upload to wardrobe-images/{user_id}/{unique_filename} - SERVICE ROLE ONLY.
+    Guarantees no duplicate filename conflicts.
+    """
     try:
         url = f"{current_app.config['SUPABASE_URL']}/storage/v1"
         key = current_app.config["SUPABASE_SERVICE_ROLE_KEY"]
         headers = {"apikey": key, "Authorization": f"Bearer {key}"}
         client = create_client(url, headers, is_async=False)
         bucket = client.from_("wardrobe-images")
-        
+
+        # Make filename safe
         safe_filename = filename.replace(" ", "_").replace("/", "_")
-        path = f"{user_id}/{safe_filename}"
-        
+
+        # Add a UUID to make it globally unique
+        unique_filename = f"{uuid.uuid4()}_{safe_filename}"
+
+        # Full path in bucket
+        path = f"{user_id}/{unique_filename}"
+
         bucket.upload(path, file_bytes)
         print(f"✅ Uploaded: wardrobe-images/{path}")
         return path
-# def upload_image(user_id, file_bytes, filename):
-#     # Create a unique path: user_id/timestamp_filename
-#     from datetime import datetime
-#     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-#     storage_path = f"{user_id}/{timestamp}_{filename}"
-#     try:
-#         # Use the supabase client to upload to your bucket
-#         # Note: 'supabase' must be initialized in this file or imported
-#         res = supabase.storage.from_("wardrobe-images").upload(
-#             path=storage_path,
-#             file=file_bytes, # This is the raw data
-#             file_options={"content-type": "image/png"} # Or detect type
-#         )
 
-#         # Supabase returns the path on success
-#         return storage_path
     except Exception as e:
         print(f"❌ Storage upload failed: {str(e)}")
         raise e

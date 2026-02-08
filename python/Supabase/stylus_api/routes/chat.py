@@ -15,7 +15,7 @@ from ..config import Config
 
 genai.configure(api_key=Config.GEM)
 
-GEMINI_MODEL_NAME = "models/gemini-flash-latest"
+GEMINI_MODEL_NAME = "models/gemini-2.5-flash"
 GEMMA_MODEL_NAME  = "models/gemma-3-4b-it"
 
 
@@ -208,16 +208,18 @@ User's Aesthetic: {style_vibe}
 Weather: {temperature}°C, {condition}.
 
 USER'S CLOSET:
-{inventory_lines}
+inventory = {inventory_lines}
 
 STRICT RULES:
 1. Explain briefly why it works for the weather.
-2. BE DECISIVE. Do not say "I suggest a top." Say "Wear the [ID: 123] Grey Streetwear Top. no hedging"
+2. BE DECISIVE. Do not say "I suggest a top." Say "Wear the [ID: (use id)] (top from inventory) Top. no hedging"
 3. REASONING: Explain why that specific item works for {temperature}°C. (e.g., "Grey is a neutral that won't absorb too much heat under the {condition} sky.")
 4. If the user asks a follow-up, refer to the IDs mentioned in the chat history.
 5. Do not repeat Okay in every response.
 6. refer to the user's name {user_name} or user
 7. NEVER use the word "unknown." If data is missing, describe the item by its ID.
+8. Respond directly without conversational fillers.
+Do not start responses with words like: "Okay", "Sure", "Alright", "Let’s", or similar. Output only the recommendation.
 FORMAT:
 - Outfit name
 - Bullet list of items
@@ -299,3 +301,25 @@ def get_chat_history():
     except Exception as e:
         print(f"❌ History Error: {str(e)}")
         return jsonify({"error": "Could not load history"}), 500
+# ==================================================
+# POST /clear-chat → Clears all messages for the current user
+# ==================================================
+@chat_bp.route("/clear-chat", methods=["POST"])
+def clear_chat():
+    """
+    Clears all chat history for the logged-in user.
+    Frontend calls this when the "Clear chats" button is pressed.
+    """
+    try:
+        user_id = get_current_user_id()
+        if not user_id:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        # Delete all messages for this user
+        supabase.table("chat_history").delete().eq("user_id", user_id).execute()
+
+        return jsonify({"success": True, "message": "Chat cleared successfully."}), 200
+
+    except Exception as e:
+        print(f"❌ Clear Chat Error: {e}")
+        return jsonify({"error": "Could not clear chat"}), 500

@@ -171,3 +171,5 @@ google-generativeai
 protobuf
 huggingface_hub
 transformers
+pillow
+torch
