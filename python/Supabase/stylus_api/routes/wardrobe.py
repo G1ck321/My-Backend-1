@@ -5,13 +5,8 @@ from ..services.supabase import call_rpc, upload_image
 from storage3.exceptions import StorageApiError
 from .profile import supabase
 import google.generativeai as genai
-import json
-import random
-import time
-import threading
-import requests
+import json, random, time, threading, requests, base64
 from ..config import Config
-import base64
 from PIL import Image
 from io import BytesIO
 
@@ -28,20 +23,11 @@ genai.configure(api_key=Config.GEM)
 vision_model = genai.GenerativeModel("models/gemini-1.5-flash")
 
 # ---- Hugging Face Fallback ----
-# HF_CLIP_URL = "https://router.huggingface.co/hf-inference/pipeline/zero-shot-image-classification"
-# HF_CLIP_URL = "https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32"
 HF_API_KEY = Config.HUGGING_FACE
 
-# Hugging Face CLIP Zero-Shot Classification
-# This model compares an image against a list of text labels you provide.
-# HF_CLIP_URL = "https://router.huggingface.co/models/sentence-transformers/clip-ViT-B-32"
-HF_CLIP_URL = (
-    "https://api-inference.huggingface.co/pipeline/zero-shot-image-classification"
-)
+# Hugging Face CLIP Zero-Shot Classificatio
+HF_CLIP_URL = "https://router.huggingface.co/hf-inference/models/openai/clip-vit-base-patch32"
 
-# HF_HEADERS = {"Authorization": f"Bearer {Config.HUGGING_FACE}"}
-
-# HF_CLIP_URL = "https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32"
 HF_HEADERS = {"Authorization": f"Bearer {Config.HUGGING_FACE}"}
 
 # Predefined labels focused on student wardrobes
@@ -58,6 +44,7 @@ STUDENT_LABELS = {
 # Retry configuration
 MAX_HF_RETRIES = 3
 BASE_RETRY_DELAY = 2  # seconds (will use exponential backoff)
+NOVITA_TAGGING_URL = "https://api.novita.ai/v3/tagging"
 
 
 # -------------------------------------------------------------------
@@ -65,108 +52,188 @@ BASE_RETRY_DELAY = 2  # seconds (will use exponential backoff)
 # -------------------------------------------------------------------
 
 class GeminiVisionClient:
-    """
-    Replace this with your real Gemini Vision SDK.
-    Important: Vision models DO NOT use `.generate()`.
-    They use `.classify()` / `.predict()` depending on SDK.
-    """
+    def __init__(self):
+        self.model = genai.GenerativeModel("gemini-1.5-flash")
 
-    def classify(self, image_bytes: bytes) -> dict:
-        # TODO: Replace with real Gemini Vision API call
-        return {
-            "tags": ["top", "casual"]
-        }
+    def classify(self, image_bytes: bytes, category="", user_desc=""):
+        image = preprocess_image(image_bytes)
+
+        prompt = f"""
+        You are tagging a clothing item.
+        Category: {category}
+        User description: {user_desc}
+        Return only a short comma-separated list of tags.
+        """
+
+        response = self.model.generate_content([prompt, image])
+        tags = [t.strip() for t in (response.text or "").split(",") if t.strip()]
+        return {"tags": tags}
 
 
+# Initialize singleton Gemini client
 gemini_client = GeminiVisionClient()
 
+def preprocess_image(image_bytes: bytes) -> bytes:
+    """Resize image for API calls."""
+    img = Image.open(BytesIO(image_bytes)).convert("RGB")
+    img.thumbnail((512, 512))
+    buf = BytesIO()
+    img.save(buf, format="JPEG", quality=85)
+    return buf.getvalue()
 
-def call_hf_with_retry(image_bytes: bytes, candidate_labels: list[str]):
-    headers = {"Authorization": f"Bearer {HF_API_KEY}"}
+# def call_novita_tags(image_bytes: bytes, category_hint: str = "") -> list:
+#     """Novita V3 Structured Tagging."""
+#     b64_image = base64.b64encode(image_bytes).decode("utf-8")
+#     payload = {"image": b64_image, "description": category_hint, "return_type": "tags"}
+#     headers = {"Authorization": f"Bearer {Config.NOVITA_API_KEY}", "Content-Type": "application/json"}
+    
+#     try:
+#         resp = requests.post(NOVITA_TAGGING_URL, json=payload, headers=headers, timeout=20)
+#         resp.raise_for_status()
+#         data = resp.json()
+#         return [t["name"].lower() for t in data.get("tags", []) if "name" in t]
+#     except Exception as e:
+#         print(f"❌ Novita Error: {e}")
+#         return []
+
+def call_imagga_safe(image_bytes: bytes):
+    """V2 Tagging with JSON crash protection."""
+    auth = (Config.IMAGGA_KEY, Config.IMAGGA_SECRET)
+    try:
+        # Step 1: Upload to Imagga
+        up_resp = requests.post("https://api.imagga.com/v2/uploads", 
+                                 files={"image": image_bytes}, auth=auth, timeout=10)
+        if up_resp.status_code != 200: return []
+        
+        upload_id = up_resp.json().get("result", {}).get("upload_id")
+        
+        # Step 2: Get Tags
+        tag_resp = requests.get(f"https://api.imagga.com/v2/tags?image_upload_id={upload_id}", 
+                                 auth=auth, timeout=10)
+        
+        # FIX: Check status before calling .json() to avoid 500 error
+        if tag_resp.status_code == 200:
+            data = tag_resp.json()
+            return [t["tag"]["en"].lower() for t in data["result"]["tags"][:5]]
+    except Exception as e:
+        print(f"⚠️ Imagga skipped: {e}")
+    return []
+
+def get_tags(image_bytes, category="", user_desc=""):
+    """The Master Pipeline: Logic flow to ensure we always get something."""
+    # 1. Try Imagga (Reliable object detection)
+    tags = call_imagga_safe(image_bytes)
+    if tags: return tags
+
+    # 2. Try BLIP (Great for descriptions)
+    caption = call_hf_with_retry_blip(image_bytes)
+    if caption:
+        return [tag for tag in caption.lower().split() if len(tag) > 3]
+
+    # 3. Gemini Fallback (The 'Smart' backup)
+    try:
+        res = gemini_client.classify(image_bytes, category, user_desc)
+        return res.get("tags", [])
+    except:
+        return [category or "clothing"]
+    
+def call_hf_with_retry_blip(image_bytes: bytes):
+    """
+    Uses HF BLIP image captioning model.
+    Returns a caption string or None.
+    """
+
+    HF_BLIP_URL = (
+        "https://api-inference.huggingface.co/models/"
+        "Salesforce/blip-image-captioning-base"
+    )
+
+    headers = {
+        "Authorization": f"Bearer {HF_API_KEY}",
+        "Content-Type": "application/json",
+        "Connection": "close"
+    }
+
+    # Resize + compress image (important for Windows + HF)
+    image_bytes = preprocess_image(image_bytes)
+    b64_img = base64.b64encode(image_bytes).decode("utf-8")
+
+    payload = {
+        "inputs": b64_img
+    }
 
     for attempt in range(1, MAX_HF_RETRIES + 1):
         try:
             response = requests.post(
-                HF_URL,
+                HF_BLIP_URL,
                 headers=headers,
-                files={"file": image_bytes},
-                data={
-                    "candidate_labels": json.dumps(candidate_labels)
-                },
-                timeout=20
+                json=payload,
+                timeout=(5, 60)
             )
             response.raise_for_status()
 
-            labels = response.json().get("labels")
-            if isinstance(labels, list):
-                return labels
+            data = response.json()
+            if isinstance(data, list) and "generated_text" in data[0]:
+                return data[0]["generated_text"]
 
         except Exception as e:
-            print(f"⚠️ HF attempt {attempt} failed: {e}")
+            print(f"⚠️ BLIP attempt {attempt} failed: {e}")
             if attempt < MAX_HF_RETRIES:
                 time.sleep(min(BASE_RETRY_DELAY * attempt, 8))
 
     return None
 
-def get_hf_tags_with_fallback(image_bytes, category, user_desc=""):
+# def get_hf_tags_with_fallback(image_bytes, category, user_desc=""):
+#     """
+#   
+
+#     # -------------------------------------------------------
+#     # 1️⃣ Category-specific candidate labels
+#     CATEGORY_LABELS = {
+#         "tops": ["t-shirt", "shirt", "blouse", "sweater"],
+#         "bottoms": ["jeans", "pants", "shorts", "skirt"],
+#         "shoes": ["sneakers", "boots", "heels"],
+#         "accessories": ["belt", "hat", "scarf"]
+#     }
+
+#     candidate_labels = CATEGORY_LABELS.get(
+#         category,
+#         ["top", "bottom", "shoes", "accessory"]
+#     )
+
+#     # -------------------------------------------------------
+#     # 2️⃣ HF attempt (retries handled internally)
+#     hf_tags = call_hf_with_retry(
+#         image_bytes=image_bytes,
+#         candidate_labels=candidate_labels
+#     )
+
+#     # -------------------------------------------------------
+#     # 3️⃣ Gemini fallback if HF failed or empty
+#     if hf_tags and len(hf_tags) > 0:
+#         print(f"✅ HF tags: {hf_tags}")
+#         return hf_tags
+
+#     print("⚠️ HF failed or empty, falling back to Gemini")
+
+#     try:
+#         gemini_result = gemini_client.classify(
+#             image_bytes=image_bytes,
+#             category=category,
+#             user_desc=user_desc
+#         )
+#         print(f"✨ Gemini tags: {gemini_result.get('tags', [])}")
+#         return gemini_result.get("tags", [])
+#     except Exception as e:
+#         print(f"❌ Gemini fallback failed: {e}")
+#         return []
+
+def async_tag_update(item_id, image_bytes, category, user_desc=""):
     """
-    High-level tag generator.
-    - Tries HF with retries
-    - Falls back to Gemini if HF fails
-    - Applies category + user context
+    Background tagging using Novita + Imagga + Gemini.
+    Updates Supabase asynchronously.
     """
-
-    # -------------------------------------------------------
-    # 1️⃣ Category-specific candidate labels
-    # -------------------------------------------------------
-
-    CATEGORY_LABELS = {
-        "tops": ["t-shirt", "shirt", "blouse", "sweater"],
-        "bottoms": ["jeans", "pants", "shorts", "skirt"],
-        "shoes": ["sneakers", "boots", "heels"],
-        "accessories": ["belt", "hat", "scarf"]
-    }
-
-    candidate_labels = CATEGORY_LABELS.get(
-        category,
-        ["top", "bottom", "shoes", "accessory"]
-    )
-
-    # -------------------------------------------------------
-    # 2️⃣ HF attempt (retries handled internally)
-    # -------------------------------------------------------
-
-    hf_tags = call_hf_with_retry(
-        image_bytes=image_bytes,
-        candidate_labels=candidate_labels
-    )
-
-    # -------------------------------------------------------
-    # 3️⃣ Gemini fallback if HF failed or empty
-    # -------------------------------------------------------
-
-    if hf_tags is None or len(hf_tags) == 0:
-        try:
-            gemini_result = gemini_client.classify(
-                image_bytes=image_bytes,
-                category=category,
-                user_desc=user_desc
-            )
-            return gemini_result.get("tags", [])
-        except Exception as e:
-            print(f"❌ Gemini fallback failed: {e}")
-            return []
-
-    return hf_tags
-
-
-
-def async_hf_tag_update(item_id, image_bytes, category, user_desc=""):
-    """
-    Background thread: tag an image using HF CLIP, fall back to Gemini if needed,
-    then update the Supabase record. Never blocks uploads.
-    """
-    top_tags = get_hf_tags_with_fallback(image_bytes, category, user_desc)
+    top_tags = get_tags(image_bytes, category, user_desc)
     if not top_tags:
         top_tags = ["casual"]
 
@@ -185,37 +252,27 @@ def async_hf_tag_update(item_id, image_bytes, category, user_desc=""):
 # --------------------------
 @wardrobe_bp.route("/items", methods=["POST"])
 def create_wardrobe_item():
-    """
-    Upload wardrobe item with image, tag using HF CLIP (fallback to Gemini), store in Supabase.
-    """
     user_id = get_current_user_id()
-    if not user_id:
-        return jsonify({"error": "unauthorized"}), 401
+    if not user_id: return jsonify({"error": "unauthorized"}), 401
 
     file = request.files.get("file")
     category = request.form.get("category", "top")
     description = request.form.get("description", "")
-
-    if not file:
-        return jsonify({"error": "No file"}), 400
+    
+    if not file: return jsonify({"error": "No file"}), 400
 
     file_bytes = file.read()
 
-    # --------------------------
-    # Step 1: Initial tagging (HF + Gemini fallback)
-    # --------------------------
-    tags = get_hf_tags_with_fallback(file_bytes, category, description)
-    primary_tag = tags[0] if tags else "casual"
+    # 1. Deduplicate & Upload (Saves space immediately)
+    uploaded_path = upload_image(user_id, file_bytes, file.filename)
+    if not uploaded_path:
+        return jsonify({"error": "Failed to upload image"}), 500
+
+    # 2. Get Tags (Master Pipeline handles all fallbacks)
+    tags = get_tags(file_bytes, category, description)
 
     try:
-        # --------------------------
-        # Step 2: Upload image to storage
-        # --------------------------
-        uploaded_path = upload_image(user_id, file_bytes, file.filename)
-
-        # --------------------------
-        # Step 3: Insert item into Supabase DB
-        # --------------------------
+        # 3. Save to DB
         rpc_params = {
             "p_user_id": user_id,
             "p_image_url": uploaded_path,
@@ -223,20 +280,11 @@ def create_wardrobe_item():
             "p_tags": tags
         }
         new_item = call_rpc("create_wardrobe_item", rpc_params)
-
-        # --------------------------
-        # Step 4: Background refinement (safe, non-blocking)
-        # --------------------------
-        threading.Thread(
-            target=async_hf_tag_update,
-            args=(new_item["id"], file_bytes, category, description),
-            daemon=True
-        ).start()
-
-        return jsonify({"item": new_item, "tag": primary_tag}), 201
+        return jsonify({"item": new_item, "tag": tags[0] if tags else category}), 201
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"🔥 Database Error: {e}")
+        return jsonify({"error": "Database entry failed"}), 500
 
 @wardrobe_bp.route("/items", methods=["GET"])
 def get_wardrobe():
@@ -421,3 +469,5 @@ def get_color_insights():
 
     res = supabase.rpc("get_color_distribution", {"p_user_id": user_id}).execute()
     return jsonify(res.data)
+print("HF URL USED 👉", HF_CLIP_URL)
+print("Gemini model 👉", gemini_client.model._model_name)

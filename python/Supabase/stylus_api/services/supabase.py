@@ -3,7 +3,7 @@ import requests
 from flask import current_app
 from storage3 import create_client
 from typing import Any, Dict, List
-import uuid
+import uuid,hashlib
 
 def supabase_headers():
     key = current_app.config["SUPABASE_SERVICE_ROLE_KEY"]
@@ -54,8 +54,8 @@ def get_table(table: str, filters: Dict[str, str] = None) -> List[Dict]:
 
 def upload_image(user_id: str, file_bytes: bytes, filename: str) -> str:
     """
-    Upload to wardrobe-images/{user_id}/{unique_filename} - SERVICE ROLE ONLY.
-    Guarantees no duplicate filename conflicts.
+    Upload to wardrobe-images/{user_id}/{content_hash}.ext.
+    Uses content hashing to prevent duplicate files in storage.
     """
     try:
         url = f"{current_app.config['SUPABASE_URL']}/storage/v1"
@@ -64,19 +64,29 @@ def upload_image(user_id: str, file_bytes: bytes, filename: str) -> str:
         client = create_client(url, headers, is_async=False)
         bucket = client.from_("wardrobe-images")
 
-        # Make filename safe
-        safe_filename = filename.replace(" ", "_").replace("/", "_")
+        # 1. Generate a hash of the image content
+        file_hash = hashlib.sha256(file_bytes).hexdigest()
+        
+        # 2. Get the extension (e.g., .jpg)
+        ext = filename.split('.')[-1] if '.' in filename else 'jpg'
 
-        # Add a UUID to make it globally unique
-        unique_filename = f"{uuid.uuid4()}_{safe_filename}"
+        # 3. Final path: {user_id}/{hash}.{ext}
+        path = f"{user_id}/{file_hash}.{ext}"
 
-        # Full path in bucket
-        path = f"{user_id}/{unique_filename}"
-
-        bucket.upload(path, file_bytes)
-        print(f"✅ Uploaded: wardrobe-images/{path}")
+        # 4. Use 'x-upsert': 'true' to overwrite/reuse existing files with same hash
+        # This prevents the "File already exists" error and saves space
+        bucket.upload(
+            path=path, 
+            file=file_bytes, 
+            file_options={"content-type": f"image/{ext}", "x-upsert": "true"}
+        )
+        
+        print(f"✅ Uploaded (Deduplicated): wardrobe-images/{path}")
         return path
 
     except Exception as e:
+        # Check if it's just a duplicate error (though upsert handles this)
+        if "already exists" in str(e).lower():
+            return path
         print(f"❌ Storage upload failed: {str(e)}")
         raise e

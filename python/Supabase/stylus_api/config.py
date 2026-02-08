@@ -11,3 +11,6 @@ class Config:
     SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
     HUGGING_FACE = os.getenv("HUGGING_FACE")
+    IMAGGA_KEY = os.getenv("IMAGGA_KEY")
+    IMAGGA_SECRET = os.getenv("IMAGGA_SECRET")
+    NOVITA_API_KEY = os.getenv("NOVITA_API_KEY")
