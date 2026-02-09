@@ -27,6 +27,15 @@ GEMMA_MODEL_NAME  = "models/gemma-3-4b-it"
 # SIMPLE IN-MEMORY RATE LIMIT
 # ==================================================
 
+def check_supabase(resp, action=""):
+    """
+    Safely check a Supabase APIResponse for errors.
+    Compatible with different supabase-py versions.
+    """
+    if getattr(resp, "status_code", 200) >= 400:
+        err = getattr(resp, "error", None) or resp.data
+        print(f"⚠️ Supabase Error during {action}: {err}")
+        
 def list_available_models():
     print("--- Available Stylus-Compatible Models ---")
     for m in genai.list_models():
@@ -58,23 +67,16 @@ def rate_limit(user_id: str, cooldown_seconds: int = 3) -> bool:
 
 def generate_ai_response(prompt: str):
     """
-    1. Try Gemini ONCE
-    2. On ANY Gemini error → fall back to Gemma
-    3. Never retry Gemini
+    Attempt Gemini first; fallback to Gemma on any error.
+    Returns (response_text, model_name)
     """
-
-    # --- Try Gemini first ---
     try:
         gemini_model = genai.GenerativeModel(GEMINI_MODEL_NAME)
         response = gemini_model.generate_content(prompt)
         return response.text, GEMINI_MODEL_NAME
-
     except Exception as gemini_error:
-        error_msg = str(gemini_error)
-        print(f"❌ Gemini Error: {error_msg}")
+        print(f"❌ Gemini Error: {gemini_error}")
         print("🔁 Falling back to Gemma")
-
-    # --- Fallback to Gemma ---
     try:
         gemma_model = genai.GenerativeModel(GEMMA_MODEL_NAME)
         response = gemma_model.generate_content(
@@ -86,7 +88,6 @@ def generate_ai_response(prompt: str):
             }
         )
         return response.text, GEMMA_MODEL_NAME
-
     except Exception as gemma_error:
         print(f"🔥 Gemma Error: {gemma_error}")
         raise RuntimeError("All models failed")
@@ -105,261 +106,237 @@ chat_bp = Blueprint("chat", __name__)
 
 @chat_bp.route("/chat-message", methods=["POST"])
 def chat():
+    """
+    Main chat endpoint. Steps:
+    1. Authenticate user
+    2. Rate-limit
+    3. Fetch recent chat history
+    4. Save user message
+    5. Fetch weather and profile info
+    6. Fetch wardrobe inventory
+    7. Build AI system prompt
+    8. Generate AI response
+    9. Save AI response
+    10. Return response
+    """
     try:
-        # ------------------------------------------
-        # 1. AUTH & BASIC GUARDS
-        # ------------------------------------------
+        # ----------------------------
+        # 1. AUTH & RATE LIMIT
+        # ----------------------------
         user_id = get_current_user_id()
         if not user_id:
             return jsonify({"reply": "Unauthorized"}), 401
 
         if not rate_limit(user_id):
-            return jsonify({"reply": "Hold on 😅 Give me a second before asking again."}), 429
+            return jsonify({"reply": "Hold on 😅 Wait a moment before asking again."}), 429
 
         data = request.get_json()
-        current_agenda = data.get("agenda", "Class") # Get agenda from frontend
-        
+        current_agenda = data.get("agenda", "Class")
         user_message = (data.get("message") or "").strip()
-
         if not user_message:
             return jsonify({"reply": "Say something first 🙂"}), 400
 
-        # ------------------------------------------
+        # ----------------------------
         # 2. FETCH RECENT CHAT HISTORY
-        # ------------------------------------------
-        history_rows = (
-            supabase
-            .table("chat_history")
+        # ----------------------------
+        history_resp = (
+            supabase.table("chat_history")
             .select("role, content")
             .eq("user_id", user_id)
             .order("created_at", desc=True)
             .limit(14)
             .execute()
-            .data
         )
+        check_supabase(history_resp, "fetching chat history")
+        history_rows = history_resp.data or []
 
-        # Format history into readable conversation text
+        # Format chat history for AI (only last few messages)
         formatted_history = []
-        for row in reversed(history_rows or []):
-            speaker = "User" if row["role"] == "user" else "StyluS"
-            formatted_history.append(f"{speaker}: {row['content']}")
-
+        for row in reversed(history_rows):
+            speaker = "User" if row.get("role") == "user" else "StyluS"
+            formatted_history.append(f"{speaker}: {row.get('content')}")
         GEMINI_HISTORY_LIMIT = 5
         chat_history_text = "\n".join(formatted_history[-GEMINI_HISTORY_LIMIT:])
 
-        # ------------------------------------------
+        # ----------------------------
         # 3. SAVE USER MESSAGE
-        # ------------------------------------------
-        supabase.table("chat_history").insert({
+        # ----------------------------
+        insert_resp = supabase.table("chat_history").insert({
             "user_id": user_id,
             "role": "user",
             "content": user_message
         }).execute()
+        check_supabase(insert_resp, "saving user message")
 
-        # ------------------------------------------
-        # 4. FETCH CONTEXT (WEATHER + STYLE VIBE)
-        # ------------------------------------------
-        weather = get_weather().get_json()
+        # ----------------------------
+        # 4. FETCH WEATHER & PROFILE
+        # ----------------------------
+        raw_weather = get_weather().get_json()
+        # Ensure dict, fallback to empty dict
+        if isinstance(raw_weather, list) and raw_weather:
+            weather = raw_weather[0]
+        elif isinstance(raw_weather, dict):
+            weather = raw_weather
+        else:
+            weather = {}
         temperature = weather.get("temp", 25)
         condition = weather.get("condition", "Clear")
 
-        profile = (
-            supabase
-            .table("profiles")
-            .select("style_vibe")
-            .eq("id", user_id)
-            .maybe_single()
-            .execute()
-            .data
-        )
+        profile_resp = supabase.table("user_profiles").select("style_vibe, display_name").eq("user_id", user_id).execute()
+        check_supabase(profile_resp, "fetching profile")
+        profile_data = profile_resp.data
+        # Supabase always returns a list for .select
+        if isinstance(profile_data, list) and profile_data:
+            profile = profile_data[0]
+        elif isinstance(profile_data, dict):
+            profile = profile_data
+        else:
+            profile = {}
+        style_vibe = profile.get("style_vibe", "Versatile")
+        display_name = profile.get("display_name", "User")
 
-        style_vibe = (profile.get("style_vibe") if profile and profile.get("style_vibe") else "Versatile")
+        # ----------------------------
+        # 5. FETCH WARDROBE INVENTORY
+        # ----------------------------
+        wardrobe_resp = supabase.table("wardrobe_items").select("category, color, tags").eq("user_id", user_id).execute()
+        check_supabase(wardrobe_resp, "fetching wardrobe")
+        wardrobe_items = wardrobe_resp.data or []
 
-        # ------------------------------------------
-        # 5. FETCH USER WARDROBE
-        # ------------------------------------------
-        wardrobe_items = (
-            supabase
-            .table("wardrobe_items")
-            .select("category, color, tags")
-            .eq("user_id", user_id)
-            .execute()
-            .data
-        )
-                
-    # ... (Auth and weather code as before) ...
-    
-    
-
-    # 1. MAP AGENDA TO AI BEHAVIOR
-    # This acts as a "behavioral nudge" for Gemma
-        agenda_rules = {
-        "Internship": "Strict professional. If a tie/blazer exists in inventory, use it.",
-        "Class": "Academic smart-casual. Layering is preferred for lecture halls.",
-        "Social": "Relaxed but stylish. Prioritize comfort and campus vibe."
-        }
-        specific_rule = agenda_rules.get(current_agenda, "")
-        # ------------------------------------------
-        # 6. FORMAT INVENTORY LINES SAFELY (FIX)
-        # ------------------------------------------
+        # Format inventory lines for AI
         inventory_lines = []
         for item in wardrobe_items:
-            # SKIP items that are still in "failed" or "pending" status
-            # or items that only have the generic fallback tags
             tags = [str(t) for t in (item.get("tags") or []) if t]
-            category = item.get('category', 'item')
-            
-            # If the only tag is 'clothing' or the category itself, the AI hasn't fixed it yet
-            if not tags or (len(tags) == 1 and tags[0] == 'clothing'):
-                continue 
-
-            color = item.get('color') or ''
+            category = item.get("category") or "item"
+            if not tags or (len(tags) == 1 and tags[0].lower() == "clothing"):
+                continue
+            color = item.get("color") or ""
             line = f"- {color} {category}: {', '.join(tags)}"
             inventory_lines.append(line)
-
-        # If inventory is empty after filtering
         if not inventory_lines:
             inventory_lines = ["Your wardrobe is currently being processed by AI. Please wait for tags to generate."]
 
-        # ------------------------------------------
-        # 7. BUILD SYSTEM PROMPT
-        # ------------------------------------------
-        profile_data = supabase.table("profiles").select("display_name").eq("id", user_id).maybe_single().execute().data
-        display_name = profile_data.get("display_name", "User") if profile_data else "User"
+        # ----------------------------
+        # 6. MAP AGENDA → STYLE RULE
+        # ----------------------------
+        agenda_rules = {
+            "Internship": "Strict professional. If a tie/blazer exists, use it.",
+            "Class": "Academic smart-casual. Layering preferred for lecture halls.",
+            "Social": "Relaxed but stylish. Prioritize comfort and campus vibe."
+        }
+        specific_rule = agenda_rules.get(current_agenda, "")
+
+        # ----------------------------
+        # 7. BUILD AI SYSTEM PROMPT
+        # ----------------------------
         system_prompt = f"""
 ### IDENTITY
-You are StyluS, a high-end fashion consultant specializing in "University Corporate" and "Campus Casual" aesthetics. You are decisive, sophisticated, and analytical. You never hedge.
+You are StyluS, a high-end fashion consultant specializing in "University Corporate" and "Campus Casual" aesthetics. Be decisive and analytical.
 
 ### CONTEXT
-- User Name: {{user_name}}
-- User Aesthetic: {{style_vibe}}
+- User Name: {display_name}
+- User Aesthetic: {style_vibe}
 - Current Agenda: {current_agenda} ({specific_rule})
-- Weather: {{temperature}}°C, {{condition}}
-- Closet Inventory: {{inventory_lines}}
+- Weather: {temperature}°C, {condition}
+- Closet Inventory: {inventory_lines}
 
-### OPERATIONAL ALGORITHM (Chain of Thought)
-1. ANALYZE WEATHER: Evaluate if the temperature requires layering (under 18°C) or breathability (over 24°C).
-2. SCAN INVENTORY: Identify specific items in the Closet Inventory that match the Weather and User Aesthetic.
-3. MATCH COLORS: Ensure the selected top and bottom have complementary colors.
-4. FINALIZE: Select ONE specific top and ONE specific bottom/accessory.
+### OPERATIONAL ALGORITHM
+1. ANALYZE WEATHER: Layering under 18°C, breathable above 24°C
+2. SCAN INVENTORY: Match items to Weather & User Aesthetic
+3. MATCH COLORS: Complementary top/bottom
+4. FINALIZE: ONE top + ONE bottom/accessory
 
 ### STYLISTIC CONSTRAINTS
-- NO FILLERS: Do not start with "Sure," "Okay," or "I can help with that."
-- NO HEDGING: Use "Wear the..." instead of "I suggest..." or "You could try..."
-- NO UNKNOWNS: Never use the word "unknown." If data is missing, describe the item by its Category.
-- VIBE FOCUS: If Vibe is "University Corporate," prioritize Blazers, Ties, and Chinos.
+- NO FILLERS or HEDGING
+- NO UNKNOWNS
+- VIBE FOCUS: Prioritize items based on Aesthetic
 
 ### OUTPUT FORMAT
 **[Outfit Name]**
 - **Top**: [Item Color] [Item Category]
 - **Bottom**: [Item Color] [Item Category]
 - **Accessory**: [Item Category] (if applicable)
-
-**Reasoning**: [1-2 sentences explaining the choice based on temperature and aesthetic.]
+**Reasoning**: [1-2 sentences]
 """
-        # Build the final prompt for the AI
-        final_prompt = system_prompt.replace("{{user_name}}", display_name)\
-                            .replace("{{style_vibe}}", style_vibe)\
-                            .replace("{{temperature}}", str(temperature))\
-                            .replace("{{condition}}", condition)\
-                            .replace("{{inventory_lines}}", str(inventory_lines))\
-                            .replace("{{current_agenda}}", str(current_agenda))\
-                            .replace("{{specific_rule}}", str(specific_rule))
+        final_prompt = f"{system_prompt}\n\nUser Question: {user_message}"
 
-# Add the user's actual question at the end
-        full_input = f"{final_prompt}\n\nUser Question: {user_message}"
-
-        ai_reply, model_used = generate_ai_response(full_input)
-        # ------------------------------------------
+        # ----------------------------
         # 8. GENERATE AI RESPONSE
-        # ------------------------------------------
+        # ----------------------------
+        ai_reply, model_used = generate_ai_response(final_prompt)
 
-        # ------------------------------------------
+        # ----------------------------
         # 9. SAVE AI RESPONSE
-        # ------------------------------------------
-        supabase.table("chat_history").insert({
+        # ----------------------------
+        save_ai_resp = supabase.table("chat_history").insert({
             "user_id": user_id,
             "role": "ai",
             "content": ai_reply
         }).execute()
+        check_supabase(save_ai_resp, "saving AI response")
 
-        # ------------------------------------------
+        # ----------------------------
         # 10. RETURN RESPONSE
-        # ------------------------------------------
+        # ----------------------------
         return jsonify({
             "reply": ai_reply,
             "model": model_used,
-            "weather": {
-                "temp": temperature,
-                "condition": condition
-            }
+            "weather": {"temp": temperature, "condition": condition}
         })
 
     except Exception as error:
         print("🔥 Chat Error:", error)
-        return jsonify({
-            "reply": "I'm having a fashion brain freeze 😵 Try again shortly."
-        }), 500
+        return jsonify({"reply": "I'm having a fashion brain freeze 😵 Try again shortly."}), 500
 
+# ==================================================
+# GET /chat-history
+# ==================================================
 @chat_bp.route("/chat-history", methods=["GET"])
 def get_chat_history():
     """
-    Fetches paginated chat history for the logged-in user.
-    Query Params:
-        limit: Number of messages to fetch (default 10)
-        offset: Number of messages to skip (for pagination)
+    Paginated fetch of user's chat history.
     """
     try:
-        # 1. Authenticate User
         user_id = get_current_user_id()
         if not user_id:
             return jsonify({"error": "Unauthorized"}), 401
 
-        # 2. Get Pagination Parameters
-        # limit: how many rows to fetch
-        # offset: where to start (e.g., offset 10 starts at the 11th row)
-        limit = int(request.args.get('limit', 10))
-        offset = int(request.args.get('offset', 0))
+        limit = int(request.args.get("limit", 10))
+        offset = int(request.args.get("offset", 0))
 
-        # 3. Query Supabase
-        # .order() ensures we get the most recent messages first
-        # .range() handles the pagination logic
         response = (
             supabase.table("chat_history")
             .select("id, role, content, created_at")
             .eq("user_id", user_id)
-            .order("created_at", desc=True) 
+            .order("created_at", desc=True)
             .range(offset, offset + limit - 1)
             .execute()
         )
+        check_supabase(response, "fetching chat history")
 
-        # 4. Return data
-        # Note: We return it 'as is', but the frontend may need to .reverse() 
-        # it to show chronologically (oldest at top).
         return jsonify({
-            "history": response.data,
-            "hasMore": len(response.data) == limit
+            "history": response.data or [],
+            "hasMore": len(response.data or []) == limit
         }), 200
 
     except Exception as e:
-        print(f"❌ History Error: {str(e)}")
+        print(f"❌ History Error: {e}")
         return jsonify({"error": "Could not load history"}), 500
+
 # ==================================================
-# POST /clear-chat → Clears all messages for the current user
+# POST /clear-chat
 # ==================================================
 @chat_bp.route("/clear-chat", methods=["POST"])
 def clear_chat():
     """
-    Clears all chat history for the logged-in user.
-    Frontend calls this when the "Clear chats" button is pressed.
+    Deletes all chat history for the current user.
     """
     try:
         user_id = get_current_user_id()
         if not user_id:
             return jsonify({"error": "Unauthorized"}), 401
 
-        # Delete all messages for this user
-        supabase.table("chat_history").delete().eq("user_id", user_id).execute()
+        delete_resp = supabase.table("chat_history").delete().eq("user_id", user_id).execute()
+        check_supabase(delete_resp, "clearing chat")
 
         return jsonify({"success": True, "message": "Chat cleared successfully."}), 200
 
