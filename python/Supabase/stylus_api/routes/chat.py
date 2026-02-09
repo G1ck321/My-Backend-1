@@ -130,9 +130,14 @@ def chat():
         if not rate_limit(user_id):
             return jsonify({"reply": "Hold on 😅 Wait a moment before asking again."}), 429
 
-        data = request.get_json()
+        data = request.get_json() or {}
+
+# Frontend-provided context (authoritative for this request)
         current_agenda = data.get("agenda", "Class")
+        request_vibe   = data.get("vibe")  # may be None
+
         user_message = (data.get("message") or "").strip()
+
         if not user_message:
             return jsonify({"reply": "Say something first 🙂"}), 400
 
@@ -192,7 +197,16 @@ def chat():
             profile = profile_data
         else:
             profile = {}
-        style_vibe = profile.get("style_vibe", "Versatile")
+        """STYLE VIBE RESOLUTION ORDER
+1️⃣ Frontend payload (most up-to-date, reflects current UI)
+2️⃣ Supabase profile (persistent preference)
+3️⃣ Sensible default
+"""
+        style_vibe = (
+    request_vibe
+    or profile.get("style_vibe")
+    or "Versatile"
+)
         display_name = profile.get("display_name", "User")
 
         # ----------------------------
@@ -228,6 +242,10 @@ def chat():
         # ----------------------------
         # 7. BUILD AI SYSTEM PROMPT
         # ----------------------------
+        print("🧠 CHAT CONTEXT RECEIVED")
+        print("Agenda:", current_agenda)
+        print("Vibe (request):", request_vibe)
+        print("Vibe (profile):", profile.get("style_vibe") if isinstance(profile, dict) else None)
         system_prompt = f"""
 ### IDENTITY
 You are StyluS, a high-end fashion consultant specializing in "University Corporate" and "Campus Casual" aesthetics. Be decisive and analytical.
@@ -239,24 +257,50 @@ You are StyluS, a high-end fashion consultant specializing in "University Corpor
 - Weather: {temperature}°C, {condition}
 - Closet Inventory: {inventory_lines}
 
+### INTENT DETECTION
+Before giving fashion advice, determine user intent:
+
+- If the user greets (e.g. "hi", "yo", "hello", "hey"):
+  → Respond **briefly and friendly only**.
+  → DO NOT suggest an outfit under any circumstance.
+  → Ask how you can help or offer a casual response.
+
+- If the user asks a fashion-related question, outfit request, or styling help:
+  → Follow the styling algorithm and output format.
+
+- If the user asks something unrelated to fashion:
+  → Respond conversationally and briefly.
+
 ### OPERATIONAL ALGORITHM
 1. ANALYZE WEATHER: Layering under 18°C, breathable above 24°C
 2. SCAN INVENTORY: Match items to Weather & User Aesthetic
 3. MATCH COLORS: Complementary top/bottom
 4. FINALIZE: ONE top + ONE bottom/accessory
+- A **Top** must be a shirt, tee, blouse, sweater, or knit.
+- A **Bottom** must be trousers, jeans, chinos, skirt, or shorts.
+- A **Blazer, jacket, or coat is NEVER a Bottom**.
+- If a blazer is used, treat it as a **Layer**, not a Bottom.
+- Do NOT invent clothing categories.
+- If constraints cannot be satisfied, choose the closest valid alternative.
 
 ### STYLISTIC CONSTRAINTS
 - NO FILLERS or HEDGING
 - NO UNKNOWNS
 - VIBE FOCUS: Prioritize items based on Aesthetic
 
+### SAFETY NOTE
+- StyluS AI can make mistakes. Please double-check important advice.
+
 ### OUTPUT FORMAT
 **[Outfit Name]**
-- **Top**: [Item Color] [Item Category]
-- **Bottom**: [Item Color] [Item Category]
-- **Accessory**: [Item Category] (if applicable)
-**Reasoning**: [1-2 sentences]
+- *Top*: [Item Color] [Item Category]
+- *Bottom*: [Item Color] [Item Category]
+- *Accessory*: [Item Category] (if applicable)
+*Reasoning*: [1-2 sentences]
+
+Never produce an outfit unless the user explicitly asks for styling, clothing advice, or outfit recommendations.
 """
+
         final_prompt = f"{system_prompt}\n\nUser Question: {user_message}"
 
         # ----------------------------

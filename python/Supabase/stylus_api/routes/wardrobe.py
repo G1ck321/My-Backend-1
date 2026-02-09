@@ -56,7 +56,10 @@ FASHION_KEYWORDS = {
     # ---- Student Casual ----
     "varsity-jacket", "tote-bag"
 }
-
+COLORS_LIST = {
+    "black", "white", "grey", "gray", "navy", "blue", "red", "green", 
+    "yellow", "brown", "beige", "cream", "pink", "purple", "orange", "maroon"
+}
 # Predefined student wardrobe labels
 STUDENT_LABELS = {
     "top": ["oversized hoodie", "university sweatshirt", "graphic tee", "flannel shirt", "polo shirt", "blazer", "crop top"],
@@ -138,165 +141,161 @@ def call_gemini(file_bytes, category_hint, user_desc=""):
 def get_ultimate_tags(public_url, file_bytes, category_hint, user_desc=""):
     """
     Tiered Tagging Pipeline:
-    1️⃣ Imagga V2 (cheap, fast) - uses circuit breaker
-    2️⃣ Imagga V3 (medium-cost, higher accuracy)
-    3️⃣ Gemini Vision (expensive fallback, context-aware)
-    4️⃣ Emergency Default - ensures we never return None
-    
-    Stops at first successful result to minimize API costs.
-    
-    Args:
-        public_url (str): Publicly accessible image URL
-        file_bytes (bytes): Raw image bytes (for Gemini)
-        category_hint (str): Clothing category hint
-        user_desc (str): Optional user description/context
-    
-    Returns:
-        List[str]: Tags for the wardrobe item
+    1️⃣ Imagga V3 (Tags + Colors)
+    2️⃣ Imagga V2 (Tags + Colors)
+    3️⃣ Gemini Vision (fallback)
+    4️⃣ Emergency Default
     """
-    global IMAGGA_DISABLED
+    global IMAGGA_DISABLED, IMAGGA_V3_DISABLED
     auth = (Config.IMAGGA_KEY, Config.IMAGGA_SECRET)
 
-    # -----------------------
-    # Tier 1: Imagga V2
-    # -----------------------
-    if not IMAGGA_DISABLED:
+    all_tags = []
+
+    # -----------------------------
+    # Attempt Imagga V3 (primary)
+    # -----------------------------
+    if not IMAGGA_DISABLED and not IMAGGA_V3_DISABLED:
         try:
-            print(f"📡 Tier 1: Attempting Imagga V2 for {public_url}")
+            print(f"📡 Tier 1: Attempting Imagga V3 Tags + Colors")
 
-            resp = requests.get(
-                "https://api.imagga.com/v2/tags",
-                auth=auth,
-                params={"image_url": public_url, "threshold": 20, "language": "en"},
-                timeout=10
-            )
-
-            if resp.status_code == 200:
-                data = resp.json()
-                raw = [t["tag"]["en"].lower() for t in data.get("result", {}).get("tags", [])]
-                tags = [t for t in raw if t in FASHION_KEYWORDS]
-                if tags:
-                    return tags
-
-            elif resp.status_code == 403:
-                IMAGGA_DISABLED = True
-                print("🚫 Imagga V2 limit hit — disabling")
-
-        except Exception as e:
-            print(f"⚠️ Imagga V2 failed: {e}")
-
-    # -----------------------
-    # Tier 2: Imagga V3
-    # -----------------------
-    if not IMAGGA_DISABLED:
-        try:
-            print(f"📡 Tier 2: Attempting Imagga V3 for {public_url}")
-
-            resp = requests.get(
+            # V3 tags + caption
+            resp_tags = requests.get(
                 "https://api.imagga.com/v3/tags",
                 auth=auth,
                 params={
                     "image_url": public_url,
+                    "threshold": 20,
                     "model": "pro",
                     "include_caption": "true"
                 },
-                timeout=15
+                timeout=10
             )
 
-            if resp.status_code == 200:
-                data = resp.json()
-                raw = [t["tag"]["en"].lower() for t in data.get("result", {}).get("tags", [])]
+            # V3 color via v2 endpoint (stable)
+            resp_colors = requests.get(
+                "https://api.imagga.com/v2/colors",
+                auth=auth,
+                params={"image_url": public_url},
+                timeout=10
+            )
 
-                caption = data.get("result", {}).get("caption", {}).get("en", "")
+            raw_tags = []
+            if resp_tags.status_code == 200:
+                data = resp_tags.json().get("result", {})
+                raw_tags = [t["tag"]["en"].lower() for t in data.get("tags", [])]
+                caption = data.get("caption", {}).get("en", "")
                 if caption:
-                    raw.extend(caption.lower().split())
+                    raw_tags.extend(caption.lower().split())
 
-                tags = [t for t in raw if t in FASHION_KEYWORDS]
-                if tags:
-                    return list(set(tags))
+            color_tags = []
+            if resp_colors.status_code == 200:
+                color_data = resp_colors.json().get("result", {}).get("colors", {}).get("image_colors", [])
+                if color_data:
+                    color_tags.append(color_data[0]["closest_palette_color"].lower())
+
+            all_tags = raw_tags + color_tags
+            print(f"📌 Imagga V3 tags: {raw_tags}")
+            print(f"📌 Imagga V3 colors: {color_tags}")
+
+            if all_tags:
+                return list(set(all_tags))
 
         except Exception as e:
             print(f"⚠️ Imagga V3 failed: {e}")
 
-    # -----------------------
-    # Tier 3: Gemini Vision
-    # -----------------------
-    tags = call_gemini(file_bytes, category_hint, user_desc)
-    if tags:
-        return tags
-
-    # -----------------------
-    # Tier 4: Emergency Safe Fallback
-    # -----------------------
-    print(f"⚠️ All tagging failed for '{category_hint}' — fallback applied")
-    return [str(category_hint), "clothing"]
-
-    # ==========================
-    # --- Tier 4: Emergency Default ---
-    # ==========================
-    print(f"⚠️ All tagging failed; returning default tags for '{category_hint}'")
-    return [category_hint, "clothing"]
-
-def call_hf_with_retry_blip(image_bytes: bytes):
-    """
-    Uses HF BLIP image captioning model.
-    Returns a caption string or None.
-    """
-
-    HF_BLIP_URL = (
-        "https://api-inference.huggingface.co/models/"
-        "Salesforce/blip-image-captioning-base"
-    )
-
-    headers = {
-        "Authorization": f"Bearer {HF_API_KEY}",
-        "Content-Type": "application/json",
-        "Connection": "close"
-    }
-
-    # Resize + compress image (important for Windows + HF)
-    image_bytes = preprocess_image(image_bytes)
-    b64_img = base64.b64encode(image_bytes).decode("utf-8")
-
-    payload = {
-        "inputs": b64_img
-    }
-
-    for attempt in range(1, MAX_HF_RETRIES + 1):
+    # -----------------------------
+    # Attempt Imagga V2 (secondary)
+    # -----------------------------
+    if not IMAGGA_DISABLED:
         try:
-            response = requests.post(
-                HF_BLIP_URL,
-                headers=headers,
-                json=payload,
-                timeout=(5, 60)
-            )
-            response.raise_for_status()
+            print(f"📡 Tier 2: Attempting Imagga V2 Tags + Colors")
 
-            data = response.json()
-            if isinstance(data, list) and "generated_text" in data[0]:
-                return data[0]["generated_text"]
+            resp_tags_v2 = requests.get(
+                "https://api.imagga.com/v2/tags",
+                auth=auth,
+                params={"image_url": public_url, "threshold": 20},
+                timeout=10
+            )
+            resp_colors_v2 = requests.get(
+                "https://api.imagga.com/v2/colors",
+                auth=auth,
+                params={"image_url": public_url},
+                timeout=10
+            )
+
+            raw_tags_v2 = []
+            if resp_tags_v2.status_code == 200:
+                raw_tags_v2 = [t["tag"]["en"].lower() for t in resp_tags_v2.json().get("result", {}).get("tags", [])]
+
+            color_tags_v2 = []
+            if resp_colors_v2.status_code == 200:
+                color_data = resp_colors_v2.json().get("result", {}).get("colors", {}).get("image_colors", [])
+                if color_data:
+                    color_tags_v2.append(color_data[0]["closest_palette_color"].lower())
+
+            all_tags = raw_tags_v2 + color_tags_v2
+            print(f"📌 Imagga V2 tags: {raw_tags_v2}")
+            print(f"📌 Imagga V2 colors: {color_tags_v2}")
+
+            if all_tags:
+                return list(set(all_tags))
+
+            # If V2 returned 403: disable further Imagga
+            if resp_tags_v2.status_code == 403 or resp_colors_v2.status_code == 403:
+                IMAGGA_DISABLED = True
+                print("🚫 Imagga rate limit - disabling Imagga")
 
         except Exception as e:
-            print(f"⚠️ BLIP attempt {attempt} failed: {e}")
-            if attempt < MAX_HF_RETRIES:
-                time.sleep(min(BASE_RETRY_DELAY * attempt, 8))
+            print(f"⚠️ Imagga V2 failed: {e}")
 
-    return None
+    # -----------------------------
+    # Tier 3: Gemini Vision
+    # -----------------------------
+    try:
+        print("✨ Tier 3: Falling back to Gemini Vision")
+        # Use a valid vision model
+        vision_model = genai.GenerativeModel("gemini-1.5")
+        prompt = f"""
+Analyze this image for wardrobe tags.
+Category hint: {category_hint}
+User notes: {user_desc}
+Return a comma-separated list of clothing-related keywords and color hints.
+Allowed keywords: {', '.join(sorted(FASHION_KEYWORDS))}
+"""
+        response = vision_model.generate_content([prompt, PIL.Image.open(BytesIO(file_bytes))])
+        if response and response.text:
+            gemini_tags = [t.strip().lower() for t in response.text.split(",") if t.strip()]
+            print(f"📌 Gemini Vision tags: {gemini_tags}")
+            return gemini_tags
+    except Exception as e:
+        print(f"❌ Gemini Vision failed: {e}")
 
-def async_tag_update(item_id, image_bytes, category, user_desc=""):
+    # -----------------------------
+    # Tier 4: Emergency Default
+    # -----------------------------
+    default = [category_hint, "clothing"]
+    print(f"⚠️ All tiers failed; returning default tags: {default}")
+    return default
+
+
+# -------------------------------------------------------------------
+# ASYNC TAG UPDATE
+# -------------------------------------------------------------------
+def async_tag_update(item_id, public_url, file_bytes, category, user_desc=""):
     """
-    Background tagging using Novita + Imagga + Gemini.
+    Background tagging using the ultimate tagging pipeline.
     Updates Supabase asynchronously.
     """
-    top_tags = get_tags(image_bytes, category, user_desc)
-    if not top_tags:
-        top_tags = ["casual"]
-
     try:
+        top_tags = get_ultimate_tags(public_url, file_bytes, category, user_desc)
+        if not top_tags:
+            top_tags = ["casual"]
+
         supabase.table("wardrobe_items") \
             .update({"tags": top_tags, "tag_status": "completed"}) \
             .eq("id", item_id).execute()
         print(f"✅ Updated item {item_id} with tags: {top_tags}")
+
     except Exception as e:
         print(f"❌ Failed async tag update for {item_id}: {e}")
         supabase.table("wardrobe_items") \
@@ -513,7 +512,25 @@ def repair_null_tags():
         print(f"🔥 Repair failure: {e}")
         return jsonify({"error": "Repair failed", "details": str(e)}), 500
 
+@wardrobe_bp.route("/items/<item_id>/repair-tags", methods=["POST"])
+def repair_tags(item_id):
+    try:
+        # Fetch item
+        item = supabase.table("wardrobe_items").select("*").eq("id", item_id).single().execute().data
+        if not item:
+            return jsonify({"error": "Item not found"}), 404
 
+        # Mark as repairing
+        supabase.table("wardrobe_items").update({"tag_status": "repairing"}).eq("id", item_id).execute()
+
+        # Kick off background repair (could be via Celery / threading / async task)
+        from threading import Thread
+        Thread(target=async_tag_update, args=(item_id, item["image_bytes"], item["category"], item.get("description",""))).start()
+
+        return jsonify({"message": "Repair started", "tag_status": "repairing"}), 202
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @wardrobe_bp.route("/items/favorite", methods=["POST"])
 def toggle_favorite():
