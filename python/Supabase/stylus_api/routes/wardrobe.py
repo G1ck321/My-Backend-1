@@ -1,5 +1,5 @@
 # backend/stylus_api/routes/wardrobe.py
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from ..utils.auth import get_current_user_id
 from ..services.supabase import call_rpc, upload_image
 from storage3.exceptions import StorageApiError
@@ -7,20 +7,19 @@ from .profile import supabase
 import google.generativeai as genai
 import json, random, time, threading, requests, base64
 from ..config import Config
-from PIL import Image
+import PIL.Image
 from io import BytesIO
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
+IMAGGA_DISABLED = False
 wardrobe_bp = Blueprint("wardrobe", __name__)
 
-# ===========================
 # AI MODELS CONFIGURATION
 # ===========================
 
 # ---- Gemini Vision (expensive but good quality) ----
 genai.configure(api_key=Config.GEM)
-vision_model = genai.GenerativeModel("models/gemini-1.5-flash")
+vision_model = genai.GenerativeModel(model_name="gemini-1.5-flash")
 
 # ---- Hugging Face Fallback ----
 HF_API_KEY = Config.HUGGING_FACE
@@ -30,7 +29,35 @@ HF_CLIP_URL = "https://router.huggingface.co/hf-inference/models/openai/clip-vit
 
 HF_HEADERS = {"Authorization": f"Bearer {Config.HUGGING_FACE}"}
 
-# Predefined labels focused on student wardrobes
+# --- Fashion keywords for filtering Imagga tags ---
+FASHION_KEYWORDS = {
+    # ---- Core Clothing Types ----
+    "hoodie", "sweater", "shirt", "t-shirt", "jeans", "skirt", "shorts",
+    "jacket", "coat", "blazer", "dress", "pants", "trousers",
+    "sweatpants", "cargo", "vest",
+
+    # ---- Materials / Textures ----
+    "denim", "leather", "wool", "silk", "cotton", "knit",
+    "corduroy", "linen", "velvet",
+
+    # ---- Styles / Details ----
+    "vintage", "oversized", "slim", "graphic", "striped", "plaid",
+    "minimalist", "streetwear", "casual", "formal", "sportswear",
+    "sleeveless", "long-sleeved", "buttoned",
+
+    # ---- Shoes & Accessories ----
+    "sneakers", "boots", "loafers", "sandals",
+    "beanie", "cap", "belt", "watch", "backpack",
+
+    # ---- University / Corporate ----
+    "tie", "suit", "oxford", "dress-shirt", "slacks",
+    "chinos", "cardigan", "turtleneck", "leather-shoes",
+
+    # ---- Student Casual ----
+    "varsity-jacket", "tote-bag"
+}
+
+# Predefined student wardrobe labels
 STUDENT_LABELS = {
     "top": ["oversized hoodie", "university sweatshirt", "graphic tee", "flannel shirt", "polo shirt", "blazer", "crop top"],
     "bottom": ["baggy jeans", "cargo pants", "sweatpants", "biker shorts", "denim skirt", "chino pants"],
@@ -45,37 +72,15 @@ STUDENT_LABELS = {
 MAX_HF_RETRIES = 3
 BASE_RETRY_DELAY = 2  # seconds (will use exponential backoff)
 NOVITA_TAGGING_URL = "https://api.novita.ai/v3/tagging"
-
+IMAGGA_V3_DISABLED = False
 
 # -------------------------------------------------------------------
 # GEMINI CLIENT (fallback)
 # -------------------------------------------------------------------
 
-class GeminiVisionClient:
-    def __init__(self):
-        self.model = genai.GenerativeModel("gemini-1.5-flash")
-
-    def classify(self, image_bytes: bytes, category="", user_desc=""):
-        image = preprocess_image(image_bytes)
-
-        prompt = f"""
-        You are tagging a clothing item.
-        Category: {category}
-        User description: {user_desc}
-        Return only a short comma-separated list of tags.
-        """
-
-        response = self.model.generate_content([prompt, image])
-        tags = [t.strip() for t in (response.text or "").split(",") if t.strip()]
-        return {"tags": tags}
-
-
-# Initialize singleton Gemini client
-gemini_client = GeminiVisionClient()
-
 def preprocess_image(image_bytes: bytes) -> bytes:
-    """Resize image for API calls."""
-    img = Image.open(BytesIO(image_bytes)).convert("RGB")
+    """Resize and compress images before sending to AI APIs."""
+    img = PIL.Image.open(BytesIO(image_bytes)).convert("RGB")
     img.thumbnail((512, 512))
     buf = BytesIO()
     img.save(buf, format="JPEG", quality=85)
@@ -96,47 +101,142 @@ def preprocess_image(image_bytes: bytes) -> bytes:
 #         print(f"❌ Novita Error: {e}")
 #         return []
 
-def call_imagga_safe(image_bytes: bytes):
-    """V2 Tagging with JSON crash protection."""
-    auth = (Config.IMAGGA_KEY, Config.IMAGGA_SECRET)
+def call_gemini(file_bytes, category_hint, user_desc=""):
+    """
+    Gemini Vision fallback.
+    Used only when Imagga fails or returns weak tags.
+    """
     try:
-        # Step 1: Upload to Imagga
-        up_resp = requests.post("https://api.imagga.com/v2/uploads", 
-                                 files={"image": image_bytes}, auth=auth, timeout=10)
-        if up_resp.status_code != 200: return []
-        
-        upload_id = up_resp.json().get("result", {}).get("upload_id")
-        
-        # Step 2: Get Tags
-        tag_resp = requests.get(f"https://api.imagga.com/v2/tags?image_upload_id={upload_id}", 
-                                 auth=auth, timeout=10)
-        
-        # FIX: Check status before calling .json() to avoid 500 error
-        if tag_resp.status_code == 200:
-            data = tag_resp.json()
-            return [t["tag"]["en"].lower() for t in data["result"]["tags"][:5]]
+        print(f"✨ Tier 3: Gemini Vision for '{category_hint}'")
+
+        img = PIL.Image.open(BytesIO(file_bytes))
+
+        prompt = f"""
+        Analyze this {category_hint} for a university student wardrobe.
+
+        User notes: {user_desc}
+
+        Focus on professional or student-appropriate items
+        such as ties, blazers, oxford shirts, loafers, hoodies,
+        varsity jackets, or sneakers.
+
+        Allowed vocabulary:
+        {", ".join(sorted(FASHION_KEYWORDS))}
+
+        Return ONLY a comma-separated list of 3–5 keywords.
+        """
+
+        response = vision_model.generate_content([prompt, img])
+        if response and response.text:
+            tags = [t.strip().lower() for t in response.text.split(",") if t.strip()]
+            return tags if tags else None
+
     except Exception as e:
-        print(f"⚠️ Imagga skipped: {e}")
-    return []
+        print(f"❌ Gemini Vision failed: {e}")
 
-def get_tags(image_bytes, category="", user_desc=""):
-    """The Master Pipeline: Logic flow to ensure we always get something."""
-    # 1. Try Imagga (Reliable object detection)
-    tags = call_imagga_safe(image_bytes)
-    if tags: return tags
-
-    # 2. Try BLIP (Great for descriptions)
-    caption = call_hf_with_retry_blip(image_bytes)
-    if caption:
-        return [tag for tag in caption.lower().split() if len(tag) > 3]
-
-    # 3. Gemini Fallback (The 'Smart' backup)
-    try:
-        res = gemini_client.classify(image_bytes, category, user_desc)
-        return res.get("tags", [])
-    except:
-        return [category or "clothing"]
+    return None
+def get_ultimate_tags(public_url, file_bytes, category_hint, user_desc=""):
+    """
+    Tiered Tagging Pipeline:
+    1️⃣ Imagga V2 (cheap, fast) - uses circuit breaker
+    2️⃣ Imagga V3 (medium-cost, higher accuracy)
+    3️⃣ Gemini Vision (expensive fallback, context-aware)
+    4️⃣ Emergency Default - ensures we never return None
     
+    Stops at first successful result to minimize API costs.
+    
+    Args:
+        public_url (str): Publicly accessible image URL
+        file_bytes (bytes): Raw image bytes (for Gemini)
+        category_hint (str): Clothing category hint
+        user_desc (str): Optional user description/context
+    
+    Returns:
+        List[str]: Tags for the wardrobe item
+    """
+    global IMAGGA_DISABLED
+    auth = (Config.IMAGGA_KEY, Config.IMAGGA_SECRET)
+
+    # -----------------------
+    # Tier 1: Imagga V2
+    # -----------------------
+    if not IMAGGA_DISABLED:
+        try:
+            print(f"📡 Tier 1: Attempting Imagga V2 for {public_url}")
+
+            resp = requests.get(
+                "https://api.imagga.com/v2/tags",
+                auth=auth,
+                params={"image_url": public_url, "threshold": 20, "language": "en"},
+                timeout=10
+            )
+
+            if resp.status_code == 200:
+                data = resp.json()
+                raw = [t["tag"]["en"].lower() for t in data.get("result", {}).get("tags", [])]
+                tags = [t for t in raw if t in FASHION_KEYWORDS]
+                if tags:
+                    return tags
+
+            elif resp.status_code == 403:
+                IMAGGA_DISABLED = True
+                print("🚫 Imagga V2 limit hit — disabling")
+
+        except Exception as e:
+            print(f"⚠️ Imagga V2 failed: {e}")
+
+    # -----------------------
+    # Tier 2: Imagga V3
+    # -----------------------
+    if not IMAGGA_DISABLED:
+        try:
+            print(f"📡 Tier 2: Attempting Imagga V3 for {public_url}")
+
+            resp = requests.get(
+                "https://api.imagga.com/v3/tags",
+                auth=auth,
+                params={
+                    "image_url": public_url,
+                    "model": "pro",
+                    "include_caption": "true"
+                },
+                timeout=15
+            )
+
+            if resp.status_code == 200:
+                data = resp.json()
+                raw = [t["tag"]["en"].lower() for t in data.get("result", {}).get("tags", [])]
+
+                caption = data.get("result", {}).get("caption", {}).get("en", "")
+                if caption:
+                    raw.extend(caption.lower().split())
+
+                tags = [t for t in raw if t in FASHION_KEYWORDS]
+                if tags:
+                    return list(set(tags))
+
+        except Exception as e:
+            print(f"⚠️ Imagga V3 failed: {e}")
+
+    # -----------------------
+    # Tier 3: Gemini Vision
+    # -----------------------
+    tags = call_gemini(file_bytes, category_hint, user_desc)
+    if tags:
+        return tags
+
+    # -----------------------
+    # Tier 4: Emergency Safe Fallback
+    # -----------------------
+    print(f"⚠️ All tagging failed for '{category_hint}' — fallback applied")
+    return [str(category_hint), "clothing"]
+
+    # ==========================
+    # --- Tier 4: Emergency Default ---
+    # ==========================
+    print(f"⚠️ All tagging failed; returning default tags for '{category_hint}'")
+    return [category_hint, "clothing"]
+
 def call_hf_with_retry_blip(image_bytes: bytes):
     """
     Uses HF BLIP image captioning model.
@@ -183,51 +283,6 @@ def call_hf_with_retry_blip(image_bytes: bytes):
 
     return None
 
-# def get_hf_tags_with_fallback(image_bytes, category, user_desc=""):
-#     """
-#   
-
-#     # -------------------------------------------------------
-#     # 1️⃣ Category-specific candidate labels
-#     CATEGORY_LABELS = {
-#         "tops": ["t-shirt", "shirt", "blouse", "sweater"],
-#         "bottoms": ["jeans", "pants", "shorts", "skirt"],
-#         "shoes": ["sneakers", "boots", "heels"],
-#         "accessories": ["belt", "hat", "scarf"]
-#     }
-
-#     candidate_labels = CATEGORY_LABELS.get(
-#         category,
-#         ["top", "bottom", "shoes", "accessory"]
-#     )
-
-#     # -------------------------------------------------------
-#     # 2️⃣ HF attempt (retries handled internally)
-#     hf_tags = call_hf_with_retry(
-#         image_bytes=image_bytes,
-#         candidate_labels=candidate_labels
-#     )
-
-#     # -------------------------------------------------------
-#     # 3️⃣ Gemini fallback if HF failed or empty
-#     if hf_tags and len(hf_tags) > 0:
-#         print(f"✅ HF tags: {hf_tags}")
-#         return hf_tags
-
-#     print("⚠️ HF failed or empty, falling back to Gemini")
-
-#     try:
-#         gemini_result = gemini_client.classify(
-#             image_bytes=image_bytes,
-#             category=category,
-#             user_desc=user_desc
-#         )
-#         print(f"✨ Gemini tags: {gemini_result.get('tags', [])}")
-#         return gemini_result.get("tags", [])
-#     except Exception as e:
-#         print(f"❌ Gemini fallback failed: {e}")
-#         return []
-
 def async_tag_update(item_id, image_bytes, category, user_desc=""):
     """
     Background tagging using Novita + Imagga + Gemini.
@@ -252,54 +307,75 @@ def async_tag_update(item_id, image_bytes, category, user_desc=""):
 # --------------------------
 @wardrobe_bp.route("/items", methods=["POST"])
 def create_wardrobe_item():
+    """
+    Upload a wardrobe item and auto-generate tags using the tiered pipeline:
+    1️⃣ Imagga V2 (cheap)
+    2️⃣ Imagga V3 (more accurate)
+    3️⃣ Gemini Vision (fallback)
+    4️⃣ Emergency default
+    """
     user_id = get_current_user_id()
-    if not user_id: return jsonify({"error": "unauthorized"}), 401
+    if not user_id:
+        return jsonify({"error": "unauthorized"}), 401
 
     file = request.files.get("file")
     category = request.form.get("category", "top")
     description = request.form.get("description", "")
-    
-    if not file: return jsonify({"error": "No file"}), 400
+    if not file:
+        return jsonify({"error": "No file provided"}), 400
 
     file_bytes = file.read()
 
-    # 1. Deduplicate & Upload (Saves space immediately)
-    uploaded_path = upload_image(user_id, file_bytes, file.filename)
-    if not uploaded_path:
-        return jsonify({"error": "Failed to upload image"}), 500
-
-    # 2. Get Tags (Master Pipeline handles all fallbacks)
-    tags = get_tags(file_bytes, category, description)
-
     try:
-        # 3. Save to DB
+        # -----------------------------
+        # Step 1: Upload to Supabase Storage
+        # -----------------------------
+        storage_path = upload_image(user_id, file_bytes, file.filename)
+        base_url = current_app.config["SUPABASE_URL"].rstrip('/')
+        public_url = f"{base_url}/storage/v1/object/public/wardrobe-images/{storage_path}"
+
+        # -----------------------------
+        # Step 2: Get tags using tiered pipeline
+        # -----------------------------
+        tags = get_ultimate_tags(
+            public_url=public_url,
+            file_bytes=file_bytes,  # Needed only for Gemini fallback
+            category_hint=category,
+            user_desc=description
+        )
+
+        # -----------------------------
+        # Step 3: Insert into DB via RPC
+        # -----------------------------
         rpc_params = {
             "p_user_id": user_id,
-            "p_image_url": uploaded_path,
+            "p_image_url": storage_path,
             "p_category": category,
             "p_tags": tags
         }
         new_item = call_rpc("create_wardrobe_item", rpc_params)
-        return jsonify({"item": new_item, "tag": tags[0] if tags else category}), 201
+
+        # -----------------------------
+        # Step 4: Return success response
+        # -----------------------------
+        return jsonify({"item": new_item, "tags": tags}), 201
 
     except Exception as e:
-        print(f"🔥 Database Error: {e}")
-        return jsonify({"error": "Database entry failed"}), 500
+        print(f"❌ Error creating wardrobe item: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 @wardrobe_bp.route("/items", methods=["GET"])
 def get_wardrobe():
     """
-    Get all wardrobe items for the current user.
+    Retrieve all wardrobe items for the current user.
     """
     user_id = get_current_user_id()
     if not user_id:
         return jsonify({"error": "unauthorized"}), 401
 
     items = call_rpc("get_user_wardrobe", {"p_user_id": user_id})
-    if items is None:
-        return jsonify({"items": [], "debug_msg": "no data"}), 200
-
-    return jsonify({"items": items}), 200
+    return jsonify({"items": items or []}), 200
 
 @wardrobe_bp.route("/items/<item_id>", methods=["DELETE"])
 def delete_item(item_id):
@@ -361,81 +437,82 @@ def get_simple_ootd():
     ]
     return jsonify(ootd)
 
+@wardrobe_bp.route("/repair-null-tags", methods=["POST"])
 def repair_null_tags():
     """
-    Repairs wardrobe items that have missing or failed tags.
-    Triggered from frontend "Repair Tags" button.
+    Repair wardrobe items that have null or incomplete tags.
+    
+    Uses a tiered AI pipeline:
+    1️⃣ Imagga V2 (cheap, fast)
+    2️⃣ Imagga V3 (more accurate)
+    3️⃣ Gemini Vision (expensive fallback)
+    4️⃣ Emergency default
+    
+    Stops at the first successful tier to save API costs.
+
+    Returns:
+        JSON with the count of repaired items.
     """
+    user_id = get_current_user_id()
+    if not user_id:
+        return jsonify({"error": "unauthorized"}), 401
 
-    # Import here to avoid circular imports
-    from your_db_module import (
-        get_items_with_missing_tags,
-        update_item_tags,
-        mark_item_failed  # optional but recommended
-    )
+    try:
+        # Only retry FAILED items (not pending / completed)
+        res = supabase.table("wardrobe_items") \
+            .select("*") \
+            .eq("user_id", user_id) \
+            .eq("tag_status", "failed") \
+            .execute()
 
-    items = get_items_with_missing_tags()
-    repaired_count = 0
+        items = res.data or []
+        repaired = 0
+        base_url = current_app.config["SUPABASE_URL"].rstrip("/")
 
-    for item in items:
-        try:
-            image_path = f"./uploads/{item['image_url']}"
+        for item in items:
+            public_url = f"{base_url}/storage/v1/object/public/wardrobe-images/{item['image_url']}"
 
-            with open(image_path, "rb") as f:
-                image_bytes = f.read()
+            img_resp = requests.get(public_url, timeout=10)
+            if img_resp.status_code != 200:
+                continue
 
-            # -------------------------------------------------------
-            # 1️⃣ TRY HUGGING FACE (WITH RETRIES)
-            # -------------------------------------------------------
+            tags = get_ultimate_tags(
+                public_url,
+                img_resp.content,
+                item["category"],
+                item.get("description", "")
+            )
 
-            tags = call_hf_with_retry(image_bytes)
+            # CRITICAL VALIDATION:
+            # If tags are only fallback-level, keep status FAILED
+            is_real_success = (
+                tags
+                and not (len(tags) == 2 and "clothing" in tags)
+            )
 
-            # -------------------------------------------------------
-            # 2️⃣ FALLBACK TO GEMINI (ONLY IF HF FAILED OR EMPTY)
-            # -------------------------------------------------------
+            new_status = "completed" if is_real_success else "failed"
 
-            # ✅ FIX #5: Empty list ≠ success
-            if tags is None or len(tags) == 0:
-                try:
-                    gemini_result = gemini_client.classify(image_bytes)
-                    tags = gemini_result.get("tags", [])
-                except Exception as gem_err:
-                    print(f"❌ Gemini fallback failed for item {item['id']}: {gem_err}")
-                    tags = None
+            rpc_payload = {
+                "p_item_id": str(item["id"]),
+                "p_tags": list(tags),
+                "p_status": str(new_status)
+            }
 
-            # -------------------------------------------------------
-            # 3️⃣ UPDATE DATABASE
-            # -------------------------------------------------------
+            call_rpc("update_wardrobe_item_status", rpc_payload)
 
-            if tags and len(tags) > 0:
-                update_item_tags(item["id"], tags)
-                repaired_count += 1
-            else:
-                # Optional but HIGHLY recommended
-                mark_item_failed(item["id"])
+            if is_real_success:
+                repaired += 1
 
-        except Exception as item_err:
-            # ✅ FIX #6: Item-level isolation
-            # One bad image never breaks the batch
-            print(f"❌ Failed processing item {item['id']}: {item_err}")
-            mark_item_failed(item["id"])
+        return jsonify({"repaired": repaired}), 200
 
-    return jsonify({
-        "repaired": repaired_count,
-        "attempted": len(items)
-    })
+    except Exception as e:
+        print(f"🔥 Repair failed: {e}")
+        return jsonify({"error": str(e)}), 500
 
-    # Optionally, wait for threads to finish
-    for t in threads:
-        t.join()
-        repaired_count += 1
+    except Exception as e:
+        print(f"🔥 Repair failure: {e}")
+        return jsonify({"error": "Repair failed", "details": str(e)}), 500
 
-    estimated_cost_usd = round(repaired_count * 0.02, 2)  # ~2 cents per HF request
-
-    return jsonify({
-        "msg": f"Attempting to repair {repaired_count} items using HF + Gemini fallback",
-        "estimated_cost_usd": estimated_cost_usd
-    }), 200
 
 
 @wardrobe_bp.route("/items/favorite", methods=["POST"])
@@ -469,5 +546,50 @@ def get_color_insights():
 
     res = supabase.rpc("get_color_distribution", {"p_user_id": user_id}).execute()
     return jsonify(res.data)
-print("HF URL USED 👉", HF_CLIP_URL)
-print("Gemini model 👉", gemini_client.model._model_name)
+# print("HF URL USED 👉", HF_CLIP_URL)
+# print("Gemini model 👉", gemini_client.model._model_name)
+
+# def get_hf_tags_with_fallback(image_bytes, category, user_desc=""):
+#     """
+#   
+
+#     # -------------------------------------------------------
+#     # 1️⃣ Category-specific candidate labels
+#     CATEGORY_LABELS = {
+#         "tops": ["t-shirt", "shirt", "blouse", "sweater"],
+#         "bottoms": ["jeans", "pants", "shorts", "skirt"],
+#         "shoes": ["sneakers", "boots", "heels"],
+#         "accessories": ["belt", "hat", "scarf"]
+#     }
+
+#     candidate_labels = CATEGORY_LABELS.get(
+#         category,
+#         ["top", "bottom", "shoes", "accessory"]
+#     )
+
+#     # -------------------------------------------------------
+#     # 2️⃣ HF attempt (retries handled internally)
+#     hf_tags = call_hf_with_retry(
+#         image_bytes=image_bytes,
+#         candidate_labels=candidate_labels
+#     )
+
+#     # -------------------------------------------------------
+#     # 3️⃣ Gemini fallback if HF failed or empty
+#     if hf_tags and len(hf_tags) > 0:
+#         print(f"✅ HF tags: {hf_tags}")
+#         return hf_tags
+
+#     print("⚠️ HF failed or empty, falling back to Gemini")
+
+#     try:
+#         gemini_result = gemini_client.classify(
+#             image_bytes=image_bytes,
+#             category=category,
+#             user_desc=user_desc
+#         )
+#         print(f"✨ Gemini tags: {gemini_result.get('tags', [])}")
+#         return gemini_result.get("tags", [])
+#     except Exception as e:
+#         print(f"❌ Gemini fallback failed: {e}")
+#         return []

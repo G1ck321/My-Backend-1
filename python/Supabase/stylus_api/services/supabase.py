@@ -56,37 +56,27 @@ def upload_image(user_id: str, file_bytes: bytes, filename: str) -> str:
     """
     Upload to wardrobe-images/{user_id}/{content_hash}.ext.
     Uses content hashing to prevent duplicate files in storage.
-    """
+        """
     try:
-        url = f"{current_app.config['SUPABASE_URL']}/storage/v1"
+        # Configuration
+        url = f"{current_app.config['SUPABASE_URL'].rstrip('/')}/storage/v1/"
         key = current_app.config["SUPABASE_SERVICE_ROLE_KEY"]
         headers = {"apikey": key, "Authorization": f"Bearer {key}"}
         client = create_client(url, headers, is_async=False)
-        bucket = client.from_("wardrobe-images")
-
-        # 1. Generate a hash of the image content
-        file_hash = hashlib.sha256(file_bytes).hexdigest()
         
-        # 2. Get the extension (e.g., .jpg)
+        # 1. Deduplication logic
+        file_hash = hashlib.sha256(file_bytes).hexdigest()
         ext = filename.split('.')[-1] if '.' in filename else 'jpg'
-
-        # 3. Final path: {user_id}/{hash}.{ext}
         path = f"{user_id}/{file_hash}.{ext}"
 
-        # 4. Use 'x-upsert': 'true' to overwrite/reuse existing files with same hash
-        # This prevents the "File already exists" error and saves space
+        # 2. Upload with upsert=True (Overwrites identical files, saving space)
+        bucket = client.from_("wardrobe-images")
         bucket.upload(
             path=path, 
             file=file_bytes, 
             file_options={"content-type": f"image/{ext}", "x-upsert": "true"}
         )
-        
-        print(f"✅ Uploaded (Deduplicated): wardrobe-images/{path}")
         return path
-
     except Exception as e:
-        # Check if it's just a duplicate error (though upsert handles this)
-        if "already exists" in str(e).lower():
-            return path
-        print(f"❌ Storage upload failed: {str(e)}")
+        print(f"❌ Storage error: {e}")
         raise e
