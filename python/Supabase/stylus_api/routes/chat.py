@@ -117,6 +117,8 @@ def chat():
             return jsonify({"reply": "Hold on 😅 Give me a second before asking again."}), 429
 
         data = request.get_json()
+        current_agenda = data.get("agenda", "Class") # Get agenda from frontend
+        
         user_message = (data.get("message") or "").strip()
 
         if not user_message:
@@ -184,7 +186,19 @@ def chat():
             .execute()
             .data
         )
+                
+    # ... (Auth and weather code as before) ...
+    
+    
 
+    # 1. MAP AGENDA TO AI BEHAVIOR
+    # This acts as a "behavioral nudge" for Gemma
+        agenda_rules = {
+        "Internship": "Strict professional. If a tie/blazer exists in inventory, use it.",
+        "Class": "Academic smart-casual. Layering is preferred for lecture halls.",
+        "Social": "Relaxed but stylish. Prioritize comfort and campus vibe."
+        }
+        specific_rule = agenda_rules.get(current_agenda, "")
         # ------------------------------------------
         # 6. FORMAT INVENTORY LINES SAFELY (FIX)
         # ------------------------------------------
@@ -219,6 +233,7 @@ You are StyluS, a high-end fashion consultant specializing in "University Corpor
 ### CONTEXT
 - User Name: {{user_name}}
 - User Aesthetic: {{style_vibe}}
+- Current Agenda: {current_agenda} ({specific_rule})
 - Weather: {{temperature}}°C, {{condition}}
 - Closet Inventory: {{inventory_lines}}
 
@@ -244,10 +259,12 @@ You are StyluS, a high-end fashion consultant specializing in "University Corpor
 """
         # Build the final prompt for the AI
         final_prompt = system_prompt.replace("{{user_name}}", display_name)\
-                             .replace("{{style_vibe}}", style_vibe)\
-                             .replace("{{temperature}}", str(temperature))\
-                             .replace("{{condition}}", condition)\
-                             .replace("{{inventory_lines}}", str(inventory_lines))
+                            .replace("{{style_vibe}}", style_vibe)\
+                            .replace("{{temperature}}", str(temperature))\
+                            .replace("{{condition}}", condition)\
+                            .replace("{{inventory_lines}}", str(inventory_lines))\
+                            .replace("{{current_agenda}}", str(current_agenda))\
+                            .replace("{{specific_rule}}", str(specific_rule))
 
 # Add the user's actual question at the end
         full_input = f"{final_prompt}\n\nUser Question: {user_message}"
