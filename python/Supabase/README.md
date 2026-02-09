@@ -113,3 +113,11 @@ Now your model is **guaranteed to exist** locally. You can load it with a lightw
 If you want, I can write a **minimal Python file that tests your HF token + model + fallback to Gemini**, **without PyTorch**, and prints the tags in a single call. This is exactly what you’d need for your wardrobe project.
 
 Do you want me to do that?
+
+LLMs like Gemma use these to separate instructions from data. It prevents "prompt injection" where the user's closet data might be confused with instructions.
+
+Chain of Thought (CoT): By forcing the model to "Analyze," then "Scan," then "Match," you significantly reduce the chance of it recommending a winter coat in 26°C weather.
+
+Negative Constraints: Explicitly banning words like "Okay" and "Unknown" forces the model to stay in character.
+
+Few-Shot Logic: You can add a specific example inside your code before the user's message to "show" the model what a good answer looks like

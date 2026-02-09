@@ -190,46 +190,72 @@ def chat():
         # ------------------------------------------
         inventory_lines = []
         for item in wardrobe_items:
-            category = item.get('category', 'unknown')
-            color = item.get('color') or 'Neutral'  # Avoid None
-            tags = [str(t) for t in (item.get("tags") or []) if t]  # Remove None from tags
-            line = f"{category} ({color})"
-            if tags:
-                line += f" – {', '.join(tags)}"
+            # SKIP items that are still in "failed" or "pending" status
+            # or items that only have the generic fallback tags
+            tags = [str(t) for t in (item.get("tags") or []) if t]
+            category = item.get('category', 'item')
+            
+            # If the only tag is 'clothing' or the category itself, the AI hasn't fixed it yet
+            if not tags or (len(tags) == 1 and tags[0] == 'clothing'):
+                continue 
+
+            color = item.get('color') or ''
+            line = f"- {color} {category}: {', '.join(tags)}"
             inventory_lines.append(line)
+
+        # If inventory is empty after filtering
+        if not inventory_lines:
+            inventory_lines = ["Your wardrobe is currently being processed by AI. Please wait for tags to generate."]
 
         # ------------------------------------------
         # 7. BUILD SYSTEM PROMPT
         # ------------------------------------------
-        user_name  = {"name":supabase.table("user_profiles").select("*").eq("user_id", user_id).execute()}
+        profile_data = supabase.table("profiles").select("display_name").eq("id", user_id).maybe_single().execute().data
+        display_name = profile_data.get("display_name", "User") if profile_data else "User"
         system_prompt = f"""
-You are StyluS, a professional fashion consultant. 
-User's Aesthetic: {style_vibe}
-Weather: {temperature}°C, {condition}.
+### IDENTITY
+You are StyluS, a high-end fashion consultant specializing in "University Corporate" and "Campus Casual" aesthetics. You are decisive, sophisticated, and analytical. You never hedge.
 
-USER'S CLOSET:
-inventory = {inventory_lines}
+### CONTEXT
+- User Name: {{user_name}}
+- User Aesthetic: {{style_vibe}}
+- Weather: {{temperature}}°C, {{condition}}
+- Closet Inventory: {{inventory_lines}}
 
-STRICT RULES:
-1. Explain briefly why it works for the weather.
-2. BE DECISIVE. Do not say "I suggest a top." Say "Wear the [ID: (use id)] (top from inventory) Top. no hedging"
-3. REASONING: Explain why that specific item works for {temperature}°C. (e.g., "Grey is a neutral that won't absorb too much heat under the {condition} sky.")
-4. If the user asks a follow-up, refer to the IDs mentioned in the chat history.
-5. Do not repeat Okay in every response.
-6. refer to the user's name {user_name} or user
-7. NEVER use the word "unknown." If data is missing, describe the item by its ID.
-8. Respond directly without conversational fillers.
-Do not start responses with words like: "Okay", "Sure", "Alright", "Let’s", or similar. Output only the recommendation.
-FORMAT:
-- Outfit name
-- Bullet list of items
-- Short reasoning
+### OPERATIONAL ALGORITHM (Chain of Thought)
+1. ANALYZE WEATHER: Evaluate if the temperature requires layering (under 18°C) or breathability (over 24°C).
+2. SCAN INVENTORY: Identify specific items in the Closet Inventory that match the Weather and User Aesthetic.
+3. MATCH COLORS: Ensure the selected top and bottom have complementary colors.
+4. FINALIZE: Select ONE specific top and ONE specific bottom/accessory.
+
+### STYLISTIC CONSTRAINTS
+- NO FILLERS: Do not start with "Sure," "Okay," or "I can help with that."
+- NO HEDGING: Use "Wear the..." instead of "I suggest..." or "You could try..."
+- NO UNKNOWNS: Never use the word "unknown." If data is missing, describe the item by its Category.
+- VIBE FOCUS: If Vibe is "University Corporate," prioritize Blazers, Ties, and Chinos.
+
+### OUTPUT FORMAT
+**[Outfit Name]**
+- **Top**: [Item Color] [Item Category]
+- **Bottom**: [Item Color] [Item Category]
+- **Accessory**: [Item Category] (if applicable)
+
+**Reasoning**: [1-2 sentences explaining the choice based on temperature and aesthetic.]
 """
+        # Build the final prompt for the AI
+        final_prompt = system_prompt.replace("{{user_name}}", display_name)\
+                             .replace("{{style_vibe}}", style_vibe)\
+                             .replace("{{temperature}}", str(temperature))\
+                             .replace("{{condition}}", condition)\
+                             .replace("{{inventory_lines}}", str(inventory_lines))
 
+# Add the user's actual question at the end
+        full_input = f"{final_prompt}\n\nUser Question: {user_message}"
+
+        ai_reply, model_used = generate_ai_response(full_input)
         # ------------------------------------------
         # 8. GENERATE AI RESPONSE
         # ------------------------------------------
-        ai_reply, model_used = generate_ai_response(system_prompt)
 
         # ------------------------------------------
         # 9. SAVE AI RESPONSE
