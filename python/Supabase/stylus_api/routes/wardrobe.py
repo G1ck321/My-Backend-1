@@ -168,7 +168,7 @@ def get_ultimate_tags(public_url, file_bytes, category_hint, user_desc=""):
                     "model": "pro",
                     "include_caption": "true"
                 },
-                timeout=10
+                timeout=40
             )
 
             # V3 color via v2 endpoint (stable)
@@ -176,7 +176,7 @@ def get_ultimate_tags(public_url, file_bytes, category_hint, user_desc=""):
                 "https://api.imagga.com/v2/colors",
                 auth=auth,
                 params={"image_url": public_url},
-                timeout=10
+                timeout=40
             )
 
             raw_tags = []
@@ -214,13 +214,13 @@ def get_ultimate_tags(public_url, file_bytes, category_hint, user_desc=""):
                 "https://api.imagga.com/v2/tags",
                 auth=auth,
                 params={"image_url": public_url, "threshold": 20},
-                timeout=10
+                timeout=35
             )
             resp_colors_v2 = requests.get(
                 "https://api.imagga.com/v2/colors",
                 auth=auth,
                 params={"image_url": public_url},
-                timeout=10
+                timeout=35
             )
 
             raw_tags_v2 = []
@@ -471,7 +471,7 @@ def repair_null_tags():
         for item in items:
             public_url = f"{base_url}/storage/v1/object/public/wardrobe-images/{item['image_url']}"
 
-            img_resp = requests.get(public_url, timeout=10)
+            img_resp = requests.get(public_url, timeout=35)
             if img_resp.status_code != 200:
                 continue
 

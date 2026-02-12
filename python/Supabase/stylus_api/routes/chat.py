@@ -51,7 +51,7 @@ def list_available_models():
 # list_available_models()
 LAST_CALL_TIME = {}
 
-def rate_limit(user_id: str, cooldown_seconds: int = 3) -> bool:
+def rate_limit(user_id: str, cooldown_seconds: int = 8) -> bool:
     now = time.time()
     last_call = LAST_CALL_TIME.get(user_id, 0)
     if now - last_call < cooldown_seconds:
