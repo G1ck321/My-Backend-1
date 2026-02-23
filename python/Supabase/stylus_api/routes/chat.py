@@ -1,12 +1,11 @@
 from flask import Blueprint, request, jsonify
 import google.generativeai as genai
 import time
-
+from google.generativeai.types import GenerationConfig
 from .profile import supabase
 from ..routes.context import get_weather
 from ..utils.auth import get_current_user_id
 from ..config import Config
-
 
 # ==================================================
 # AI MODEL CONFIGURATION
@@ -15,9 +14,9 @@ from ..config import Config
 
 genai.configure(api_key=Config.GEM)
 
-GEMINI_MODEL_NAME = "models/gemini-2.5-flash"
+GEMINI_MODEL_NAME = "models/gemini-1.5-flash"
 GEMMA_MODEL_NAME  = "models/gemma-3-4b-it"
-
+from google.generativeai.types import GenerationConfig
 
 # primary_model  = genai.GenerativeModel(PRIMARY_MODEL)
 # fallback_model = genai.GenerativeModel(FALLBACK_MODEL)        # Cheaper fallback
@@ -64,41 +63,106 @@ def rate_limit(user_id: str, cooldown_seconds: int = 8) -> bool:
 # ==================================================
 # AI GENERATION WITH SAFE FALLBACK
 # ==================================================
-
+generation_config = GenerationConfig(
+    temperature=0.5,
+    top_p=0.9,
+    top_k=40,
+    max_output_tokens=512,
+)
 def generate_ai_response(prompt: str):
     """
     Attempt Gemini first; fallback to Gemma on any error.
     Returns (response_text, model_name)
     """
-    try:
-        gemini_model = genai.GenerativeModel(GEMINI_MODEL_NAME)
-        response = gemini_model.generate_content(prompt)
-        return response.text, GEMINI_MODEL_NAME
-    except Exception as gemini_error:
-        print(f"❌ Gemini Error: {gemini_error}")
-        print("🔁 Falling back to Gemma")
-    try:
-        gemma_model = genai.GenerativeModel(GEMMA_MODEL_NAME)
-        response = gemma_model.generate_content(
-            prompt,
-            generation_config={
-                "temperature": 0.6,
-                "top_p": 0.9,
-                "max_output_tokens": 512
-            }
-        )
-        return response.text, GEMMA_MODEL_NAME
-    except Exception as gemma_error:
-        print(f"🔥 Gemma Error: {gemma_error}")
-        raise RuntimeError("All models failed")
+    tools = [
+        {
+            "function_declarations": [
+                {
+                    "name": "get_weather",
+                    "description": "Get current weather information",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {},
+                    },
+                }
+            ]
+        }
+    ]
 
+    try:
+        # -----------------------------
+        # CREATE GEMINI MODEL
+        # -----------------------------
+        gemini_model = genai.GenerativeModel(
+            model_name=GEMINI_MODEL_NAME,
+            generation_config=generation_config,
+            system_instruction="""
+You are StyluS, a high-end fashion consultant.
+Be decisive. No fillers. No hedging.
+Only produce outfits when explicitly requested.
+""",
+            tools=tools  # <-- TOOLS ATTACHED HERE
+        )
+
+        # -----------------------------
+        # GENERATE RESPONSE
+        # -----------------------------
+        response = gemini_model.generate_content(prompt)
+
+        # -----------------------------
+        # HANDLE TOOL CALL (IF ANY)
+        # -----------------------------
+        if response.candidates and response.candidates[0].content.parts:
+            part = response.candidates[0].content.parts[0]
+
+            # If Gemini decided to call a function
+            if hasattr(part, "function_call"):
+                function_name = part.function_call.name
+
+                if function_name == "get_weather":
+                    weather_data = get_weather().get_json()
+
+                    # Send function result back to model
+                    followup = gemini_model.generate_content([
+                        prompt,
+                        {
+                            "function_response": {
+                                "name": "get_weather",
+                                "response": weather_data
+                            }
+                        }
+                    ])
+
+                    return followup.text, GEMINI_MODEL_NAME
+
+        return response.text, GEMINI_MODEL_NAME
+
+    except Exception as gemini_error:
+        print(f"❌ Gemini Error: {repr(gemini_error)}")
+        print("🔁 Falling back to Gemma")
+
+    # -----------------------------
+    # GEMMA FALLBACK (TEXT ONLY)
+    # -----------------------------
+    try:
+        gemma_model = genai.GenerativeModel(
+            model_name=GEMMA_MODEL_NAME,
+            generation_config=generation_config
+        )
+
+        response = gemma_model.generate_content(prompt)
+
+        return response.text, GEMMA_MODEL_NAME
+
+    except Exception as gemma_error:
+        print(f"🔥 Gemma Error: {repr(gemma_error)}")
+        raise RuntimeError("All models failed")
 
 # ==================================================
 # BLUEPRINT
 # ==================================================
 
 chat_bp = Blueprint("chat", __name__)
-
 
 # ==================================================
 # CHAT ENDPOINT
@@ -135,45 +199,11 @@ def chat():
 # Frontend-provided context (authoritative for this request)
         current_agenda = data.get("agenda", "Class")
         request_vibe   = data.get("vibe")  # may be None
-
         user_message = (data.get("message") or "").strip()
 
         if not user_message:
             return jsonify({"reply": "Say something first 🙂"}), 400
-
-        # ----------------------------
-        # 2. FETCH RECENT CHAT HISTORY
-        # ----------------------------
-        history_resp = (
-            supabase.table("chat_history")
-            .select("role, content")
-            .eq("user_id", user_id)
-            .order("created_at", desc=True)
-            .limit(14)
-            .execute()
-        )
-        check_supabase(history_resp, "fetching chat history")
-        history_rows = history_resp.data or []
-
-        # Format chat history for AI (only last few messages)
-        formatted_history = []
-        for row in reversed(history_rows):
-            speaker = "User" if row.get("role") == "user" else "StyluS"
-            formatted_history.append(f"{speaker}: {row.get('content')}")
-        GEMINI_HISTORY_LIMIT = 5
-        chat_history_text = "\n".join(formatted_history[-GEMINI_HISTORY_LIMIT:])
-
-        # ----------------------------
-        # 3. SAVE USER MESSAGE
-        # ----------------------------
-        insert_resp = supabase.table("chat_history").insert({
-            "user_id": user_id,
-            "role": "user",
-            "content": user_message
-        }).execute()
-        check_supabase(insert_resp, "saving user message")
-
-        # ----------------------------
+         # ----------------------------
         # 4. FETCH WEATHER & PROFILE
         # ----------------------------
         raw_weather = get_weather().get_json()
@@ -208,26 +238,97 @@ def chat():
     or "Versatile"
 )
         display_name = profile.get("display_name", "User")
+        # ----------------------------
+        # SIMPLE INTENT DETECTION (Backend-Level)
+        # ----------------------------
+
+        lower_msg = user_message.lower()
+
+        greetings = ["hi", "hello", "hey", "yo"]
+
+        is_greeting = any(
+            lower_msg == g or lower_msg.startswith(g + " ")
+            for g in greetings
+        )
+
+        is_styling_request = any(keyword in lower_msg for keyword in [
+            "wear", "outfit", "dress", "style", "clothes", "cloth", "what should i wear"
+    ])
+
+        # If pure greeting → respond directly (skip Gemini)
+        if is_greeting and not is_styling_request:
+            return jsonify({
+                "reply": f"Hey {display_name} 👋 What are we styling today?",
+                "model": "backend"
+            })
+        if not user_message:
+            return jsonify({"reply": "Say something first 🙂"}), 400
+
+        # ----------------------------
+        # 2. FETCH RECENT CHAT HISTORY
+        # ----------------------------
+        history_resp = (
+            supabase.table("chat_history")
+            .select("role, content")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .limit(14)
+            .execute()
+        )
+        check_supabase(history_resp, "fetching chat history")
+        history_rows = history_resp.data or []
+
+        # Format chat history for AI (only last few messages)
+        formatted_history = []
+        for row in reversed(history_rows):
+            speaker = "User" if row.get("role") == "user" else "StyluS"
+            formatted_history.append(f"{speaker}: {row.get('content')}")
+        GEMINI_HISTORY_LIMIT = 8
+        chat_history_text = "\n".join(formatted_history[-GEMINI_HISTORY_LIMIT:])
+
+        # ----------------------------
+        # 3. SAVE USER MESSAGE
+        # ----------------------------
+        insert_resp = supabase.table("chat_history").insert({
+            "user_id": user_id,
+            "role": "user",
+            "content": user_message
+        }).execute()
+        check_supabase(insert_resp, "saving user message")
+
+       
 
         # ----------------------------
         # 5. FETCH WARDROBE INVENTORY
         # ----------------------------
-        wardrobe_resp = supabase.table("wardrobe_items").select("category, color, tags").eq("user_id", user_id).execute()
+        wardrobe_resp = supabase.table("wardrobe_items").select("category, color, tags, id").eq("user_id", user_id).execute()
         check_supabase(wardrobe_resp, "fetching wardrobe")
         wardrobe_items = wardrobe_resp.data or []
 
-        # Format inventory lines for AI
+        # Format inventory lines for AI (String-only approach to prevent index errors)
         inventory_lines = []
+
         for item in wardrobe_items:
             tags = [str(t) for t in (item.get("tags") or []) if t]
-            category = item.get("category") or "item"
+            
+            # Skip empty or generic items
             if not tags or (len(tags) == 1 and tags[0].lower() == "clothing"):
                 continue
-            color = item.get("color") or ""
-            line = f"- {color} {category}: {', '.join(tags)}"
+
+            category = item.get("category", "item")
+            color = item.get("color", "Unknown Color")
+            cloth_id = item.get("id", "No-ID")
+
+            # Embed the ID directly into the text line so the AI sees it natively
+            line = f"[ID: {cloth_id[0:4]}] - {color} {category}: {', '.join(tags)}"
             inventory_lines.append(line)
+
+        # Fallback if empty
         if not inventory_lines:
             inventory_lines = ["Your wardrobe is currently being processed by AI. Please wait for tags to generate."]
+            
+        # Join into a single clean text block
+        closet_text = "\n".join(inventory_lines)
 
         # ----------------------------
         # 6. MAP AGENDA → STYLE RULE
@@ -242,10 +343,10 @@ def chat():
         # ----------------------------
         # 7. BUILD AI SYSTEM PROMPT
         # ----------------------------
-        print("🧠 CHAT CONTEXT RECEIVED")
-        print("Agenda:", current_agenda)
-        print("Vibe (request):", request_vibe)
-        print("Vibe (profile):", profile.get("style_vibe") if isinstance(profile, dict) else None)
+        # print("🧠 CHAT CONTEXT RECEIVED")
+        # print("Agenda:", current_agenda)
+        # print("Vibe (request):", request_vibe)
+        # print("Vibe (profile):", profile.get("style_vibe") if isinstance(profile, dict) else None)
         system_prompt = f"""
 ### IDENTITY
 You are StyluS, a high-end fashion consultant specializing in "University Corporate" and "Campus Casual" aesthetics. Be decisive and analytical.
@@ -255,21 +356,7 @@ You are StyluS, a high-end fashion consultant specializing in "University Corpor
 - User Aesthetic: {style_vibe}
 - Current Agenda: {current_agenda} ({specific_rule})
 - Weather: {temperature}°C, {condition}
-- Closet Inventory: {inventory_lines}
-
-### INTENT DETECTION
-Before giving fashion advice, determine user intent:
-
-- If the user greets (e.g. "hi", "yo", "hello", "hey"):
-  → Respond **briefly and friendly only**.
-  → DO NOT suggest an outfit under any circumstance.
-  → Ask how you can help or offer a casual response.
-
-- If the user asks a fashion-related question, outfit request, or styling help:
-  → Follow the styling algorithm and output format.
-
-- If the user asks something unrelated to fashion:
-  → Respond conversationally and briefly.
+- Closet Inventory (Use the IDs provided): {closet_text}
 
 ### OPERATIONAL ALGORITHM
 1. ANALYZE WEATHER: Layering under 18°C, breathable above 24°C
@@ -282,6 +369,8 @@ Before giving fashion advice, determine user intent:
 - If a blazer is used, treat it as a **Layer**, not a Bottom.
 - Do NOT invent clothing categories.
 - If constraints cannot be satisfied, choose the closest valid alternative.
+- **CRITICAL RULE**: You are NOT allowed to output "N/A" or "None" for Tops or Bottoms. If a perfect match does not exist in the inventory, you MUST pick the closest available item. Do not leave the user half-dressed.
+- You MUST include the exact [ID: ...] provided in the inventory list for every item you select.
 
 ### STYLISTIC CONSTRAINTS
 - NO FILLERS or HEDGING
@@ -293,10 +382,10 @@ Before giving fashion advice, determine user intent:
 
 ### OUTPUT FORMAT
 **[Outfit Name]**
-- *Top*: [Item Color] [Item Category]
-- *Bottom*: [Item Color] [Item Category]
-- *Accessory*: [Item Category] (if applicable)
-*Reasoning*: [1-2 sentences]
+- *Top*: [Item Color] [Item Category] (ID: [Exact ID from inventory])
+- *Bottom*: [Item Color] [Item Category] (ID: [Exact ID from inventory])
+- *Accessory*: [Item Category] (ID: [Exact ID from inventory]) (Use N/A only if no accessories exist)
+*Reasoning*: [1-2 sentences explaining the style and color coordination]
 
 Never produce an outfit unless the user explicitly asks for styling, clothing advice, or outfit recommendations.
 """

@@ -11,7 +11,7 @@ WEATHER_API_KEY = key
 def get_weather():
     # Use a real API Key from OpenWeatherMap
     api_key = key 
-    city = "Lagos"
+    city = "Ogun"
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
     
     try:

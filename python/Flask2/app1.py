@@ -48,9 +48,10 @@ def create_users():
     if request.method=="POST":
         
         data = request.get_json()
-        if not all(key in data for key in ['username','age','job']):
+        print(all([ data[key] for key in ['username','age','job']]))
+        if not all([ data[key] for key in ['username','age','job']]):
             #ensures all the fields are sent if there are less than 3 keys in data all be false
-            return{"error:missing required fields"},400
+            return jsonify({"error:missing required fields"}),400
         #duplicates
         for user in users:
             for user_data in user:
