@@ -72,6 +72,7 @@ function renderTracks(data) {
         return;
     }
 
+    //t has .album_image, .preview_url, .spotify_url, .album
     tracks.forEach((t, i) => {
         const card = document.createElement("div");
         card.className = "card";
