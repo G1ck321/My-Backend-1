@@ -1,10 +1,5 @@
 
 
-
-
-
-
-
 from collections import deque
 people: list[str] = ["Gbemi","Jumo","Kola"]
 print(people)
@@ -20,6 +15,8 @@ print(q)
 
 people.clear()
 print(people)
-p = q.copy()
+p = [name for name in  q]
+print(p,"pp")
+p.reverse()
+#If you print p.reverse you get none
 print(p)
-print(p.reverse)

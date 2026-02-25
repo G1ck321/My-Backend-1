@@ -2,6 +2,7 @@ from member import name
 from twilio.rest import Client
 from pprint import pprint
 print(name)
+# client takes 2 parameters
 client = Client("ACe3f34e847ee786230a7f279a9d29373f","856be243f6ef926ac7a02c7e7949b1dd")
 
 message = client.messages.create(
