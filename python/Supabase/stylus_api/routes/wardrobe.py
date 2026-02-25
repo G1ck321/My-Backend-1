@@ -9,7 +9,7 @@ import json, random, time, threading, requests, base64
 from ..config import Config
 import PIL.Image
 from io import BytesIO
-
+import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 IMAGGA_DISABLED = False
 wardrobe_bp = Blueprint("wardrobe", __name__)
@@ -305,13 +305,11 @@ def async_tag_update(item_id, public_url, file_bytes, category, user_desc=""):
 # ROUTES
 # --------------------------
 @wardrobe_bp.route("/items", methods=["POST"])
+
 def create_wardrobe_item():
     """
-    Upload a wardrobe item and auto-generate tags using the tiered pipeline:
-    1️⃣ Imagga V2 (cheap)
-    2️⃣ Imagga V3 (more accurate)
-    3️⃣ Gemini Vision (fallback)
-    4️⃣ Emergency default
+    Upload a wardrobe item with Hash-Based Duplicate Prevention.
+    Auto-generates tags using the tiered pipeline.
     """
     user_id = get_current_user_id()
     if not user_id:
@@ -320,6 +318,7 @@ def create_wardrobe_item():
     file = request.files.get("file")
     category = request.form.get("category", "top")
     description = request.form.get("description", "")
+    
     if not file:
         return jsonify({"error": "No file provided"}), 400
 
@@ -327,35 +326,54 @@ def create_wardrobe_item():
 
     try:
         # -----------------------------
-        # Step 1: Upload to Supabase Storage
+        # STEP 1: DUPLICATE PREVENTION (SHA-256 Hash)
+        # -----------------------------
+        file_hash = hashlib.sha256(file_bytes).hexdigest()
+        
+        # Check if this exact image already exists for this user
+        existing_check = supabase.table("wardrobe_items").select("*").eq("user_id", user_id).eq("file_hash", file_hash).execute()
+        
+        if existing_check.data:
+            print(f"♻️ Duplicate found for User {user_id}. Skipping AI & Storage.")
+            # Return the existing item immediately, tricking the frontend into thinking it uploaded
+            return jsonify({
+                "message": "Item already exists", 
+                "item": existing_check.data[0], 
+                "tags": existing_check.data[0].get("tags", [])
+            }), 200
+
+        # -----------------------------
+        # STEP 2: Upload to Supabase Storage
         # -----------------------------
         storage_path = upload_image(user_id, file_bytes, file.filename)
         base_url = current_app.config["SUPABASE_URL"].rstrip('/')
         public_url = f"{base_url}/storage/v1/object/public/wardrobe-images/{storage_path}"
 
         # -----------------------------
-        # Step 2: Get tags using tiered pipeline
+        # STEP 3: Get tags using tiered pipeline
         # -----------------------------
         tags = get_ultimate_tags(
             public_url=public_url,
-            file_bytes=file_bytes,  # Needed only for Gemini fallback
+            file_bytes=file_bytes,  
             category_hint=category,
             user_desc=description
         )
 
         # -----------------------------
-        # Step 3: Insert into DB via RPC
+        # STEP 4: Insert into DB via RPC
         # -----------------------------
+        # Note: We pass the hash to the RPC so it saves to the database
         rpc_params = {
             "p_user_id": user_id,
             "p_image_url": storage_path,
             "p_category": category,
-            "p_tags": tags
+            "p_tags": tags,
+            "p_file_hash": file_hash  # <-- NEW PARAMETER
         }
         new_item = call_rpc("create_wardrobe_item", rpc_params)
 
         # -----------------------------
-        # Step 4: Return success response
+        # STEP 5: Return success response
         # -----------------------------
         return jsonify({"item": new_item, "tags": tags}), 201
 
