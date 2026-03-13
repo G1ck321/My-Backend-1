@@ -8,6 +8,7 @@ from .routes.profile import profile_bp
 from .utils.auth import get_current_user_id
 from .routes.chat import chat_bp
 from .routes.context import context_bp
+from .routes.images import images_bp
 
 def create_app():
     app = Flask(__name__)
@@ -24,5 +25,5 @@ def create_app():
     app.register_blueprint(events_bp, url_prefix="/api/events")
     app.register_blueprint(chat_bp, url_prefix="/api") # Routes inside will be /api/chat-message
     app.register_blueprint(context_bp, url_prefix="/api") # Routes inside will be /api/weather, etc.
-    
+    app.register_blueprint(images_bp, url_prefix="/api")
     return app
