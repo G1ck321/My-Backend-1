@@ -17,14 +17,14 @@ import base64
 import requests
 import os
 from io import BytesIO
-
+from ..config import Config
 analyze_bp = Blueprint('analyze', __name__, url_prefix='')
 
 # ==========================================
 # CONFIGURATION (from environment)
 # ==========================================
-IMAGGA_KEY = os.getenv('IMAGGA_KEY')
-IMAGGA_SECRET = os.getenv('IMAGGA_SECRET')
+IMAGGA_KEY = Config.IMAGGA_KEY
+IMAGGA_SECRET = Config.IMAGGA_SECRET
 HF_TOKEN = os.getenv('HUGGING_FACE')
 GEM_KEY = os.getenv('GEM')
 
@@ -42,6 +42,53 @@ FASHION_KEYWORDS = {
     'shoe', 'boot', 'sneaker', 'loafer', 'heels', 'sandal', 'pump', 'wearing',
     'casual', 'formal', 'business', 'dress', 'striped', 'solid', 'pattern'
 }
+
+# Category taxonomy: tag keyword -> display category
+CATEGORY_MAP = {
+    'Top':    ['shirt', 't-shirt', 'tee', 'blouse', 'top', 'sweater', 'hoodie',
+               'cardigan', 'jacket', 'blazer', 'coat', 'polo', 'tank', 'vest'],
+    'Bottom': ['pants', 'jeans', 'trousers', 'skirt', 'shorts', 'leggings',
+               'chino', 'khaki', 'jogger', 'cargo'],
+    'Shoes':  ['shoe', 'shoes', 'boot', 'boots', 'sneaker', 'sneakers', 'loafer',
+               'heels', 'sandal', 'sandals', 'pump', 'pumps', 'trainer'],
+    'Dress':  ['dress', 'gown', 'jumpsuit', 'romper'],
+    'Bag':    ['bag', 'handbag', 'backpack', 'purse', 'tote', 'clutch'],
+}
+
+# Color taxonomy: tag keyword -> display color
+COLOR_MAP = {
+    'Black':  ['black', 'dark', 'ebony', 'charcoal', 'onyx'],
+    'White':  ['white', 'ivory', 'cream', 'off-white'],
+    'Blue':   ['blue', 'navy', 'cobalt', 'denim', 'indigo', 'azure'],
+    'Red':    ['red', 'crimson', 'scarlet', 'maroon', 'burgundy'],
+    'Green':  ['green', 'olive', 'khaki', 'lime', 'emerald', 'sage'],
+    'Yellow': ['yellow', 'gold', 'mustard', 'amber'],
+    'Pink':   ['pink', 'blush', 'rose', 'magenta', 'fuchsia'],
+    'Purple': ['purple', 'violet', 'lavender', 'plum'],
+    'Brown':  ['brown', 'tan', 'beige', 'camel', 'chocolate', 'nude'],
+    'Grey':   ['grey', 'gray', 'silver', 'slate'],
+    'Orange': ['orange', 'coral', 'peach', 'rust'],
+}
+
+
+def extract_category(tags: list) -> str:
+    """Map Imagga tags to a single display category."""
+    for tag in tags:
+        tag_lower = tag.lower()
+        for category, keywords in CATEGORY_MAP.items():
+            if any(kw in tag_lower for kw in keywords):
+                return category
+    return 'Other'
+
+
+def extract_color(tags: list) -> str:
+    """Map Imagga tags to a single display color."""
+    for tag in tags:
+        tag_lower = tag.lower()
+        for color, keywords in COLOR_MAP.items():
+            if any(kw in tag_lower for kw in keywords):
+                return color
+    return 'Unknown'
 
 
 # ==========================================
@@ -73,11 +120,14 @@ def get_imagga_tags(file_bytes):
         # Extract tags from response
         tags_data = resp.json().get("result", {}).get("tags", [])
 
-        # Filter for fashion-related keywords only
+        # Filter for fashion-related and color keywords, up to 20 tags
         fashion_tags = []
-        for tag_obj in tags_data[:5]:  # Top 5 tags
+        all_color_keywords = {kw for keywords in COLOR_MAP.values() for kw in keywords}
+        for tag_obj in tags_data[:20]:
             tag_name = tag_obj.get("tag", {}).get("en", "").lower()
-            if tag_name and any(keyword in tag_name for keyword in FASHION_KEYWORDS):
+            is_fashion = any(keyword in tag_name for keyword in FASHION_KEYWORDS)
+            is_color = any(keyword in tag_name for keyword in all_color_keywords)
+            if tag_name and (is_fashion or is_color):
                 fashion_tags.append(tag_name)
 
         print(f"✅ Imagga returned {len(fashion_tags)} fashion tags: {fashion_tags}")
@@ -190,8 +240,8 @@ def analyze_image_for_tagging():
         # STEP 6: Return structured response
         response = {
             "isClothing": True,
-            "category": "Other",  # Would need more complex logic to categorize as Top/Bottom/Shoes
-            "color": "Unknown",   # Similar - would need color detection
+            "category": extract_category(tags),
+            "color": extract_color(tags),
             "tags": tags,
             "confidence": 0.5 if tags else 0.3,
             "source": "imagga_fallback"
