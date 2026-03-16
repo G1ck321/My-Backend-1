@@ -31,9 +31,9 @@ GEM_KEY = os.getenv('GEM')
 IMAGGA_DISABLED = not (IMAGGA_KEY and IMAGGA_SECRET)
 HF_DISABLED = not HF_TOKEN
 
-# HuggingFace API endpoint
-HF_CLIP_URL = "https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32"
-HF_HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
+# HuggingFace API endpoint - Updated to working model
+HF_CLIP_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base"
+HF_HEADERS = {"Authorization": f"Bearer {HF_TOKEN}" if HF_TOKEN else ""}
 
 # Fashion keywords for filtering results
 FASHION_KEYWORDS = {
@@ -105,16 +105,20 @@ def get_imagga_tags(file_bytes):
         return []
 
     try:
+        # FIX: Create BytesIO object from bytes for proper file upload
+        image_file = BytesIO(file_bytes)
+
         # POST to Imagga V2 API with image file
         resp = requests.post(
             "https://api.imagga.com/v2/tags",
             auth=(IMAGGA_KEY, IMAGGA_SECRET),
-            files={"image": file_bytes},
+            files={"image": ("image.jpg", image_file, "image/jpeg")},  # Proper file format
             timeout=10
         )
 
         if resp.status_code != 200:
             print(f"❌ Imagga API error: {resp.status_code}")
+            print(f"   Response: {resp.text[:200]}")  # Show error details
             return []
 
         # Extract tags from response
@@ -140,8 +144,8 @@ def get_imagga_tags(file_bytes):
 
 def get_huggingface_tags(file_bytes):
     """
-    Call HuggingFace CLIP API as fallback (Tier 2)
-    Returns list of fashion-related labels
+    Call HuggingFace BLIP Image Captioning API as fallback (Tier 2)
+    Returns list of fashion-related labels extracted from caption
     """
     if HF_DISABLED:
         print("⚠️ HuggingFace disabled - skipping")
@@ -153,25 +157,52 @@ def get_huggingface_tags(file_bytes):
             HF_CLIP_URL,
             headers=HF_HEADERS,
             data=file_bytes,
-            timeout=10
+            timeout=15  # Increased timeout for model loading
         )
 
         if resp.status_code != 200:
             print(f"❌ HuggingFace API error: {resp.status_code}")
+            print(f"   Response: {resp.text[:200]}")
             return []
 
-        # HF returns list of classifications
+        # HF BLIP returns caption like: "a woman wearing a blue striped shirt"
         data = resp.json()
-        labels = data.get("labels", []) if isinstance(data, dict) else []
 
-        # Filter for fashion-related keywords
+        # Extract caption text
+        if isinstance(data, list) and len(data) > 0:
+            caption = data[0].get("generated_text", "")
+        elif isinstance(data, dict):
+            caption = data.get("generated_text", "")
+        else:
+            caption = ""
+
+        if not caption:
+            print("⚠️ HuggingFace returned empty caption")
+            return []
+
+        print(f"📝 HuggingFace caption: {caption}")
+
+        # Extract fashion keywords from caption
+        caption_lower = caption.lower()
         fashion_labels = []
-        for label in labels[:5]:  # Top 5
-            if label and any(keyword in label.lower() for keyword in FASHION_KEYWORDS):
-                fashion_labels.append(label.lower())
+
+        # Check for fashion keywords in caption
+        all_keywords = set()
+        for keywords in CATEGORY_MAP.values():
+            all_keywords.update(keywords)
+
+        for keyword in all_keywords:
+            if keyword in caption_lower:
+                fashion_labels.append(keyword)
+
+        # Also check colors
+        all_color_keywords = {kw for keywords in COLOR_MAP.values() for kw in keywords}
+        for color_kw in all_color_keywords:
+            if color_kw in caption_lower:
+                fashion_labels.append(color_kw)
 
         print(f"✅ HuggingFace returned {len(fashion_labels)} fashion labels: {fashion_labels}")
-        return fashion_labels
+        return fashion_labels[:10]  # Limit to 10
 
     except Exception as e:
         print(f"❌ HuggingFace API failed: {e}")
@@ -223,6 +254,39 @@ def analyze_image_for_tagging():
         except Exception as e:
             print(f"❌ Base64 decode error: {e}")
             return jsonify({"error": "Invalid base64 image"}), 400
+
+        # STEP 2.5: Convert WebP to JPEG (Imagga doesn't support WebP)
+        if mime_type == 'image/webp':
+            try:
+                from PIL import Image
+                import io
+
+                print("🔄 Converting WebP to JPEG (Imagga requirement)...")
+
+                # Load WebP image
+                webp_image = Image.open(io.BytesIO(file_bytes))
+
+                # Convert to RGB (remove alpha channel if present)
+                if webp_image.mode in ('RGBA', 'LA', 'P'):
+                    rgb_image = Image.new('RGB', webp_image.size, (255, 255, 255))
+                    rgb_image.paste(webp_image, mask=webp_image.split()[-1] if webp_image.mode == 'RGBA' else None)
+                else:
+                    rgb_image = webp_image.convert('RGB')
+
+                # Convert to JPEG bytes
+                jpeg_buffer = io.BytesIO()
+                rgb_image.save(jpeg_buffer, format='JPEG', quality=90)
+                file_bytes = jpeg_buffer.getvalue()
+
+                print("✅ Converted WebP → JPEG successfully")
+
+            except ImportError:
+                print("⚠️ PIL/Pillow not installed, cannot convert WebP")
+                print("   Install with: pip install Pillow")
+                # Continue anyway, let Imagga fail and fall back to HuggingFace
+            except Exception as e:
+                print(f"⚠️ WebP conversion failed: {e}")
+                # Continue anyway, fallback will handle it
 
         # STEP 3: Try Imagga first (Tier 1)
         tags = get_imagga_tags(file_bytes)
