@@ -35,57 +35,188 @@ HF_DISABLED = not HF_TOKEN
 HF_CLIP_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base"
 HF_HEADERS = {"Authorization": f"Bearer {HF_TOKEN}" if HF_TOKEN else ""}
 
-# Fashion keywords for filtering results
-FASHION_KEYWORDS = {
-    'top', 'shirt', 'blouse', 'tee', 'sweater', 'hoodie', 'cardigan', 'jacket', 'blazer',
-    'bottom', 'pants', 'jeans', 'skirt', 'shorts', 'leggings', 'chino', 'khaki',
-    'shoe', 'boot', 'sneaker', 'loafer', 'heels', 'sandal', 'pump', 'wearing',
-    'casual', 'formal', 'business', 'dress', 'striped', 'solid', 'pattern'
-}
+"""
+FLASK IMPLEMENTATION: Image Analysis Endpoint for Next.js Fallback
+===================================================================
 
-# Category taxonomy: tag keyword -> display category
-CATEGORY_MAP = {
-    'Top':    ['shirt', 't-shirt', 'tee', 'blouse', 'top', 'sweater', 'hoodie',
-               'cardigan', 'jacket', 'blazer', 'coat', 'polo', 'tank', 'vest'],
-    'Bottom': ['pants', 'jeans', 'trousers', 'skirt', 'shorts', 'leggings',
-               'chino', 'khaki', 'jogger', 'cargo'],
-    'Shoes':  ['shoe', 'shoes', 'boot', 'boots', 'sneaker', 'sneakers', 'loafer',
-               'heels', 'sandal', 'sandals', 'pump', 'pumps', 'trainer'],
-    'Dress':  ['dress', 'gown', 'jumpsuit', 'romper'],
-    'Bag':    ['bag', 'handbag', 'backpack', 'purse', 'tote', 'clutch'],
-}
+This Flask endpoint handles image analysis when Gemini API quota is exhausted.
+NOW WITH IMPROVED TAG EXTRACTION matching Node.js implementation!
 
-# Color taxonomy: tag keyword -> display color
-COLOR_MAP = {
-    'Black':  ['black', 'dark', 'ebony', 'charcoal', 'onyx'],
-    'White':  ['white', 'ivory', 'cream', 'off-white'],
-    'Blue':   ['blue', 'navy', 'cobalt', 'denim', 'indigo', 'azure'],
-    'Red':    ['red', 'crimson', 'scarlet', 'maroon', 'burgundy'],
-    'Green':  ['green', 'olive', 'khaki', 'lime', 'emerald', 'sage'],
-    'Yellow': ['yellow', 'gold', 'mustard', 'amber'],
-    'Pink':   ['pink', 'blush', 'rose', 'magenta', 'fuchsia'],
-    'Purple': ['purple', 'violet', 'lavender', 'plum'],
-    'Brown':  ['brown', 'tan', 'beige', 'camel', 'chocolate', 'nude'],
-    'Grey':   ['grey', 'gray', 'silver', 'slate'],
-    'Orange': ['orange', 'coral', 'peach', 'rust'],
-}
+Installation:
+1. Save this file to your Flask backend
+2. Add to your main Flask app: from analyze_image import analyze_bp; app.register_blueprint(analyze_bp)
+3. Update your .env with: IMAGGA_KEY, IMAGGA_SECRET, HUGGING_FACE, GEM
+
+Location: app/routes/analyze_image.py (or similar in your Flask structure)
+"""
+
+from flask import Blueprint, request, jsonify
+import base64
+import requests
+import os
+from io import BytesIO
+from ..config import Config
+analyze_bp = Blueprint('analyze', __name__, url_prefix='')
+
+# ==========================================
+# CONFIGURATION (from environment)
+# ==========================================
+IMAGGA_KEY = Config.IMAGGA_KEY
+IMAGGA_SECRET = Config.IMAGGA_SECRET
+HF_TOKEN = os.getenv('HUGGING_FACE')
+GEM_KEY = os.getenv('GEM')
+
+IMAGGA_DISABLED = not (IMAGGA_KEY and IMAGGA_SECRET)
+HF_DISABLED = not HF_TOKEN
+
+# HuggingFace API endpoint - Updated to working model
+HF_CLIP_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base"
+HF_HEADERS = {"Authorization": f"Bearer {HF_TOKEN}" if HF_TOKEN else ""}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# IMPROVED TAG EXTRACTION: Better fashion tags for users (MATCHING Node.js)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def extract_fashion_tags(all_tags):
+    """
+    Extract fashion tags into categories matching Node.js implementation.
+    Returns: {
+        'style': [...],
+        'material': [...],
+        'fit': [...],
+        'pattern': [...],
+        'occasion': [...],
+        'all': [...]
+    }
+    """
+    # 🔍 DEBUG: Uncomment to see ALL raw Imagga tags
+    # print(f"📋 RAW IMAGGA TAGS ({len(all_tags)}): {all_tags}")
+
+    STYLE_KEYWORDS = [
+        'casual', 'formal', 'business', 'elegant', 'trendy', 'vintage', 'modern',
+        'classic', 'athletic', 'streetwear', 'bohemian', 'minimalist', 'preppy',
+        'professional', 'smart', 'edgy', 'feminine', 'masculine', 'unisex',
+        'relaxed', 'chic', 'bold', 'minimal', 'statement', 'everyday', 'sleek'
+    ]
+
+    MATERIAL_KEYWORDS = [
+        'cotton', 'silk', 'linen', 'wool', 'leather', 'denim', 'suede',
+        'polyester', 'nylon', 'fleece', 'mesh', 'satin', 'knit', 'fabric',
+        'synthetic', 'jersey', 'twill', 'canvas', 'spandex', 'viscose'
+    ]
+
+    FIT_KEYWORDS = [
+        'loose', 'tight', 'fitted', 'oversized', 'slim', 'relaxed', 'bodycon',
+        'baggy', 'crop', 'short', 'long', 'tapered', 'flare', 'straight',
+        'skinny', 'wide', 'form-fitting', 'comfortable', 'snug'
+    ]
+
+    PATTERN_KEYWORDS = [
+        'striped', 'polka', 'dot', 'floral', 'solid', 'plaid', 'checked', 'checkered',
+        'pattern', 'geometric', 'abstract', 'animal', 'print', 'gradient', 'tie-dye', 'ombre',
+        'paisley', 'chevron', 'damask', 'houndstooth', 'herringbone', 'embroidered'
+    ]
+
+    OCCASION_KEYWORDS = [
+        'work', 'office', 'party', 'event', 'casual', 'everyday', 'gym', 'beach',
+        'date', 'wedding', 'interview', 'casual wear', 'formal wear', 'streetwear',
+        'outdoor', 'travel', 'weekend', 'night', 'day', 'sport'
+    ]
+
+    # Filter tags by category
+    style_matches = [tag for tag in all_tags if any(kw in tag.lower() for kw in STYLE_KEYWORDS)]
+    material_matches = [tag for tag in all_tags if any(kw in tag.lower() for kw in MATERIAL_KEYWORDS)]
+    fit_matches = [tag for tag in all_tags if any(kw in tag.lower() for kw in FIT_KEYWORDS)]
+    pattern_matches = [tag for tag in all_tags if any(kw in tag.lower() for kw in PATTERN_KEYWORDS)]
+    occasion_matches = [tag for tag in all_tags if any(kw in tag.lower() for kw in OCCASION_KEYWORDS)]
+
+    # Remove duplicates and limit
+    unique_style = list(dict.fromkeys(style_matches))[:3]
+    unique_material = list(dict.fromkeys(material_matches))[:2]
+    unique_fit = list(dict.fromkeys(fit_matches))[:2]
+    unique_pattern = list(dict.fromkeys(pattern_matches))[:2]
+    unique_occasion = list(dict.fromkeys(occasion_matches))[:2]
+
+    all_categorized = (unique_style + unique_pattern + unique_fit +
+                       unique_material + unique_occasion)
+
+    return {
+        'style': unique_style,
+        'material': unique_material,
+        'fit': unique_fit,
+        'pattern': unique_pattern,
+        'occasion': unique_occasion,
+        'all': all_categorized
+    }
+
+
+def generate_user_tags(tags, category, color):
+    """
+    Generate user-friendly tags combining style attributes.
+    Returns list of 5-8 meaningful tags.
+    """
+    user_tags = []
+
+    if color and color != 'Unknown':
+        user_tags.append(color)
+
+    fashion_tags = extract_fashion_tags(tags)
+
+    # Order: style → pattern → fit → material → occasion
+    user_tags.extend(fashion_tags['style'])
+    user_tags.extend(fashion_tags['pattern'])
+    user_tags.extend(fashion_tags['fit'])
+    user_tags.extend(fashion_tags['material'])
+    user_tags.extend(fashion_tags['occasion'])
+
+    # Remove duplicates and limit to 8
+    final_tags = list(dict.fromkeys(user_tags))  # Remove duplicates
+    final_tags = [tag for tag in final_tags if tag and tag.strip()]  # Remove empty
+    final_tags = final_tags[:8]  # Limit to 8
+
+    print(f"✨ Generated {len(final_tags)} user-friendly tags: {', '.join(final_tags)}")
+    return final_tags
 
 
 def extract_category(tags: list) -> str:
-    """Map Imagga tags to a single display category."""
+    """Map Imagga tags to a single display category (EXPANDED)."""
+    category_keywords = {
+        'Top':        ['shirt', 'tee', 't-shirt', 'blouse', 'sweater', 'hoodie', 'jacket', 'blazer', 'cardigan', 'tank', 'vest', 'polo', 'crop'],
+        'Bottom':     ['pants', 'jeans', 'skirt', 'shorts', 'leggings', 'trousers', 'khaki', 'chino', 'jogger', 'cargo'],
+        'Shoes':      ['shoe', 'shoes', 'boot', 'boots', 'sneaker', 'sneakers', 'heel', 'heels', 'sandal', 'sandals', 'loafer', 'pump', 'trainer'],
+        'Dress':      ['dress', 'gown', 'jumpsuit', 'romper', 'maxi'],
+        'Outerwear':  ['coat', 'jacket', 'blazer', 'parka', 'windbreaker', 'raincoat'],
+        'Accessory':  ['bag', 'handbag', 'backpack', 'purse', 'scarf', 'hat', 'belt', 'watch', 'sunglasses'],
+    }
+
     for tag in tags:
         tag_lower = tag.lower()
-        for category, keywords in CATEGORY_MAP.items():
+        for category, keywords in category_keywords.items():
             if any(kw in tag_lower for kw in keywords):
                 return category
     return 'Other'
 
 
 def extract_color(tags: list) -> str:
-    """Map Imagga tags to a single display color."""
+    """Map Imagga tags to a single display color (EXPANDED)."""
+    color_keywords = {
+        'Black':  ['black', 'dark', 'charcoal', 'ebony'],
+        'White':  ['white', 'ivory', 'cream', 'off-white'],
+        'Blue':   ['blue', 'navy', 'denim', 'cobalt', 'indigo', 'azure', 'teal'],
+        'Red':    ['red', 'crimson', 'scarlet', 'burgundy', 'maroon', 'wine'],
+        'Green':  ['green', 'olive', 'sage', 'emerald', 'lime', 'forest'],
+        'Yellow': ['yellow', 'gold', 'mustard', 'amber', 'lemon'],
+        'Pink':   ['pink', 'rose', 'blush', 'magenta', 'fuchsia', 'coral'],
+        'Purple': ['purple', 'violet', 'lavender', 'plum', 'indigo'],
+        'Brown':  ['brown', 'tan', 'beige', 'camel', 'chocolate', 'bronze', 'cinnamon'],
+        'Grey':   ['grey', 'gray', 'silver', 'slate', 'ash'],
+        'Orange': ['orange', 'coral', 'peach', 'rust', 'apricot'],
+        'Multi':  ['colorful', 'multicolor', 'rainbow', 'patterned', 'print'],
+    }
+
     for tag in tags:
         tag_lower = tag.lower()
-        for color, keywords in COLOR_MAP.items():
+        for color, keywords in color_keywords.items():
             if any(kw in tag_lower for kw in keywords):
                 return color
     return 'Unknown'
@@ -301,17 +432,25 @@ def analyze_image_for_tagging():
             print("⚠️ Both APIs failed, returning generic response")
             tags = ["clothing", "apparel"]
 
-        # STEP 6: Return structured response
+        # STEP 6: Extract category and color
+        category = extract_category(tags)
+        color = extract_color(tags)
+
+        # STEP 7: Generate improved user-friendly tags (matching Node.js!)
+        user_friendly_tags = generate_user_tags(tags, category, color)
+
+        # STEP 8: Return structured response
         response = {
             "isClothing": True,
-            "category": extract_category(tags),
-            "color": extract_color(tags),
-            "tags": tags,
-            "confidence": 0.5 if tags else 0.3,
+            "category": category,
+            "color": color,
+            "tags": user_friendly_tags,  # Use improved tags!
+            "rawTags": tags,  # Include raw tags for debugging
+            "confidence": 0.7 if user_friendly_tags else 0.4,
             "source": "imagga_fallback"
         }
 
-        print(f"✅ Analysis complete: {len(tags)} tags, confidence: {response['confidence']}")
+        print(f"✅ Analysis complete: {len(user_friendly_tags)} user-friendly tags, confidence: {response['confidence']}")
         return jsonify(response), 200
 
     except Exception as e:
@@ -321,8 +460,8 @@ def analyze_image_for_tagging():
             "isClothing": True,  # Fallback: assume it's clothing
             "category": "Other",
             "color": "Unknown",
-            "tags": [],
-            "confidence": 0.2,
+            "tags": ["clothing", "apparel"],  # Better than empty array
+            "confidence": 0.3,
             "source": "error_fallback"
         }), 500
 
