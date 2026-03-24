@@ -35,6 +35,44 @@ HF_DISABLED = not HF_TOKEN
 HF_CLIP_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base"
 HF_HEADERS = {"Authorization": f"Bearer {HF_TOKEN}" if HF_TOKEN else ""}
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONFIGURATION MAPS (used by helper functions)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+FASHION_KEYWORDS = [
+    'shirt', 'tee', 't-shirt', 'blouse', 'sweater', 'hoodie', 'jacket', 'blazer', 'cardigan', 'tank', 'vest', 'polo', 'crop',
+    'pants', 'jeans', 'skirt', 'shorts', 'leggings', 'trousers', 'khaki', 'chino', 'jogger', 'cargo',
+    'shoe', 'shoes', 'boot', 'boots', 'sneaker', 'sneakers', 'heel', 'heels', 'sandal', 'sandals', 'loafer', 'pump', 'trainer',
+    'dress', 'gown', 'jumpsuit', 'romper', 'maxi',
+    'coat', 'parka', 'windbreaker', 'raincoat',
+    'bag', 'handbag', 'backpack', 'purse', 'scarf', 'hat', 'belt', 'watch', 'sunglasses',
+    'casual', 'formal', 'business', 'elegant', 'trendy', 'vintage', 'modern'
+]
+
+CATEGORY_MAP = {
+    'Top':        ['shirt', 'tee', 't-shirt', 'blouse', 'sweater', 'hoodie', 'jacket', 'blazer', 'cardigan', 'tank', 'vest', 'polo', 'crop'],
+    'Bottom':     ['pants', 'jeans', 'skirt', 'shorts', 'leggings', 'trousers', 'khaki', 'chino', 'jogger', 'cargo'],
+    'Shoes':      ['shoe', 'shoes', 'boot', 'boots', 'sneaker', 'sneakers', 'heel', 'heels', 'sandal', 'sandals', 'loafer', 'pump', 'trainer'],
+    'Dress':      ['dress', 'gown', 'jumpsuit', 'romper', 'maxi'],
+    'Outerwear':  ['coat', 'jacket', 'blazer', 'parka', 'windbreaker', 'raincoat'],
+    'Accessory':  ['bag', 'handbag', 'backpack', 'purse', 'scarf', 'hat', 'belt', 'watch', 'sunglasses'],
+}
+
+COLOR_MAP = {
+    'Black':  ['black', 'dark', 'charcoal', 'ebony'],
+    'White':  ['white', 'ivory', 'cream', 'off-white'],
+    'Blue':   ['blue', 'navy', 'denim', 'cobalt', 'indigo', 'azure', 'teal'],
+    'Red':    ['red', 'crimson', 'scarlet', 'burgundy', 'maroon', 'wine'],
+    'Green':  ['green', 'olive', 'sage', 'emerald', 'lime', 'forest'],
+    'Yellow': ['yellow', 'gold', 'mustard', 'amber', 'lemon'],
+    'Pink':   ['pink', 'rose', 'blush', 'magenta', 'fuchsia', 'coral'],
+    'Purple': ['purple', 'violet', 'lavender', 'plum', 'indigo'],
+    'Brown':  ['brown', 'tan', 'beige', 'camel', 'chocolate', 'bronze', 'cinnamon'],
+    'Grey':   ['grey', 'gray', 'silver', 'slate', 'ash'],
+    'Orange': ['orange', 'coral', 'peach', 'rust', 'apricot'],
+    'Multi':  ['colorful', 'multicolor', 'rainbow', 'patterned', 'print'],
+}
+
 """
 FLASK IMPLEMENTATION: Image Analysis Endpoint for Next.js Fallback
 ===================================================================
@@ -72,6 +110,44 @@ HF_DISABLED = not HF_TOKEN
 # HuggingFace API endpoint - Updated to working model
 HF_CLIP_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base"
 HF_HEADERS = {"Authorization": f"Bearer {HF_TOKEN}" if HF_TOKEN else ""}
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONFIGURATION MAPS (used by helper functions)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+FASHION_KEYWORDS = [
+    'shirt', 'tee', 't-shirt', 'blouse', 'sweater', 'hoodie', 'jacket', 'blazer', 'cardigan', 'tank', 'vest', 'polo', 'crop',
+    'pants', 'jeans', 'skirt', 'shorts', 'leggings', 'trousers', 'khaki', 'chino', 'jogger', 'cargo',
+    'shoe', 'shoes', 'boot', 'boots', 'sneaker', 'sneakers', 'heel', 'heels', 'sandal', 'sandals', 'loafer', 'pump', 'trainer',
+    'dress', 'gown', 'jumpsuit', 'romper', 'maxi',
+    'coat', 'parka', 'windbreaker', 'raincoat',
+    'bag', 'handbag', 'backpack', 'purse', 'scarf', 'hat', 'belt', 'watch', 'sunglasses',
+    'casual', 'formal', 'business', 'elegant', 'trendy', 'vintage', 'modern'
+]
+
+CATEGORY_MAP = {
+    'Top':        ['shirt', 'tee', 't-shirt', 'blouse', 'sweater', 'hoodie', 'jacket', 'blazer', 'cardigan', 'tank', 'vest', 'polo', 'crop'],
+    'Bottom':     ['pants', 'jeans', 'skirt', 'shorts', 'leggings', 'trousers', 'khaki', 'chino', 'jogger', 'cargo'],
+    'Shoes':      ['shoe', 'shoes', 'boot', 'boots', 'sneaker', 'sneakers', 'heel', 'heels', 'sandal', 'sandals', 'loafer', 'pump', 'trainer'],
+    'Dress':      ['dress', 'gown', 'jumpsuit', 'romper', 'maxi'],
+    'Outerwear':  ['coat', 'jacket', 'blazer', 'parka', 'windbreaker', 'raincoat'],
+    'Accessory':  ['bag', 'handbag', 'backpack', 'purse', 'scarf', 'hat', 'belt', 'watch', 'sunglasses'],
+}
+
+COLOR_MAP = {
+    'Black':  ['black', 'dark', 'charcoal', 'ebony'],
+    'White':  ['white', 'ivory', 'cream', 'off-white'],
+    'Blue':   ['blue', 'navy', 'denim', 'cobalt', 'indigo', 'azure', 'teal'],
+    'Red':    ['red', 'crimson', 'scarlet', 'burgundy', 'maroon', 'wine'],
+    'Green':  ['green', 'olive', 'sage', 'emerald', 'lime', 'forest'],
+    'Yellow': ['yellow', 'gold', 'mustard', 'amber', 'lemon'],
+    'Pink':   ['pink', 'rose', 'blush', 'magenta', 'fuchsia', 'coral'],
+    'Purple': ['purple', 'violet', 'lavender', 'plum', 'indigo'],
+    'Brown':  ['brown', 'tan', 'beige', 'camel', 'chocolate', 'bronze', 'cinnamon'],
+    'Grey':   ['grey', 'gray', 'silver', 'slate', 'ash'],
+    'Orange': ['orange', 'coral', 'peach', 'rust', 'apricot'],
+    'Multi':  ['colorful', 'multicolor', 'rainbow', 'patterned', 'print'],
+}
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # IMPROVED TAG EXTRACTION: Better fashion tags for users (MATCHING Node.js)
@@ -226,7 +302,7 @@ def extract_color(tags: list) -> str:
 # HELPER FUNCTIONS
 # ==========================================
 
-def get_imagga_tags(file_bytes):
+def get_imagga_tags(file_bytes, mime_type="image/jpeg"):
     """
     Call Imagga V2 API only (Tier 1)
     Returns list of fashion-related tags
@@ -236,6 +312,18 @@ def get_imagga_tags(file_bytes):
         return []
 
     try:
+        # FIX: Determine file extension from MIME type
+        mime_to_ext = {
+            'image/jpeg': 'jpg',
+            'image/jpg': 'jpg',
+            'image/png': 'png',
+            'image/webp': 'webp',
+            'image/gif': 'gif',
+            'image/bmp': 'bmp'
+        }
+        file_ext = mime_to_ext.get(mime_type, 'jpg')
+        file_name = f"image.{file_ext}"
+
         # FIX: Create BytesIO object from bytes for proper file upload
         image_file = BytesIO(file_bytes)
 
@@ -243,7 +331,7 @@ def get_imagga_tags(file_bytes):
         resp = requests.post(
             "https://api.imagga.com/v2/tags",
             auth=(IMAGGA_KEY, IMAGGA_SECRET),
-            files={"image": ("image.jpg", image_file, "image/jpeg")},  # Proper file format
+            files={"image": (file_name, image_file, mime_type)},  # Use correct MIME type and extension
             timeout=10
         )
 
@@ -420,7 +508,7 @@ def analyze_image_for_tagging():
                 # Continue anyway, fallback will handle it
 
         # STEP 3: Try Imagga first (Tier 1)
-        tags = get_imagga_tags(file_bytes)
+        tags = get_imagga_tags(file_bytes, mime_type)
 
         # STEP 4: If Imagga fails, try HuggingFace (Tier 2)
         if not tags:

@@ -17,7 +17,7 @@ def create_app():
     
     # Enable CORS for both production and local development
     CORS(app, 
-         resources={r"/api/*": {"origins": ["https://stylus-host.vercel.app","http://localhost:3000"]}}, 
+         resources={r"/api/*": {"origins": ["https://stylus-host.vercel.app","http://localhost:3000","https://stylusmvp.vercel.app"]}}, 
          supports_credentials=True)
     
     # Register blueprints with clean prefixes
