@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orders - FoodyBites</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .orders-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .orders-header {
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 1rem;
+    }
+
+    .orders-header h1 {
+      margin: 0 0 0.5rem 0;
+    }
+
+    .orders-list {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .order-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid #f0f0f0;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .order-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+      gap: 1rem;
+    }
+
+    .order-id {
+      font-weight: 700;
+      font-size: 1.1rem;
+      font-family: 'Space Grotesk', monospace;
+    }
+
+    .order-status {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .status-pending_payment {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-confirmed {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-preparing {
+      background: #cce5ff;
+      color: #004085;
+    }
+
+    .status-on_the_way {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+
+    .status-delivered {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-cancelled {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .order-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background: #f9f9f9;
+      border-radius: 8px;
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .meta-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      color: #999;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .meta-value {
+      font-weight: 600;
+      color: #333;
+      font-size: 1rem;
+    }
+
+    .order-items {
+      margin: 1rem 0;
+      padding: 1rem 0;
+      border-top: 1px solid #f0f0f0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      font-size: 0.95rem;
+    }
+
+    .order-item-name {
+      color: #333;
+    }
+
+    .order-item-qty {
+      color: #666;
+      text-align: center;
+      min-width: 40px;
+    }
+
+    .order-item-total {
+      color: #ff6b35;
+      font-weight: 600;
+      text-align: right;
+    }
+
+    .order-summary {
+      display: flex;
+      justify-content: flex-end;
+      gap: 2rem;
+      padding: 1rem 0;
+    }
+
+    .summary-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .summary-label {
+      font-size: 0.875rem;
+      color: #666;
+    }
+
+    .summary-value {
+      font-weight: 600;
+      font-size: 1rem;
+      color: #333;
+    }
+
+    .summary-value.total {
+      color: #ff6b35;
+      font-size: 1.25rem;
+    }
+
+    .order-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .btn-secondary {
+      padding: 0.5rem 1rem;
+      background: #f0f0f0;
+      color: #333;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-primary {
+      padding: 0.5rem 1rem;
+      background: #ff6b35;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+
+    .btn-primary:hover {
+      background: #e55c2b;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #999;
+    }
+
+    .empty-state svg {
+      width: 100px;
+      height: 100px;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .empty-state p {
+      margin: 1rem 0;
+    }
+
+    .empty-state a {
+      color: #ff6b35;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .empty-state a:hover {
+      text-decoration: underline;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: #999;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f0f0f0;
+      border-top: 4px solid #ff6b35;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .order-header {
+        flex-direction: column;
+      }
+
+      .order-meta {
+        grid-template-columns: 1fr;
+      }
+
+      .order-summary {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .summary-item {
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="logo">🍜 FoodyBites</div>
+      <div class="nav-links">
+        <a href="/public/menu.html" class="nav-link">Menu</a>
+        <a href="/public/cart.html" class="nav-link">Cart</a>
+        <a href="/public/orders.html" class="nav-link active">Orders</a>
+        <button onclick="logout()" class="nav-link logout-btn">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="orders-container">
+    <div class="orders-header">
+      <h1>Your Orders</h1>
+      <p style="color: #666; margin: 0;">Track your food delivery orders and history</p>
+    </div>
+
+    <div class="orders-list" id="ordersList">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Loading your orders...</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    async function loadOrders() {
+      try {
+        requireAuth()
+        const user = JSON.parse(localStorage.getItem('fb_user') || '{}')
+        const userId = user.id
+
+        const response = await fetchWithAuth(`/api/v1/orders/${userId}`)
+        const result = await response.json()
+
+        const container = document.getElementById('ordersList')
+
+        if (!result.success || !result.data || result.data.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+              </svg>
+              <p>No orders yet</p>
+              <p>Start by placing your first order!</p>
+              <a href="/public/menu.html">Browse Menu</a>
+            </div>
+          `
+          return
+        }
+
+        const ordersHTML = result.data.map(order => {
+          const createdAt = new Date(order.created_at)
+          const formattedDate = createdAt.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+
+          const itemsHTML = (order.order_items || []).map(item => `
+            <div class="order-item">
+              <span class="order-item-name">${item.item_name} × ${item.quantity}</span>
+              <span class="order-item-total">₦${(item.line_total).toLocaleString()}</span>
+            </div>
+          `).join('')
+
+          return `
+            <div class="order-card">
+              <div class="order-header">
+                <div>
+                  <div class="order-id">Order #${order.id.slice(0, 8).toUpperCase()}</div>
+                  <div style="color: #666; font-size: 0.875rem; margin-top: 0.25rem;">${formattedDate}</div>
+                </div>
+                <span class="order-status status-${order.status}">${order.status.replace(/_/g, ' ')}</span>
+              </div>
+
+              <div class="order-meta">
+                <div class="meta-item">
+                  <span class="meta-label">Status</span>
+                  <span class="meta-value">${order.status.replace(/_/g, ' ')}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Order Date</span>
+                  <span class="meta-value">${createdAt.toLocaleDateString()}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Total Amount</span>
+                  <span class="meta-value">₦${order.total_amount.toLocaleString()}</span>
+                </div>
+              </div>
+
+              ${itemsHTML ? `
+                <div class="order-items">
+                  <div style="font-weight: 600; margin-bottom: 0.5rem; color: #333;">Items</div>
+                  ${itemsHTML}
+                </div>
+              ` : ''}
+
+              <div class="order-summary">
+                <div class="summary-item">
+                  <span class="summary-label">Subtotal</span>
+                  <span class="summary-value">₦${order.subtotal_amount.toLocaleString()}</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Delivery</span>
+                  <span class="summary-value">₦${order.delivery_fee.toLocaleString()}</span>
+                </div>
+                ${order.discount_amount > 0 ? `
+                  <div class="summary-item">
+                    <span class="summary-label">Discount</span>
+                    <span class="summary-value">-₦${order.discount_amount.toLocaleString()}</span>
+                  </div>
+                ` : ''}
+                <div class="summary-item">
+                  <span class="summary-label">Total</span>
+                  <span class="summary-value total">₦${order.total_amount.toLocaleString()}</span>
+                </div>
+              </div>
+
+              <div class="order-actions">
+                ${order.status === 'pending_payment' ? `
+                  <button class="btn-primary" onclick="proceedToPayment('${order.id}')">Pay Now</button>
+                ` : ''}
+                ${['on_the_way', 'preparing'].includes(order.status) ? `
+                  <button class="btn-primary" onclick="trackOrder('${order.id}')">Track Order</button>
+                ` : ''}
+                <button class="btn-secondary" onclick="viewOrderDetails('${order.id}')">View Details</button>
+              </div>
+            </div>
+          `
+        }).join('')
+
+        container.innerHTML = ordersHTML
+      } catch (error) {
+        console.error('Error loading orders:', error)
+        document.getElementById('ordersList').innerHTML = `
+          <div class="empty-state">
+            <p>Error loading orders</p>
+            <p>${error.message}</p>
+          </div>
+        `
+      }
+    }
+
+    function proceedToPayment(orderId) {
+      alert(`Payment flow for order ${orderId} - coming soon!\n\nWill integrate Paystack here.`)
+      // TODO: Implement Paystack payment
+    }
+
+    function trackOrder(orderId) {
+      alert(`Tracking order ${orderId}...\n\nWill show live tracking here.`)
+      // TODO: Implement real-time tracking with Supabase Realtime
+    }
+
+    function viewOrderDetails(orderId) {
+      alert(`Viewing details for order ${orderId}`)
+      // TODO: Create detailed order view page
+    }
+
+    function logout() {
+      TokenManager.logout()
+      window.location.href = '/public/login.html'
+    }
+
+    // Load orders on page load
+    loadOrders()
+  </script>
+</body>
+</html>

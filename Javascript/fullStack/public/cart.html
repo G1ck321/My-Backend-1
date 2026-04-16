@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cart - FoodyBites</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .cart-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .cart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 1rem;
+    }
+
+    .cart-content {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 2rem;
+    }
+
+    .cart-items {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .cart-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .cart-item:last-child {
+      border-bottom: none;
+    }
+
+    .item-info {
+      flex: 1;
+    }
+
+    .item-name {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 0.25rem;
+    }
+
+    .item-price {
+      color: #666;
+      font-size: 0.875rem;
+    }
+
+    .item-controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .qty-control {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #f5f5f5;
+      border-radius: 6px;
+      padding: 0.25rem;
+    }
+
+    .qty-control button {
+      background: none;
+      border: none;
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      font-size: 1rem;
+      color: #666;
+      transition: color 0.2s;
+    }
+
+    .qty-control button:hover {
+      color: #ff6b35;
+    }
+
+    .qty-display {
+      min-width: 30px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .item-total {
+      min-width: 80px;
+      text-align: right;
+      font-weight: 600;
+      color: #ff6b35;
+    }
+
+    .remove-btn {
+      padding: 0.5rem 1rem;
+      background: #ff6b35;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: background 0.2s;
+    }
+
+    .remove-btn:hover {
+      background: #e55c2b;
+    }
+
+    .empty-cart {
+      text-align: center;
+      padding: 3rem;
+      color: #999;
+    }
+
+    .empty-cart svg {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+
+    .cart-summary {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      position: sticky;
+      top: 2rem;
+      height: fit-content;
+    }
+
+    .summary-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+    }
+
+    .summary-row.highlight {
+      font-weight: 600;
+      color: #ff6b35;
+      border-top: 2px solid #f0f0f0;
+      border-bottom: 2px solid #f0f0f0;
+      padding: 1rem 0;
+    }
+
+    .delivery-input {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+
+    .delivery-input:focus {
+      outline: none;
+      border-color: #ff6b35;
+      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+    }
+
+    .checkout-btn {
+      width: 100%;
+      padding: 1rem;
+      background: #ff6b35;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 1.5rem;
+      transition: background 0.2s;
+    }
+
+    .checkout-btn:hover {
+      background: #e55c2b;
+    }
+
+    .checkout-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .back-link {
+      color: #ff6b35;
+      text-decoration: none;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .cart-content {
+        grid-template-columns: 1fr;
+      }
+
+      .cart-summary {
+        position: relative;
+        top: 0;
+      }
+
+      .item-controls {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .cart-item {
+        flex-wrap: wrap;
+      }
+
+      .item-controls {
+        order: 1;
+        flex-basis: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="logo">🍜 FoodyBites</div>
+      <div class="nav-links">
+        <a href="/public/menu.html" class="nav-link">Menu</a>
+        <a href="/public/cart.html" class="nav-link active">Cart</a>
+        <a href="/public/orders.html" class="nav-link">Orders</a>
+        <button onclick="logout()" class="nav-link logout-btn">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="cart-container">
+    <div class="cart-header">
+      <h1>Your Cart</h1>
+      <a href="/public/menu.html" class="back-link">← Back to Menu</a>
+    </div>
+
+    <div class="cart-content">
+      <div class="cart-items" id="cartItems">
+        <div class="empty-cart">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+          </svg>
+          <p>Your cart is empty</p>
+        </div>
+      </div>
+
+      <div class="cart-summary">
+        <div class="summary-title">Order Summary</div>
+        <div class="summary-row">
+          <span>Subtotal:</span>
+          <span id="subtotal">₦0</span>
+        </div>
+        <div class="summary-row">
+          <span>Delivery Fee:</span>
+          <span id="deliveryFee">₦1,500</span>
+        </div>
+        <div class="summary-row">
+          <span>Discount:</span>
+          <span id="discount">₦0</span>
+        </div>
+        <div class="summary-row highlight">
+          <span>Total:</span>
+          <span id="total">₦0</span>
+        </div>
+
+        <div>
+          <label style="display: block; margin-top: 1rem; font-size: 0.875rem; color: #666;">
+            Delivery Location (Address or GPS)
+          </label>
+          <input 
+            type="text" 
+            id="deliveryAddress" 
+            class="delivery-input" 
+            placeholder="Enter your delivery address"
+          />
+        </div>
+
+        <button 
+          class="checkout-btn" 
+          id="checkoutBtn" 
+          onclick="proceedToCheckout()"
+          disabled
+        >
+          Proceed to Checkout
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    // Cart management
+    class CartManager {
+      constructor() {
+        this.items = this.loadCart()
+      }
+
+      loadCart() {
+        const saved = localStorage.getItem('fb_cart')
+        return saved ? JSON.parse(saved) : {}
+      }
+
+      saveCart() {
+        localStorage.setItem('fb_cart', JSON.stringify(this.items))
+      }
+
+      addItem(id, name, price) {
+        if (this.items[id]) {
+          this.items[id].quantity += 1
+        } else {
+          this.items[id] = { name, price, quantity: 1 }
+        }
+        this.saveCart()
+      }
+
+      removeItem(id) {
+        delete this.items[id]
+        this.saveCart()
+      }
+
+      updateQuantity(id, quantity) {
+        if (quantity <= 0) {
+          this.removeItem(id)
+        } else {
+          this.items[id].quantity = quantity
+          this.saveCart()
+        }
+      }
+
+      getItems() {
+        return Object.entries(this.items).map(([id, item]) => ({
+          id,
+          ...item,
+        }))
+      }
+
+      getTotal() {
+        return Object.values(this.items).reduce((sum, item) => 
+          sum + item.price * item.quantity, 0
+        )
+      }
+
+      clear() {
+        this.items = {}
+        this.saveCart()
+      }
+    }
+
+    const cart = new CartManager()
+
+    function renderCart() {
+      const items = cart.getItems()
+      const container = document.getElementById('cartItems')
+
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div class="empty-cart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+            </svg>
+            <p>Your cart is empty</p>
+          </div>
+        `
+        document.getElementById('checkoutBtn').disabled = true
+      } else {
+        container.innerHTML = items.map(item => `
+          <div class="cart-item">
+            <div class="item-info">
+              <div class="item-name">${item.name}</div>
+              <div class="item-price">₦${item.price.toLocaleString()}</div>
+            </div>
+            <div class="item-controls">
+              <div class="qty-control">
+                <button onclick="updateQty('${item.id}', ${item.quantity - 1})">−</button>
+                <div class="qty-display">${item.quantity}</div>
+                <button onclick="updateQty('${item.id}', ${item.quantity + 1})">+</button>
+              </div>
+              <div class="item-total">₦${(item.price * item.quantity).toLocaleString()}</div>
+              <button class="remove-btn" onclick="removeItem('${item.id}')">Remove</button>
+            </div>
+          </div>
+        `).join('')
+        document.getElementById('checkoutBtn').disabled = false
+      }
+
+      updateSummary()
+    }
+
+    function updateQty(id, quantity) {
+      cart.updateQuantity(id, quantity)
+      renderCart()
+    }
+
+    function removeItem(id) {
+      cart.removeItem(id)
+      renderCart()
+    }
+
+    function updateSummary() {
+      const subtotal = cart.getTotal()
+      const deliveryFee = subtotal >= 15000 ? 0 : 1500
+      const discount = subtotal >= 50000 ? Math.floor(subtotal * 0.05) : 0
+      const total = subtotal + deliveryFee - discount
+
+      document.getElementById('subtotal').textContent = `₦${subtotal.toLocaleString()}`
+      document.getElementById('deliveryFee').textContent = `₦${deliveryFee.toLocaleString()}`
+      document.getElementById('discount').textContent = `₦${discount.toLocaleString()}`
+      document.getElementById('total').textContent = `₦${total.toLocaleString()}`
+    }
+
+    async function proceedToCheckout() {
+      const items = cart.getItems()
+      if (items.length === 0) return
+
+      const address = document.getElementById('deliveryAddress').value
+      if (!address.trim()) {
+        alert('Please enter a delivery address')
+        return
+      }
+
+      // For now, just create order quote
+      const orderPayload = {
+        isNewCustomer: false,
+        deliveryLat: 6.5244, // Sample coords (Lagos)
+        deliveryLng: 3.3792,
+        zoneDiscountPercentage: 0,
+        items: items.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          unitPrice: item.price,
+        })),
+      }
+
+      try {
+        const response = await fetchWithAuth('/api/v1/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderPayload),
+        })
+
+        const result = await response.json()
+
+        if (result.success) {
+          alert(`Order created! Order ID: ${result.data.orderId}`)
+          cart.clear()
+          renderCart()
+          window.location.href = '/public/orders.html'
+        } else {
+          alert(`Error: ${result.message}`)
+        }
+      } catch (error) {
+        alert(`Error creating order: ${error.message}`)
+      }
+    }
+
+    function logout() {
+      TokenManager.logout()
+      window.location.href = '/public/login.html'
+    }
+
+    // Initialize
+    requireAuth()
+    renderCart()
+
+    // Add cart mode to menu.html - when user clicks "Add to Cart" button
+    // Cart will be updated via window.addToCart(id, name, price) from menu.html
+    window.addToCart = function(id, name, price) {
+      cart.addItem(id, name, price)
+      renderCart()
+      alert(`${name} added to cart`)
+    }
+  </script>
+</body>
+</html>

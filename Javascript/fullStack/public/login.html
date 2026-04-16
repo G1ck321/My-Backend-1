@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FoodyBites Login - Sign in to your account.">
+  <title>FoodyBites | Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a href="/" class="brand">
+      <span class="brand-mark">FB</span>
+      <span class="brand-text">FoodyBites</span>
+    </a>
+  </header>
+
+  <main class="auth-container">
+    <div class="auth-panel">
+      <div class="auth-head">
+        <h1>Sign In</h1>
+        <p>Access your FoodyBites account and order food with live tracking.</p>
+      </div>
+
+      <form id="loginForm" class="auth-form">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            placeholder="anu@example.com" 
+            required
+            class="form-input"
+          >
+          <small class="form-error hidden" id="email-error"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            placeholder="Enter your password" 
+            required
+            class="form-input"
+          >
+          <small class="form-error hidden" id="password-error"></small>
+        </div>
+
+        <a href="#" class="auth-link small">Forgot password?</a>
+
+        <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
+          Sign In
+        </button>
+
+        <div class="form-error form-message hidden" id="formError"></div>
+        <div class="form-success form-message hidden" id="formSuccess"></div>
+      </form>
+
+      <p class="auth-footer">
+        Don't have an account? 
+        <a href="/public/signup.html" class="auth-link">Create one</a>
+      </p>
+    </div>
+  </main>
+
+  <script src="/public/auth.js" defer></script>
+  <script defer>
+    // Redirect authenticated users to menu
+    redirectIfAuthenticated()
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault()
+      
+      const email = document.getElementById('email').value.trim()
+      const password = document.getElementById('password').value
+      const submitBtn = document.getElementById('submitBtn')
+      const formError = document.getElementById('formError')
+      const formSuccess = document.getElementById('formSuccess')
+
+      formError.classList.add('hidden')
+      formSuccess.classList.add('hidden')
+
+      submitBtn.disabled = true
+      submitBtn.textContent = 'Signing in...'
+
+      try {
+        const response = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        })
+
+        const result = await response.json()
+
+        if (response.ok) {
+          TokenManager.setAccessToken(result.data.accessToken)
+          TokenManager.setRefreshToken(result.data.refreshToken)
+          
+          // Store user info for use in other pages (like orders.html)
+          if (result.data.user) {
+            TokenManager.setUser(result.data.user)
+          } else if (result.data.profile) {
+            // Fallback if response uses profile instead of user
+            TokenManager.setUser(result.data.profile)
+          }
+          
+          formSuccess.textContent = 'Login successful! Redirecting...'
+          formSuccess.classList.remove('hidden')
+
+          setTimeout(() => {
+            window.location.href = '/public/menu.html'
+          }, 1500)
+        } else {
+          formError.textContent = result.message || 'Login failed.'
+          formError.classList.remove('hidden')
+        }
+      } catch (error) {
+        formError.textContent = 'Network error. Please try again.'
+        formError.classList.remove('hidden')
+      } finally {
+        submitBtn.disabled = false
+        submitBtn.textContent = 'Sign In'
+      }
+    })
+  </script>
+</body>
+</html>

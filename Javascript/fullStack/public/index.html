@@ -1,60 +1,155 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Express</title>
-    <style>
-        body{
-            margin: 0;
-            padding: .6em;
-            width: 100vw;
-            box-sizing: border-box;
-            font-family: Arial, Helvetica, sans-serif;
-            color: black;
-        }
-        .img{
-            display: flex;
-            justify-content: center;
-            margin: 0;
-            width: 100%;
-            height: 280px;
-            background-color: rgb(151, 147, 110);
-        }
-        img{
-            background: url(../static/img/ou.png);
-            height: 100%;
-            background-repeat: no-repeat;
-            background-size: 130% 380%;
-            background-position: 0 -385px;
-            width: 100%;
-            opacity: .6;
-        }
-        ul{
-            list-style: none;
-            justify-content: center;
-            display: flex;
-            flex-direction: row;
-            gap: 1.6em;
-            width: 100%;
-            padding: 0;
-            border: 1.4px solid rgb(68, 68, 68);
-            padding-block: .5em;
-        }
-        a{
-            text-decoration: none;
-            color: rgb(10, 10, 8);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FoodyBites - Nigerian food delivery with live order tracking, reminders, and fast checkout.">
+  <title>FoodyBites | Startup Delivery Experience</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/styles.css">
 </head>
 <body>
-    <section class="header"><div class="img"><img alt="" ></div></section>
-    <section class="container1"><ul>
-        <li><a href="">Home</a></li>
-        <li><a href="">products</a></li>
-        <li><a href="">services</a></li>
-        <li><a href="">about</a></li>
-        <li><a href="">contact</a></li>
-    </ul></section>
+  <div class="grain" aria-hidden="true"></div>
+
+  <script src="/public/auth.js"></script>
+  <script>
+    // If user is already logged in, redirect to menu
+    if (TokenManager.isAuthenticated()) {
+      window.location.href = '/public/menu.html'
+    }
+  </script>
+
+  <header class="site-header">
+    <a href="/" class="brand" aria-label="FoodyBites home">
+      <span class="brand-mark">FB</span>
+      <span class="brand-text">FoodyBites</span>
+    </a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="#menu">Menu</a>
+      <a href="#tracking">Tracking</a>
+      <a href="#payments">Payments</a>
+      <a href="/public/signup.html" class="nav-link">Sign Up</a>
+      <a href="/public/login.html" class="nav-cta">Login</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="start">
+      <div class="hero-copy reveal">
+        <p class="eyebrow">Built for modern food startups</p>
+        <h1>Nigerian flavors, tracked live, delivered right.</h1>
+        <p class="hero-sub">
+          Prototype-ready product surface for FoodyBites: booking, location-aware discounts, reminder-ready workflows,
+          Paystack flow integration, and direct transfer receipt uploads.
+        </p>
+        <div class="hero-actions">
+          <a href="/public/signup.html" class="btn btn-primary">Order Food Now</a>
+          <a href="/public/login.html" class="btn btn-ghost">Already a customer?</a>
+        </div>
+        <div class="hero-metrics">
+          <article>
+            <strong>15 min</strong>
+            <span>Avg prep response</span>
+          </article>
+          <article>
+            <strong>Real-time</strong>
+            <span>Order visibility</span>
+          </article>
+          <article>
+            <strong>2x</strong>
+            <span>Faster repeat checkout</span>
+          </article>
+        </div>
+      </div>
+
+      <div class="hero-panel reveal-delay">
+        <div class="panel-head">
+          <h2>Live Prototype Feed</h2>
+          <span class="status">Online</span>
+        </div>
+        <ul class="feed-list">
+          <li>
+            <span class="dot amber"></span>
+            <div>
+              <p>Order #FB-1092 is being prepared</p>
+              <small>Kitchen queue synchronized</small>
+            </div>
+          </li>
+          <li>
+            <span class="dot green"></span>
+            <div>
+              <p>Suya Wrap added to cart</p>
+              <small>Promo range discount applied</small>
+            </div>
+          </li>
+          <li>
+            <span class="dot blue"></span>
+            <div>
+              <p>Weekly reminder pipeline ready</p>
+              <small>Email + phone schedule configured</small>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="feature-grid" id="tracking">
+      <article class="feature reveal">
+        <h3>Live order tracking</h3>
+        <p>Give customers movement-level status from prep to rider drop-off, including ETA updates and event history.</p>
+      </article>
+      <article class="feature reveal">
+        <h3>Reminders that convert</h3>
+        <p>Trigger weekly schedule notifications by email and SMS when meals are planned and when they are ready.</p>
+      </article>
+      <article class="feature reveal">
+        <h3>Smart discount engine</h3>
+        <p>Automatically apply first-time customer offers plus zone-based discounts using customer delivery coordinates.</p>
+      </article>
+    </section>
+
+    <section class="menu-section" id="menu">
+      <div class="section-head reveal">
+        <p class="eyebrow">Popular picks</p>
+        <h2>Nigerian snacks and staples</h2>
+      </div>
+      <div class="menu-cards">
+        <article class="menu-card reveal">
+          <h3>Puff Puff Box</h3>
+          <p>Freshly fried bite-size dough balls, lightly sugared.</p>
+          <strong>NGN 2,000</strong>
+        </article>
+        <article class="menu-card reveal">
+          <h3>Suya Wrap</h3>
+          <p>Spiced grilled beef strips in warm flatbread with yaji mayo.</p>
+          <strong>NGN 3,500</strong>
+        </article>
+        <article class="menu-card reveal">
+          <h3>Jollof Rice Special</h3>
+          <p>Smoky party jollof with grilled chicken and plantain.</p>
+          <strong>NGN 6,500</strong>
+        </article>
+      </div>
+    </section>
+
+    <section class="payments" id="payments">
+      <div class="payments-copy reveal">
+        <h2>Checkout options customers trust</h2>
+        <p>Run Paystack checkout with webhook verification, or accept direct bank transfer and collect receipt upload for confirmation.</p>
+      </div>
+      <div class="payments-actions reveal-delay">
+        <a href="/api/v1/payments/paystack/initiate" class="btn btn-primary">Test Paystack Endpoint</a>
+        <a href="/api/v1/payments/bank-transfer/receipt" class="btn btn-ghost">Test Receipt Endpoint</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>FoodyBites product prototype surface. Designed for startup velocity and production handoff.</p>
+  </footer>
+
+  <script src="/public/app.js" defer></script>
 </body>
 </html>

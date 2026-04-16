@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FoodyBites Menu - Browse and order food.">
+  <title>FoodyBites | Menu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a href="/" class="brand">
+      <span class="brand-mark">FB</span>
+      <span class="brand-text">FoodyBites</span>
+    </a>
+    <nav class="site-nav">
+      <a href="/public/menu.html" class="nav-link active">Menu</a>
+      <a href="/public/cart.html" class="nav-link">Cart <span id="cartCount" style="background: #ff6b35; color: white; border-radius: 50%; width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;">0</span></a>
+      <a href="/public/orders.html" class="nav-link">Orders</a>
+      <a href="#" onclick="handleLogout()" class="nav-cta">Logout</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="menu-section" style="margin-bottom: 0;">
+      <div class="section-head reveal">
+        <p class="eyebrow">Your order</p>
+        <h2>Browse Nigerian flavors</h2>
+      </div>
+      <div id="menuContainer" class="menu-cards">
+        <p style="grid-column: 1/-1; color: var(--muted);">Loading menu...</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>FoodyBites - Order Nigerian food with real-time tracking.</p>
+  </footer>
+
+  <script src="/public/auth.js" defer></script>
+  <script defer>
+    requireAuth()
+
+    function getCartCount() {
+      const cart = JSON.parse(localStorage.getItem('fb_cart') || '{}')
+      return Object.values(cart).reduce((sum, item) => sum + item.quantity, 0)
+    }
+
+    function updateCartBadge() {
+      document.getElementById('cartCount').textContent = getCartCount()
+    }
+
+    async function loadMenu() {
+      try {
+        const response = await fetchWithAuth('/api/v1/menu')
+        const result = await response.json()
+
+        const container = document.getElementById('menuContainer')
+        container.innerHTML = ''
+
+        if (result.success && result.data && result.data.length > 0) {
+          result.data.forEach((item) => {
+            const card = document.createElement('article')
+            card.className = 'menu-card reveal'
+            card.style.display = 'flex'
+            card.style.flexDirection = 'column'
+            card.innerHTML = `
+              <h3>${item.name}</h3>
+              <p>${item.description || 'Delicious Nigerian dish'}</p>
+              <div style="margin-top: auto; display: flex; justify-content: space-between; align-items: center;">
+                <strong style="color: #ff6b35; font-size: 1.25rem;">₦${item.price.toLocaleString()}</strong>
+                <button onclick="addToCart('${item.id}', '${item.name}', ${item.price})" style="
+                  padding: 0.5rem 1rem;
+                  background: #ff6b35;
+                  color: white;
+                  border: none;
+                  border-radius: 6px;
+                  cursor: pointer;
+                  font-weight: 600;
+                  transition: background 0.2s;
+                " onmouseover="this.style.background='#e55c2b'" onmouseout="this.style.background='#ff6b35'">
+                  Add to Cart
+                </button>
+              </div>
+            `
+            container.appendChild(card)
+          })
+          updateCartBadge()
+        } else {
+          container.innerHTML = '<p style="grid-column: 1/-1; color: var(--muted);">No items available.</p>'
+        }
+      } catch (error) {
+        document.getElementById('menuContainer').innerHTML = `<p style="grid-column: 1/-1; color: #dc2626;">Error loading menu. Please try again.</p>`
+      }
+    }
+
+    function addToCart(id, name, price) {
+      const cart = JSON.parse(localStorage.getItem('fb_cart') || '{}')
+      if (cart[id]) {
+        cart[id].quantity += 1
+      } else {
+        cart[id] = { name, price, quantity: 1 }
+      }
+      localStorage.setItem('fb_cart', JSON.stringify(cart))
+      updateCartBadge()
+      
+      // Show feedback
+      const btn = event.target
+      const originalText = btn.textContent
+      btn.textContent = '✓ Added'
+      btn.style.background = '#10b981'
+      setTimeout(() => {
+        btn.textContent = originalText
+        btn.style.background = '#ff6b35'
+      }, 1500)
+    }
+
+    function handleLogout() {
+      TokenManager.logout()
+      window.location.href = '/public/login.html'
+    }
+
+    loadMenu()
+  </script>
+</body>
+</html>

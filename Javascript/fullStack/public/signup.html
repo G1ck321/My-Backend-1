@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="FoodyBites Signup - Join our food delivery platform.">
+  <title>FoodyBites | Create Account</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <a href="/" class="brand">
+      <span class="brand-mark">FB</span>
+      <span class="brand-text">FoodyBites</span>
+    </a>
+  </header>
+
+  <main class="auth-container">
+    <div class="auth-panel">
+      <div class="auth-head">
+        <h1>Create Account</h1>
+        <p>Join FoodyBites to order Nigerian food with live tracking and fast delivery.</p>
+      </div>
+
+      <form id="signupForm" class="auth-form">
+        <div class="form-group">
+          <label for="fullName">Full Name</label>
+          <input 
+            type="text" 
+            id="fullName" 
+            name="fullName" 
+            placeholder="Anu Okonkwo" 
+            required
+            minlength="2"
+            class="form-input"
+          >
+          <small class="form-error hidden" id="fullName-error"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            placeholder="anu@example.com" 
+            required
+            class="form-input"
+          >
+          <small class="form-error hidden" id="email-error"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="phoneNumber">Phone Number (optional)</label>
+          <input 
+            type="tel" 
+            id="phoneNumber" 
+            name="phoneNumber" 
+            placeholder="+2348012345678" 
+            class="form-input"
+          >
+          <small class="form-error hidden" id="phoneNumber-error"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            placeholder="Min 8 characters" 
+            required
+            minlength="8"
+            class="form-input"
+          >
+          <small class="form-error hidden" id="password-error"></small>
+          <small class="form-hint">Use uppercase, lowercase, numbers, and symbols for strength.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <input 
+            type="password" 
+            id="confirmPassword" 
+            name="confirmPassword" 
+            placeholder="Confirm" 
+            required
+            class="form-input"
+          >
+          <small class="form-error hidden" id="confirmPassword-error"></small>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
+          Create Account
+        </button>
+
+        <div class="form-error form-message hidden" id="formError"></div>
+        <div class="form-success form-message hidden" id="formSuccess"></div>
+      </form>
+
+      <p class="auth-footer">
+        Already have an account? 
+        <a href="/public/login.html" class="auth-link">Sign in</a>
+      </p>
+    </div>
+  </main>
+
+  <script src="/public/auth.js" defer></script>
+  <script defer>
+    // Redirect authenticated users to menu
+    redirectIfAuthenticated()
+
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault()
+      
+      const fullName = document.getElementById('fullName').value.trim()
+      const email = document.getElementById('email').value.trim()
+      const phoneNumber = document.getElementById('phoneNumber').value.trim()
+      const password = document.getElementById('password').value
+      const confirmPassword = document.getElementById('confirmPassword').value
+      const submitBtn = document.getElementById('submitBtn')
+      const formError = document.getElementById('formError')
+      const formSuccess = document.getElementById('formSuccess')
+
+      formError.classList.add('hidden')
+      formSuccess.classList.add('hidden')
+
+      if (password !== confirmPassword) {
+        document.getElementById('confirmPassword-error').textContent = 'Passwords do not match.'
+        document.getElementById('confirmPassword-error').classList.remove('hidden')
+        return
+      }
+
+      submitBtn.disabled = true
+      submitBtn.textContent = 'Creating account...'
+
+      try {
+        const response = await fetch('/api/v1/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            password,
+            fullName,
+            phoneNumber: phoneNumber || undefined,
+          }),
+        })
+
+        const result = await response.json()
+
+        if (response.ok) {
+          TokenManager.setAccessToken(result.data.accessToken)
+          TokenManager.setRefreshToken(result.data.refreshToken)
+          
+          // Store user info for use in other pages (like orders.html)
+          if (result.data.user) {
+            TokenManager.setUser(result.data.user)
+          }
+          
+          formSuccess.textContent = 'Account created! Redirecting...'
+          formSuccess.classList.remove('hidden')
+
+          setTimeout(() => {
+            window.location.href = '/public/menu.html'
+          }, 1500)
+        } else {
+          formError.textContent = result.message || 'Signup failed.'
+          formError.classList.remove('hidden')
+        }
+      } catch (error) {
+        formError.textContent = 'Network error. Please try again.'
+        formError.classList.remove('hidden')
+      } finally {
+        submitBtn.disabled = false
+        submitBtn.textContent = 'Create Account'
+      }
+    })
+  </script>
+</body>
+</html>
