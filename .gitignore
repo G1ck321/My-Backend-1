@@ -1,6 +1,6 @@
 .envs
 .env*
 Javascript\Personal
-.pyc*
+*.pyc
 Javascript/Personal/WorkPlug/
 node_modules/
