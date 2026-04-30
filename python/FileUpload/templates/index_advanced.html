@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DropZone | Secure File Upload</title>
+    <style>
+        /* CSS Reset & Variables for Offline Usage */
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg: #F3F4F6;
+            --surface: #FFFFFF;
+            --text-main: #1F2937;
+            --text-mutated: #6B7280;
+            --border: #E5E7EB;
+            --success: #10B981;
+            --error: #EF4444;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            background: var(--surface);
+            padding: 2.5rem;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        h2 {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        p {
+            color: var(--text-mutated);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Drag and Drop Zone */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 3rem 1.5rem;
+            cursor: pointer;
+            transition: border-color 0.2s, background-color 0.2s;
+            position: relative;
+            background-color: #F9FAFB;
+        }
+
+        .drop-zone.dragover {
+            border-color: var(--primary);
+            background-color: #EEF2FF;
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        /* Selected File Display */
+        .file-info {
+            margin-top: 1.5rem;
+            font-size: 0.95rem;
+            color: var(--text-main);
+            font-weight: 500;
+            display: none;
+            background: #F3F4F6;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        /* Button Styling */
+        button {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.875rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button:disabled {
+            background-color: var(--text-mutated);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* Flash Messages */
+        .messages {
+            margin-top: 1.5rem;
+            list-style: none;
+            text-align: left;
+        }
+
+        .messages li {
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .messages li.success {
+            background-color: #ECFDF5;
+            color: #065F46;
+            border: 1px solid #A7F3D0;
+        }
+
+        .messages li.error {
+            background-color: #FEF2F2;
+            color: #991B1B;
+            border: 1px solid #FECACA;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 480px) {
+            .container {
+                padding: 1.5rem;
+            }
+            .drop-zone {
+                padding: 2rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Secure File Hub</h2>
+        <p>Drop your file anywhere to upload securely.</p>
+
+        <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+            <!-- Drag & Drop Zone -->
+            <div class="drop-zone" id="dropZone">
+                <div class="icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                </div>
+                <div><strong>Click to browse</strong> or drag & drop your file here</div>
+                <div style="color: var(--text-mutated); font-size: 0.8rem; margin-top: 0.5rem;">.png, .jpg, .txt, .pdf, .md, .docx, .zip (Max 811MB)</div>
+                <input type="file" name="file" id="fileInput" required>
+            </div>
+
+            <!-- File Info Preview -->
+            <div class="file-info" id="fileInfo"></div>
+
+            <button type="submit" id="submitBtn" disabled>Upload File</button>
+        </form>
+
+        <!-- Flash Messages Block -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <ul class="messages" id="messagesBlock">
+                {% for category, message in messages %}
+                <li class="{% if 'Error' in message or category == 'error' %}error{% else %}success{% endif %}">
+                    {{ message }}
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Offline Capable JS Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const fileInfo = document.getElementById('fileInfo');
+            const submitBtn = document.getElementById('submitBtn');
+            const messagesBlock = document.getElementById('messagesBlock');
+
+            // Handle file selection
+            fileInput.addEventListener('change', function() {
+                if (this.files && this.files.length > 0) {
+                    const file = this.files[0];
+                    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                    fileInfo.style.display = 'block';
+                    fileInfo.innerHTML = `Selected: <strong>${file.name}</strong> (${sizeMB} MB)`;
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = 'Upload Securely';
+
+                    // Clear old messages when selecting a new file
+                    if(messagesBlock) messagesBlock.style.display = 'none';
+                } else {
+                    fileInfo.style.display = 'none';
+                    submitBtn.disabled = true;
+                }
+            });
+
+            // Handle Drag & Drop styling
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.add('dragover');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.remove('dragover');
+                }, false);
+            });
+
+            // Prevent form submit if disabled
+            document.getElementById('uploadForm').addEventListener('submit', (e) => {
+                if(submitBtn.disabled) e.preventDefault();
+                else submitBtn.innerText = 'Uploading...';
+            });
+        });
+    </script>
+</body>
+</html>

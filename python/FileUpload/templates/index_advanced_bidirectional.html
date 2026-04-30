@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FileHub | Bidirectional Transfer</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --secondary: #10B981;
+            --secondary-hover: #059669;
+            --bg: #F3F4F6;
+            --surface: #FFFFFF;
+            --text-main: #1F2937;
+            --text-mutated: #6B7280;
+            --border: #E5E7EB;
+            --error: #EF4444;
+            --warning: #F59E0B;
+            --radius: 12px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg) 0%, #E0E7FF 100%);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            background: var(--surface);
+            padding: 2.5rem;
+            border-radius: var(--radius);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 550px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-mutated);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Tab Navigation */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 0.875rem;
+            border: none;
+            background: transparent;
+            color: var(--text-mutated);
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .tab-button.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-button:hover {
+            color: var(--primary);
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Upload Section */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 3rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            background-color: #F9FAFB;
+            text-align: center;
+        }
+
+        .drop-zone.dragover {
+            border-color: var(--primary);
+            background-color: #EEF2FF;
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .icon.upload {
+            color: var(--primary);
+        }
+
+        .icon.download {
+            color: var(--secondary);
+        }
+
+        /* File Info */
+        .file-info {
+            margin-top: 1.5rem;
+            padding: 0.75rem;
+            background: #F3F4F6;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            display: none;
+            font-size: 0.9rem;
+        }
+
+        /* File List */
+        .file-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: #F9FAFB;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.2s;
+        }
+
+        .file-item:hover {
+            background: #F3F4F6;
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-info-col {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: var(--text-main);
+            word-break: break-all;
+            margin-bottom: 0.25rem;
+        }
+
+        .file-size {
+            font-size: 0.85rem;
+            color: var(--text-mutated);
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-small {
+            padding: 0.5rem 0.875rem;
+            font-size: 0.85rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .btn-download {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-download:hover {
+            background: var(--secondary-hover);
+        }
+
+        .btn-delete {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #DC2626;
+        }
+
+        /* Buttons */
+        button {
+            width: 100%;
+            padding: 0.875rem;
+            border-radius: 8px;
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+
+        .btn-primary:disabled {
+            background: var(--text-mutated);
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: var(--secondary-hover);
+        }
+
+        /* Messages */
+        .messages {
+            margin-top: 1.5rem;
+            list-style: none;
+        }
+
+        .messages li {
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .messages li.success {
+            background: #ECFDF5;
+            color: #065F46;
+            border: 1px solid #A7F3D0;
+        }
+
+        .messages li.error {
+            background: #FEF2F2;
+            color: #991B1B;
+            border: 1px solid #FECACA;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-mutated);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+            }
+
+            .drop-zone {
+                padding: 2rem 1rem;
+            }
+
+            .file-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .file-actions {
+                width: 100%;
+                margin-top: 0.75rem;
+            }
+
+            .btn-small {
+                flex: 1;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            margin-left: 0.5rem;
+        }
+
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            width: 1rem;
+            height: 1rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>📦 FileHub</h1>
+        <p class="subtitle">Bidirectional file transfer between your devices</p>
+
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-button active" data-tab="upload">
+                📤 Upload
+            </button>
+            <button class="tab-button" data-tab="download">
+                📥 Download
+            </button>
+        </div>
+
+        <!-- ============ UPLOAD TAB ============ -->
+        <div id="upload" class="tab-content active">
+            <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+                <div class="drop-zone" id="dropZone">
+                    <div class="icon upload">⬆️</div>
+                    <div><strong>Click to browse</strong> or drag & drop</div>
+                    <div style="color: var(--text-mutated); font-size: 0.8rem; margin-top: 0.5rem;">
+                        .png, .jpg, .txt, .pdf, .md, .docx, .zip (Max 500MB)
+                    </div>
+                    <input type="file" name="file" id="fileInput" required>
+                </div>
+                <div class="file-info" id="fileInfo"></div>
+                <button type="submit" class="btn-primary" id="submitBtn" disabled>
+                    Upload to Laptop
+                </button>
+            </form>
+        </div>
+
+        <!-- ============ DOWNLOAD TAB ============ -->
+        <div id="download" class="tab-content">
+            <div style="margin-bottom: 1rem;">
+                <button type="button" class="btn-secondary" id="refreshBtn" style="width: 100%;">
+                    🔄 Refresh File List
+                </button>
+            </div>
+
+            <div class="file-list" id="fileList">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📂</div>
+                    <p>Click "Refresh" to see available files</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <ul class="messages" id="messagesBlock">
+                {% for category, message in messages %}
+                <li class="{% if 'Error' in message or category == 'error' %}error{% else %}success{% endif %}">
+                    {{ message }}
+                </li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const fileInfo = document.getElementById('fileInfo');
+            const submitBtn = document.getElementById('submitBtn');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const fileList = document.getElementById('fileList');
+
+            // ============ TAB SWITCHING ============
+            tabButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const tabName = button.getAttribute('data-tab');
+                    
+                    // Deactivate all
+                    tabButtons.forEach(b => b.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // Activate selected
+                    button.classList.add('active');
+                    document.getElementById(tabName).classList.add('active');
+
+                    // Auto-load files when switching to download tab
+                    if (tabName === 'download') {
+                        loadFileList();
+                    }
+                });
+            });
+
+            // ============ UPLOAD FUNCTIONALITY ============
+            fileInput.addEventListener('change', function() {
+                if (this.files && this.files.length > 0) {
+                    const file = this.files[0];
+                    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                    fileInfo.style.display = 'block';
+                    fileInfo.innerHTML = `Selected: <strong>${file.name}</strong> (${sizeMB} MB)`;
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = '📤 Upload to Laptop';
+                } else {
+                    fileInfo.style.display = 'none';
+                    submitBtn.disabled = true;
+                }
+            });
+
+            // Drag and Drop
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.add('dragover');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.remove('dragover');
+                }, false);
+            });
+
+            document.getElementById('uploadForm').addEventListener('submit', (e) => {
+                if(submitBtn.disabled) e.preventDefault();
+                else submitBtn.innerText = '⏳ Uploading...';
+            });
+
+            // ============ DOWNLOAD FUNCTIONALITY ============
+            async function loadFileList() {
+                try {
+                    fileList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><p>Loading files...</p></div>';
+                    
+                    const response = await fetch('/api/files');
+                    const data = await response.json();
+
+                    if (data.success && data.files.length > 0) {
+                        fileList.innerHTML = '';
+                        data.files.forEach(file => {
+                            const fileItem = document.createElement('div');
+                            fileItem.className = 'file-item';
+                            fileItem.innerHTML = `
+                                <div class="file-info-col">
+                                    <div class="file-name">${escapeHtml(file.name)}</div>
+                                    <div class="file-size">${file.size}</div>
+                                </div>
+                                <div class="file-actions">
+                                    <button type="button" class="btn-small btn-download" onclick="downloadFile('${escapeHtml(file.name)}')">
+                                        ⬇️ Download
+                                    </button>
+                                    <button type="button" class="btn-small btn-delete" onclick="deleteFile('${escapeHtml(file.name)}')">
+                                        🗑️ Delete
+                                    </button>
+                                </div>
+                            `;
+                            fileList.appendChild(fileItem);
+                        });
+                    } else {
+                        fileList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>No files yet. Upload some!</p></div>';
+                    }
+                } catch (error) {
+                    fileList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><p>Error loading files</p></div>';
+                    console.error('Error:', error);
+                }
+            }
+
+            window.downloadFile = function(filename) {
+                window.location.href = `/download/${encodeURIComponent(filename)}`;
+            };
+
+            window.deleteFile = async function(filename) {
+                if (!confirm(`Delete "${filename}"?`)) return;
+                
+                try {
+                    const response = await fetch(`/delete/${encodeURIComponent(filename)}`, {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        loadFileList();
+                        showMessage(`✅ ${data.message}`, 'success');
+                    } else {
+                        showMessage(`❌ ${data.error}`, 'error');
+                    }
+                } catch (error) {
+                    showMessage('❌ Error deleting file', 'error');
+                    console.error('Error:', error);
+                }
+            };
+
+            function showMessage(text, type) {
+                const messagesBlock = document.getElementById('messagesBlock') || document.createElement('ul');
+                if (!document.getElementById('messagesBlock')) {
+                    messagesBlock.id = 'messagesBlock';
+                    messagesBlock.className = 'messages';
+                    document.querySelector('.container').appendChild(messagesBlock);
+                }
+
+                const li = document.createElement('li');
+                li.className = type;
+                li.textContent = text;
+                messagesBlock.innerHTML = '';
+                messagesBlock.appendChild(li);
+
+                setTimeout(() => li.remove(), 4000);
+            }
+
+            function escapeHtml(text) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return text.replace(/[&<>"']/g, m => map[m]);
+            }
+
+            refreshBtn.addEventListener('click', loadFileList);
+        });
+    </script>
+</body>
+</html>
