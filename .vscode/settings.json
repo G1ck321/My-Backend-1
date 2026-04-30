@@ -1,3 +1,33 @@
 {
-    "liveServer.settings.multiRootWorkspaceName": "Backend"
+    "liveServer.settings.multiRootWorkspaceName": "Backend",
+  "css.lint.unknownAtRules": "ignore",
+  "remote.downloadExtensionsLocally": true,
+  "editor.formatOnType": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  "python.languageServer": "Pylance",
+  "python.useEnvironmentsExtension": true,
+  "python.analysis.autoImportCompletions": true,
+
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": false,
+    "strings": false
+  },
+
+  "[python]": {
+    "editor.defaultFormatter": "KevinRose.vsc-python-indent"
+  },
+
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }
