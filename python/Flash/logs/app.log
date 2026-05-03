@@ -1,0 +1,67 @@
+2026-04-30 20:43:08 - FlashApp - INFO - [logger_setup.py:setup_logger:136] - ======================================================================
+2026-04-30 20:43:08 - FlashApp - INFO - [logger_setup.py:setup_logger:137] - Logger initialized successfully
+2026-04-30 20:43:08 - FlashApp - INFO - [logger_setup.py:setup_logger:138] - Log level: DEBUG
+2026-04-30 20:43:08 - FlashApp - INFO - [logger_setup.py:setup_logger:139] - Logs directory: C:\Users\User\Downloads\lap\Backend\python\Flash\logs
+2026-04-30 20:43:08 - FlashApp - INFO - [logger_setup.py:setup_logger:140] - ======================================================================
+2026-04-30 20:43:08 - FlashApp - INFO - [app.py:<module>:37] - Flask application initialized
+2026-04-30 20:43:08 - FlashApp - INFO - [app.py:<module>:38] - Secret key set: ********************
+2026-04-30 20:43:08 - FlashApp - INFO - [app.py:<module>:395] - ======================================================================
+2026-04-30 20:43:08 - FlashApp - INFO - [app.py:<module>:396] - Starting Flask Application
+2026-04-30 20:43:08 - FlashApp - INFO - [app.py:<module>:397] - ======================================================================
+2026-04-30 20:43:12 - FlashApp - INFO - [logger_setup.py:setup_logger:136] - ======================================================================
+2026-04-30 20:43:12 - FlashApp - INFO - [logger_setup.py:setup_logger:137] - Logger initialized successfully
+2026-04-30 20:43:12 - FlashApp - INFO - [logger_setup.py:setup_logger:138] - Log level: DEBUG
+2026-04-30 20:43:12 - FlashApp - INFO - [logger_setup.py:setup_logger:139] - Logs directory: C:\Users\User\Downloads\lap\Backend\python\Flash\logs
+2026-04-30 20:43:12 - FlashApp - INFO - [logger_setup.py:setup_logger:140] - ======================================================================
+2026-04-30 20:43:12 - FlashApp - INFO - [app.py:<module>:37] - Flask application initialized
+2026-04-30 20:43:12 - FlashApp - INFO - [app.py:<module>:38] - Secret key set: ********************
+2026-04-30 20:43:12 - FlashApp - INFO - [app.py:<module>:395] - ======================================================================
+2026-04-30 20:43:12 - FlashApp - INFO - [app.py:<module>:396] - Starting Flask Application
+2026-04-30 20:43:12 - FlashApp - INFO - [app.py:<module>:397] - ======================================================================
+2026-04-30 20:43:15 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-04-30 20:56:02 - FlashApp - INFO - [logger_setup.py:setup_logger:136] - ======================================================================
+2026-04-30 20:56:02 - FlashApp - INFO - [logger_setup.py:setup_logger:137] - Logger initialized successfully
+2026-04-30 20:56:02 - FlashApp - INFO - [logger_setup.py:setup_logger:138] - Log level: DEBUG
+2026-04-30 20:56:02 - FlashApp - INFO - [logger_setup.py:setup_logger:139] - Logs directory: C:\Users\User\Downloads\lap\Backend\python\Flash\logs
+2026-04-30 20:56:02 - FlashApp - INFO - [logger_setup.py:setup_logger:140] - ======================================================================
+2026-04-30 20:56:02 - FlashApp - INFO - [app.py:<module>:37] - Flask application initialized
+2026-04-30 20:56:02 - FlashApp - INFO - [app.py:<module>:38] - Secret key set: ********************
+2026-04-30 20:56:02 - FlashApp - INFO - [app.py:<module>:395] - ======================================================================
+2026-04-30 20:56:02 - FlashApp - INFO - [app.py:<module>:396] - Starting Flask Application
+2026-04-30 20:56:02 - FlashApp - INFO - [app.py:<module>:397] - ======================================================================
+2026-04-30 20:56:02 - FlashApp - INFO - [logger_setup.py:setup_logger:136] - ======================================================================
+2026-04-30 20:56:02 - FlashApp - INFO - [logger_setup.py:setup_logger:137] - Logger initialized successfully
+2026-04-30 20:56:02 - FlashApp - INFO - [logger_setup.py:setup_logger:138] - Log level: DEBUG
+2026-04-30 20:56:02 - FlashApp - INFO - [logger_setup.py:setup_logger:139] - Logs directory: C:\Users\User\Downloads\lap\Backend\python\Flash\logs
+2026-04-30 20:56:02 - FlashApp - INFO - [logger_setup.py:setup_logger:140] - ======================================================================
+2026-04-30 20:56:02 - FlashApp - INFO - [app.py:<module>:37] - Flask application initialized
+2026-04-30 20:56:02 - FlashApp - INFO - [app.py:<module>:38] - Secret key set: ********************
+2026-04-30 20:56:02 - FlashApp - INFO - [app.py:<module>:395] - ======================================================================
+2026-04-30 20:56:02 - FlashApp - INFO - [app.py:<module>:396] - Starting Flask Application
+2026-04-30 20:56:02 - FlashApp - INFO - [app.py:<module>:397] - ======================================================================
+2026-04-30 20:56:14 - FlashApp - WARNING - [app.py:page_not_found:356] - 404 Error: User accessed non-existent page: /favicon.ico
+2026-04-30 20:56:19 - FlashApp - DEBUG - [app.py:submit_form:134] - Form submission received: name=Firest_Test, email=oluwagbemigaagbejimi@gmail.com
+2026-04-30 20:56:19 - FlashApp - INFO - [app.py:submit_form:162] - Form successfully submitted by user: Firest_Test (oluwagbemigaagbejimi@gmail.com)
+2026-04-30 20:56:19 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-04-30 20:56:56 - FlashApp - DEBUG - [app.py:upload_file:256] - File upload request received
+2026-04-30 20:56:56 - FlashApp - INFO - [app.py:upload_file:275] - Attempting to save file: pygame_info.txt
+2026-04-30 20:56:56 - FlashApp - DEBUG - [app.py:upload_file:279] - File type verified: .txt - proceeding with save
+2026-04-30 20:56:56 - FlashApp - INFO - [app.py:upload_file:281] - File saved successfully: pygame_info.txt (size: ~15 bytes)
+2026-04-30 20:56:56 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-04-30 20:57:05 - FlashApp - DEBUG - [app.py:test_logging:323] - Test message for debug level
+2026-04-30 20:57:05 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-04-30 20:57:26 - FlashApp - ERROR - [app.py:test_logging:332] - Test message for error level
+2026-04-30 20:57:26 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-04-30 20:57:34 - FlashApp - DEBUG - [app.py:user_profile:187] - Loading profile for user: charlie
+2026-04-30 20:57:34 - FlashApp - INFO - [app.py:user_profile:201] - First visit from user: charlie
+2026-04-30 20:57:39 - FlashApp - DEBUG - [app.py:user_profile:187] - Loading profile for user: charlie
+2026-04-30 20:57:39 - FlashApp - DEBUG - [app.py:user_profile:205] - Return visit from user: charlie
+2026-04-30 20:57:43 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-04-30 20:57:52 - FlashApp - INFO - [app.py:process_operation:219] - Processing operation: pending
+2026-04-30 20:57:52 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-04-30 20:58:10 - FlashApp - INFO - [app.py:process_operation:219] - Processing operation: success
+2026-04-30 20:58:10 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-04-30 20:58:13 - FlashApp - DEBUG - [app.py:user_profile:187] - Loading profile for user: bob
+2026-04-30 20:58:13 - FlashApp - INFO - [app.py:user_profile:201] - First visit from user: bob
+2026-04-30 20:58:17 - FlashApp - DEBUG - [app.py:user_profile:187] - Loading profile for user: bob
+2026-04-30 20:58:17 - FlashApp - DEBUG - [app.py:user_profile:205] - Return visit from user: bob

@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flash & Logging Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+
+        /* Flash Messages Styling */
+        .alerts {
+            margin-bottom: 30px;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .alert.success {
+            background-color: #d4edda;
+            color: #155724;
+            border-color: #28a745;
+        }
+
+        .alert.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-color: #f5c6cb;
+        }
+
+        .alert.warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border-color: #ffeaa7;
+        }
+
+        .alert.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-color: #bee5eb;
+        }
+
+        .close {
+            float: right;
+            font-size: 20px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .close:hover {
+            opacity: 1;
+        }
+
+        /* Form Styling */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="file"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="file"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section h2 {
+            color: #667eea;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .button-group button {
+            width: 100%;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+
+        .test-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .test-buttons a {
+            display: inline-block;
+            padding: 10px;
+            background: #f0f0f0;
+            color: #333;
+            text-decoration: none;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .test-buttons a:hover {
+            background: #e0e0e0;
+        }
+
+        .info-box {
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            .button-group {
+                grid-template-columns: 1fr;
+            }
+
+            .test-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🎯 Flask Flash & Logging Demo</h1>
+        <p class="subtitle">Learn how to show messages and track events</p>
+
+        <!-- Flash Messages Display -->
+        <div class="alerts">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert {{ category }}">
+                            <span class="close" onclick="this.parentElement.style.display='none';">&times;</span>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Section 1: Basic Flash Form -->
+        <div class="section">
+            <h2>📝 Basic Form (Flash Messages)</h2>
+            <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem;">
+                Submit the form below. Success/error messages will appear using Flask's flash system.
+            </p>
+            
+            <form method="POST" action="/submit">
+                <div class="form-group">
+                    <label for="name">Your Name</label>
+                    <input type="text" id="name" name="name" placeholder="Enter your name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email (Optional)</label>
+                    <input type="email" id="email" name="email" placeholder="your@email.com">
+                </div>
+
+                <button type="submit">Submit Form</button>
+                
+                <div class="info-box">
+                    <strong>💡 How it works:</strong> The form validates your input on the server. 
+                    If there's an error (empty name), it flashes an error message. If successful, 
+                    it flashes a success message. This message only appears ONCE and then disappears.
+                </div>
+            </form>
+        </div>
+
+        <!-- Section 2: File Upload -->
+        <div class="section">
+            <h2>📤 File Upload (with Logging)</h2>
+            <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem;">
+                Upload a .txt file. The server logs this event and shows feedback via flash.
+            </p>
+            
+            <form method="POST" action="/upload" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="file">Choose a .txt file</label>
+                    <input type="file" id="file" name="file" accept=".txt" required>
+                </div>
+
+                <button type="submit">Upload File</button>
+                
+                <div class="info-box">
+                    <strong>📊 Logging demo:</strong> Server logs: DEBUG (request received) 
+                    → INFO (file processed) or ERROR (failed). Check console/logs/app.log
+                </div>
+            </form>
+        </div>
+
+        <!-- Section 3: Test Logging Levels -->
+        <div class="section">
+            <h2>🔍 Test Logging Levels</h2>
+            <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem;">
+                Click buttons to trigger different logging levels. Watch console output or check logs/app.log
+            </p>
+            
+            <div class="test-buttons">
+                <a href="/debug/debug">🔧 DEBUG</a>
+                <a href="/debug/info">ℹ️ INFO</a>
+                <a href="/debug/warning">⚠️ WARNING</a>
+                <a href="/debug/error">❌ ERROR</a>
+                <a href="/debug/critical">🚨 CRITICAL</a>
+            </div>
+
+            <div class="info-box">
+                <strong>📊 Logging hierarchy:</strong><br>
+                DEBUG &lt; INFO &lt; WARNING &lt; ERROR &lt; CRITICAL<br>
+                Each level is for different purposes. Check logs/app.log file.
+            </div>
+        </div>
+
+        <!-- Section 4: User Profiles -->
+        <div class="section">
+            <h2>👥 Test User Profiles</h2>
+            <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem;">
+                Click a username to see flash messages for first-time visits vs returning visits.
+            </p>
+            
+            <div class="test-buttons">
+                <a href="/user/alice">👩 Alice</a>
+                <a href="/user/bob">👨 Bob</a>
+                <a href="/user/charlie">🧑 Charlie</a>
+            </div>
+
+            <div class="info-box">
+                <strong>💡 Session tracking:</strong> First visit shows welcome message, 
+                return visits don't. This is stored in the session.
+            </div>
+        </div>
+
+        <!-- Section 5: Process Operations -->
+        <div class="section">
+            <h2>⚙️ Simulate Operations</h2>
+            <p style="color: #666; margin-bottom: 15px; font-size: 0.9rem;">
+                Simulate different operation outcomes with appropriate flash messages.
+            </p>
+            
+            <div class="button-group">
+                <a href="/process/success" style="display: inline-block; padding: 10px; background: #d4edda; color: #155724; text-decoration: none; border-radius: 5px; text-align: center;">✅ Success</a>
+                <a href="/process/pending" style="display: inline-block; padding: 10px; background: #d1ecf1; color: #0c5460; text-decoration: none; border-radius: 5px; text-align: center;">⏳ Pending</a>
+                <a href="/process/failed" style="display: inline-block; padding: 10px; background: #f8d7da; color: #721c24; text-decoration: none; border-radius: 5px; text-align: center;">❌ Failed</a>
+                <a href="/process/timeout" style="display: inline-block; padding: 10px; background: #fff3cd; color: #856404; text-decoration: none; border-radius: 5px; text-align: center;">⏱️ Timeout</a>
+            </div>
+
+            <div class="info-box">
+                <strong>🎨 Message categories:</strong> Different operations use different 
+                categories (success, error, warning, info) which are styled differently.
+            </div>
+        </div>
+
+        <!-- Section 6: Information -->
+        <div class="section">
+            <h2>📚 Understanding the System</h2>
+            
+            <div class="info-box" style="border-color: #667eea;">
+                <strong>🎯 Flash System:</strong><br>
+                Stores messages in SESSION → displayed on next request → automatically deleted<br>
+                Great for showing: "Form submitted successfully!" or "Invalid password"
+            </div>
+
+            <div class="info-box" style="border-color: #28a745; margin-top: 10px;">
+                <strong>📊 Logging System:</strong><br>
+                Records events to CONSOLE, FILES, or external services<br>
+                Great for: Debugging, auditing, monitoring production issues
+            </div>
+
+            <div class="info-box" style="border-color: #667eea; margin-top: 10px;">
+                <strong>🔗 How they work together:</strong><br>
+                Flash = User feedback<br>
+                Logging = Developer debugging<br>
+                Together = Complete visibility!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-close success messages after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const successAlerts = document.querySelectorAll('.alert.success');
+            successAlerts.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.style.display = 'none', 300);
+                }, 5000);
+            });
+        });
+    </script>
+
+</body>
+</html>

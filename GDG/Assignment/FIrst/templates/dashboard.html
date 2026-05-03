@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #111827;
+      --accent-text: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: radial-gradient(circle at top, #ffffff 0, var(--bg) 45%, #eef2f7 100%);
+      color: var(--text);
+      padding: 24px;
+      display: grid;
+      place-items: center;
+    }
+
+    .card {
+      width: min(100%, 620px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 16px 40px rgba(17, 24, 39, 0.08);
+      padding: 28px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.6rem;
+    }
+
+    p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .panel {
+      background: #f9fafb;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 14px;
+      word-break: break-word;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    button, a.btn {
+      border: 0;
+      border-radius: 10px;
+      background: var(--accent);
+      color: var(--accent-text);
+      padding: 10px 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-secondary {
+      background: #374151;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Basic Dashboard</h1>
+    <p>This page reads your JWT from local storage and checks access with <code>/protected</code>.</p>
+
+    <div class="panel" id="status">Checking session...</div>
+    <div class="panel" id="payload">No data yet.</div>
+
+    <div class="actions">
+      <button id="checkBtn" type="button">Check Protected Endpoint</button>
+      <a class="btn btn-secondary" href="/login-demo">Back to Login</a>
+      <button id="logoutBtn" type="button">Logout</button>
+    </div>
+  </main>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const payloadEl = document.getElementById('payload');
+    const checkBtn = document.getElementById('checkBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    async function checkSession() {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        statusEl.textContent = 'No token found. Redirecting to login...';
+        setTimeout(() => {
+          window.location.href = '/login-demo';
+        }, 900);
+        return;
+      }
+
+      statusEl.textContent = 'Token found. Verifying access...';
+
+      const response = await fetch('/protected', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        statusEl.textContent = 'Authenticated.';
+        payloadEl.textContent = JSON.stringify(data, null, 2);
+      } else {
+        statusEl.textContent = data.msg || 'Session invalid.';
+        payloadEl.textContent = JSON.stringify(data, null, 2);
+      }
+    }
+
+    checkBtn.addEventListener('click', checkSession);
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('access_token');
+      window.location.href = '/login-demo';
+    });
+
+    checkSession();
+  </script>
+</body>
+</html>
