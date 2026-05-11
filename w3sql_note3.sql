@@ -1,7 +1,10 @@
 
+CHAR has fixed length, alphanumeric.
+VARCHAR is not fixed, alphanumeric
+ SQL, treats || as a logical OR you use CONCAT(column, " "(string), column) to acheive 
 
-
-
+ limit does not have "=" 
+If you have warning do SHOW warning
 
 to change the datatype of column alter table table_name 
 modify columnname datatype
