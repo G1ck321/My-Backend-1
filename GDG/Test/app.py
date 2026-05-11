@@ -160,5 +160,5 @@ def createUser():
     return jsonify({"message": "user created"}), 201
         
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT",3000))
+    port = int(os.environ.get("PORT",3500))
     app.run(host = "0.0.0.0",port=port, debug=True)
