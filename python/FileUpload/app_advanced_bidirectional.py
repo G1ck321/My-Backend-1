@@ -16,7 +16,7 @@ from pathlib import Path
 # Basic configuration
 UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "txt", "pdf", "md", "docx", "zip","html", "pptx","mht","com","exe"}
-MAX_FILE_SIZE_MB = 500
+MAX_FILE_SIZE_MB = 8000
 
 app = Flask(__name__)
 app.secret_key = "production_ready_secret_key_here!_change_in_prod"
