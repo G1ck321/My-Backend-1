@@ -82,7 +82,7 @@ async def initialize_payment(payload: FrontendPayRequest):
             detail=f"Crash details: {str(e)}"
         )
     
-@router.get("health", status_code=status.HTTP_200_OK, tags=["System Health"])
+@router.get("/health", status_code=status.HTTP_200_OK, tags=["System Health"])
 async def health_check():
     """
     Lightweight system performance & availability monitor target.
