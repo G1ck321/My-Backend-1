@@ -3,7 +3,8 @@ import httpx
 from database import supabase
 from config import settings
 
-router = APIRouter(prefix="/webhooks", tags=["Third-Party Secu
+router = APIRouter(prefix="/webhooks", tags=["Third-Party Security Webhooks"])
+
 async def send_telegram_notification(order_info: dict):
     """
     Asynchronous non-blocking network worker thread that formats data
