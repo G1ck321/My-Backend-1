@@ -10,21 +10,21 @@ async def send_telegram_notification(order_info: dict):
     Asynchronous non-blocking network worker thread that formats data
     and fires it down into the Telegram Admin channel.
     """
-    async def send_telegram_notification(order_info: dict):
+
     # Safe fallback data extraction using exact dict keys from your DB log
-        customer_name = order_info.get('name', 'N/A')
-        phone = order_info.get('phone', 'N/A')
-        address = order_info.get('address', 'N/A')
-        room = order_info.get('roomNumber', 'N/A')
+    name = order_info.get('name', 'N/A')
+    phone = order_info.get('phone', 'N/A')
+    address = order_info.get('address', 'N/A')
+    room = order_info.get('roomNumber', 'N/A')
     # Note the camelCase 'orderDetails' matching your Supabase log!
-        details = order_info.get('orderDetails', 'N/A') 
-        amount = order_info.get('amountpaid', '0.0')
-        tx_ref = order_info.get('tx_ref', 'N/A')
+    details = order_info.get('orderDetails', 'N/A') 
+    amount = order_info.get('amountpaid', '0.0')
+    tx_ref = order_info.get('tx_ref', 'N/A')
 
     # Standard, pure text string (No HTML tags like <b> or <i>)
     message = (
         "🔔 ITEM 7 NEW ORDER 🔔\n\n"
-        f"Customer: {customer_name}\n"
+        f"Customer: {name}\n"
         f"Phone: {phone}\n"
         f"Address: {address} (Room: {room})\n"
         f"Items: {details}\n"
