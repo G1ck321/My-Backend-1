@@ -24,12 +24,12 @@ async def send_telegram_notification(order_info: dict):
     # Standard, pure text string (No HTML tags like <b> or <i>)
     message = (
         "🔔 ITEM 7 NEW ORDER 🔔\n\n"
-        f"Customer: {name}\n"
+        f"Student Name: {name}\n"
         f"Phone: {phone}\n"
-        f"Address: {address} (Room: {room})\n"
+        f"Hall: {address} (Room: {room})\n"
         f"Items: {details}\n"
         f"Amount: NGN {amount}\n"
-        f"Ref: {tx_ref}"
+        f"Tx-Ref: {tx_ref}"
     )
     
     telegram_api_url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
