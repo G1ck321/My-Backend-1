@@ -3,37 +3,40 @@ import httpx
 from database import supabase
 from config import settings
 
-router = APIRouter(prefix="/webhooks", tags=["Third-Party Security Webhooks"])
-
+router = APIRouter(prefix="/webhooks", tags=["Third-Party Secu
 async def send_telegram_notification(order_info: dict):
     """
     Asynchronous non-blocking network worker thread that formats data
     and fires it down into the Telegram Admin channel.
     """
+    async def send_telegram_notification(order_info: dict):
+    # Safe fallback data extraction using exact dict keys from your DB log
+        customer_name = order_info.get('name', 'N/A')
+        phone = order_info.get('phone', 'N/A')
+        address = order_info.get('address', 'N/A')
+        room = order_info.get('roomNumber', 'N/A')
+    # Note the camelCase 'orderDetails' matching your Supabase log!
+        details = order_info.get('orderDetails', 'N/A') 
+        amount = order_info.get('amountpaid', '0.0')
+        tx_ref = order_info.get('tx_ref', 'N/A')
+
+    # Standard, pure text string (No HTML tags like <b> or <i>)
     message = (
-        f"🚨 NEW PAID ORDER RECEIVED</b> 🚨\n\n"
-        f"👤 Customer: {order_info.get('name')}\n"
-        f"📞 Phone: {order_info.get('phone')}\n"
-        f"📞 MATRIC No: {order_info.get('matricno')}\n"
-        f"📍 Hall: {order_info.get('hall')}, Room No {order_info.get('roomno')}\n"
-        f"🛍️ Items Ordered:\n{order_info.get('orderdetails')}\n\n"
-        f"💰 Paid Amount: NGN {order_info.get('amountpaid')}\n"
-        f"🔖 Ref IDs: <code>{order_info.get('tx_ref')}</code>"
-        # -----------------------
-        # f"🔔 ITEM 7 NEW ORDER 🔔\n\n"
-        # f"Customer: {order_info.get('name')}\n"
-        # f"Phone: {order_info.get('phone')}\n"
-        # f"Location: {order_info.get('location')} (House: {order_info.get('housenumber')})\n"
-        # f"Items: {order_info.get('orderdetails')}\n"
-        # f"Amount: NGN {order_info.get('amountpaid')}\n"
-        # f"Ref: {order_info.get('tx_ref')}"
+        "🔔 ITEM 7 NEW ORDER 🔔\n\n"
+        f"Customer: {customer_name}\n"
+        f"Phone: {phone}\n"
+        f"Address: {address} (Room: {room})\n"
+        f"Items: {details}\n"
+        f"Amount: NGN {amount}\n"
+        f"Ref: {tx_ref}"
     )
     
     telegram_api_url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+    
+    # 🌟 CRITICAL: Explicitly ensure "parse_mode" is NOT in this payload dictionary!
     payload = {
         "chat_id": settings.TELEGRAM_CHAT_ID,
-        "text": message,
-        "parse_mode": "HTML"
+        "text": message
     }
     
     async with httpx.AsyncClient() as client:
@@ -86,12 +89,12 @@ async def process_flutterwave_payment_webhook(
             return {"status": "ignored", "reason": "Already processed transaction pattern."}
 
         # 4. Atomic Database Updates via Supabase client
-        print(f"DEBUG: Webhook verified for ref {tx_ref}. Updating DB status...")
+        # print(f"DEBUG: Webhook verified for ref {tx_ref}. Updating DB status...")
         updated_order = supabase.table("orders").update({"status": "paid"}).eq("tx_ref", tx_ref).execute()
         
         if updated_order.data:
             order_data = updated_order.data[0]
-            print(f"DEBUG: DB updated successfully to paid! Data: {order_data}")
+            # print(f"DEBUG: DB updated successfully to paid! Data: {order_data}")
             
             # 🌟 BYPASS BACKGROUND WORKER: Run it immediately in-line to force error visibility
             print("DEBUG: Invoking Telegram dispatch function...")

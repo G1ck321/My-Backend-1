@@ -5,6 +5,7 @@ import httpx
 from schemas import FrontendPayRequest
 from database import supabase
 from config import settings
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix="/api", tags=["Payment Initialization Pipeline"])
 
@@ -80,3 +81,17 @@ async def initialize_payment(payload: FrontendPayRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Crash details: {str(e)}"
         )
+    
+@router.get("health", status_code=status.HTTP_200_OK, tags=["System Health"])
+async def health_check():
+    """
+    Lightweight system performance & availability monitor target.
+    Used by UptimeRobot to prevent Render containers from entering sleep states.
+    """
+    return JSONResponse(
+        content={
+            "status": "operational",
+            "environment": "development",
+            "message": "Item 7 API system is running smoothly."
+        }
+    )
