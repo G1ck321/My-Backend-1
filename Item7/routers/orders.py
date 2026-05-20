@@ -23,7 +23,7 @@ async def initialize_payment(payload: FrontendPayRequest):
             "address": payload.address,        
             "roomNumber": payload.roomNumber,  
             "orderDetails": payload.orderDetails,
-            "amountpaid": payload.amount,
+            "amountpaid": 50,
             "tx_ref": tx_ref,
             "status": "pending"
         }
