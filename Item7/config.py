@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str
     TELEGRAM_CHAT_ID: str
     RESEND_API_KEY: str
+    OWNER_EMAIL_ADDRESS: str
 
     @field_validator("TELEGRAM_BOT_TOKEN", mode="before")
     @classmethod
