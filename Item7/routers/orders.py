@@ -45,7 +45,7 @@ async def initialize_payment(payload: FrontendPayRequest):
             "tx_ref": tx_ref,
             "amount": 50,
             "currency": "NGN",
-            "redirect_url": "http://localhost:3000/", 
+            "redirect_url": "https://item7cu.vercel.app/", 
             "customer": {
                 "email": customer_email,
                 "phone_number": payload.phone,
