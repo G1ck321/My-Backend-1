@@ -2,8 +2,96 @@ from fastapi import APIRouter, Request, Header, HTTPException, BackgroundTasks, 
 import httpx
 from database import supabase
 from config import settings
+from datetime import datetime, timezone
+import resend
 
 router = APIRouter(prefix="/webhooks", tags=["Third-Party Security Webhooks"])
+
+# Initialize the Resend Master Token
+resend.api_key = settings.RESEND_API_KEY
+
+# ==========================================
+# EMAIL DISPATCH HELPER
+# ==========================================
+def send_email_order_receipt(order_info: dict):
+    """Fires a structured HTML transactional report to the manager's inbox"""
+    name = order_info.get('name', 'N/A')
+    details = order_info.get('orderDetails', 'N/A')
+    amount = order_info.get('amountpaid', '0.0')
+    tx_ref = order_info.get('tx_ref', 'N/A')
+
+    html_content = f"""
+    <h3>🔔 Item 7 Management Dashboard</h3>
+    <p>A new payment has been fully confirmed on the server.</p>
+    <hr />
+    <p><strong>Customer:</strong> {name}</p>
+    <p><strong>Order Details:</strong><br />{details.replace('\n', '<br />')}</p>
+    <p><strong>Amount Cleared:</strong> NGN {amount}</p>
+    <p><strong>Transaction Reference:</strong> <code>{tx_ref}</code></p>
+    <hr />
+    """
+
+    try:
+        # If using Resend's free tier, the "from" email must use "onboarding@resend.dev"
+        # and "to" must be the email address you signed up to Resend with!
+        resend.Emails.send({
+            "from": "Item7Orders <onboarding@resend.dev>",
+            "to": [settings.OWNER_EMAIL_ADDRESS],
+            "subject": f"🔥 New Paid Order - NGN {amount}",
+            "html": html_content,
+        })
+        print(f"DEBUG: Resend transaction alert sent successfully for {tx_ref}")
+    except Exception as e:
+        print(f"ERROR: Resend notification failed: {str(e)}")
+
+# ==========================================
+# 1. THE NEW PULL-BASED DASHBOARD HELPERS
+# ==========================================
+
+def get_todays_orders_from_supabase():
+    """Queries Supabase for paid orders matching today's date"""
+    # Calculates the start of today (UTC)
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    response = supabase.table("orders") \
+        .select("*") \
+        .eq("status", "paid") \
+        .gte("created_at", today_start.isoformat()) \
+        .order("created_at", desc=False) \
+        .execute()
+        
+    return response.data
+
+def compile_orders_dashboard(orders_list: list) -> str:
+    """Formats raw database rows into a single, clean text report"""
+    if not orders_list:
+        return "🍽️ **ITEM 7 DASHBOARD**\n\nNo paid orders logged yet for today. Keep pushing!"
+        
+    total_revenue = sum(order.get('amountpaid', 0.0) for order in orders_list)
+    
+    dashboard_text = (
+        "📊 **ITEM 7 LIVE MANAGEMENT REPORT**\n"
+        f"📅 Date: {datetime.now().strftime('%Y-%m-%d')}\n"
+        f"✅ Total Paid Orders: {len(orders_list)}\n"
+        f"💰 Total Revenue: NGN {total_revenue:,.2f}\n"
+        "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n\n"
+    )
+    
+    for i, order in enumerate(orders_list, 1):
+        name = order.get('name', 'N/A')
+        room = order.get('roomNumber', 'N/A')
+        hall = order.get('address', 'N/A')
+        details = order.get('orderDetails', 'N/A').replace('\n', ', ')
+        ref = order.get('tx_ref', 'N/A')[-6:] # Grab last 6 chars of ref
+        
+        dashboard_text += (
+            f"{i}. 📦 **Order #{ref}** - {name}\n"
+            f"   📍 {hall} (Room {room})\n"
+            f"   🍔 {details}\n"
+            "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+        )
+        
+    return dashboard_text
 
 async def send_telegram_notification(order_info: dict):
     """
@@ -13,6 +101,7 @@ async def send_telegram_notification(order_info: dict):
 
     # Safe fallback data extraction using exact dict keys from your DB log
     name = order_info.get('name', 'N/A')
+    matric = order_info.get('matricNumber', 'N/A')
     phone = order_info.get('phone', 'N/A')
     address = order_info.get('address', 'N/A')
     room = order_info.get('roomNumber', 'N/A')
@@ -25,6 +114,7 @@ async def send_telegram_notification(order_info: dict):
     message = (
         "🔔 ITEM 7 NEW ORDER 🔔\n\n"
         f"Student Name: {name}\n"
+        f"Matric Number: {matric}\n"
         f"Phone: {phone}\n"
         f"Hall: {address} (Room: {room})\n"
         f"Items: {details}\n"
@@ -51,7 +141,7 @@ async def send_telegram_notification(order_info: dict):
             print(f"CRITICAL: Failed dispatching notification for reference {order_info.get('tx_ref')}")
 
 @router.post("/flutterwave")
-async def process_flutterwave_payment_webhook(
+async def handle_flutterwave_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
     verif_hash: str = Header(None, alias="verif-hash")
@@ -67,7 +157,7 @@ async def process_flutterwave_payment_webhook(
             detail="Signature validation handshake mismatch."
         )
 
-    # 2. Extract payload payload body
+    # 2. Extract payload body
     payload = await request.json()
     
     # Check if the payment status event payload is explicitly successful
@@ -90,17 +180,47 @@ async def process_flutterwave_payment_webhook(
             return {"status": "ignored", "reason": "Already processed transaction pattern."}
 
         # 4. Atomic Database Updates via Supabase client
-        # print(f"DEBUG: Webhook verified for ref {tx_ref}. Updating DB status...")
         updated_order = supabase.table("orders").update({"status": "paid"}).eq("tx_ref", tx_ref).execute()
         
+        # 🌟 RIGHT HERE: Once your code successfully updates the database row to "paid"
+        # Check if database update was successful
         if updated_order.data:
-            order_data = updated_order.data[0]
-            # print(f"DEBUG: DB updated successfully to paid! Data: {order_data}")
+            order_record = updated_order.data[0]
             
-            # 🌟 BYPASS BACKGROUND WORKER: Run it immediately in-line to force error visibility
-            print("DEBUG: Invoking Telegram dispatch function...")
-            await send_telegram_notification(order_data)
+            # 🌟 FIXED: Using background_tasks keeps the webhook lightning-fast 
+            # and prevents runtime async/sync errors.
+            background_tasks.add_task(send_email_order_receipt, order_record)
         else:
             print("DEBUG: Supabase update failed or returned empty data.")
 
     return {"status": "acknowledged"}
+
+# ==========================================
+# 3. THE NEW INCOMING TELEGRAM ENDPOINT
+# ==========================================
+@router.post("/telegram")
+async def handle_telegram_incoming_traffic(request: Request):
+    """Listens for inbound group or DM chat interactions from Telegram"""
+    payload = await request.json()
+    
+    if "message" in payload and "text" in payload["message"]:
+        chat_id = payload["message"]["chat"]["id"]
+        incoming_text = payload["message"]["text"].strip()
+        
+        # If the owner types /orders, fetch data and respond instantly
+        if incoming_text.startswith("/orders"):
+            raw_orders = get_todays_orders_from_supabase()
+            final_report = compile_orders_dashboard(raw_orders)
+            
+            telegram_api_url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
+            
+            response_payload = {
+                "chat_id": chat_id,
+                "text": final_report,
+                "parse_mode": "Markdown" # Renders the asterisks as beautiful bold text labels
+            }
+            
+            async with httpx.AsyncClient() as client:
+                await client.post(telegram_api_url, json=response_payload)
+                
+    return {"status": "ok"}
