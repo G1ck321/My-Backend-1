@@ -95,3 +95,16 @@ async def health_check():
             "message": "Item 7 API system is running smoothly."
         }
     )
+@router.head("/health", status_code=status.HTTP_200_OK, tags=["System Health"])
+async def health_check():
+    """
+    Lightweight system performance & availability monitor target.
+    Used by UptimeRobot to prevent Render containers from entering sleep states.
+    """
+    return JSONResponse(
+        content={
+            "status": "operational",
+            "environment": "development",
+            "message": "Item 7 API system is running smoothly."
+        }
+    )

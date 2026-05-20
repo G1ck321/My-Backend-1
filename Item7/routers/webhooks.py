@@ -127,7 +127,8 @@ async def send_telegram_notification(order_info: dict):
     # 🌟 CRITICAL: Explicitly ensure "parse_mode" is NOT in this payload dictionary!
     payload = {
         "chat_id": settings.TELEGRAM_CHAT_ID,
-        "text": message
+        "text": message,
+        "parse_mode": ""  # Passing an empty string completely disables HTML/Markdown parsing
     }
     
     async with httpx.AsyncClient() as client:
