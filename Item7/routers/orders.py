@@ -49,7 +49,9 @@ async def initialize_payment(payload: FrontendPayRequest):
             "customer": {
                 "email": customer_email,
                 "phone_number": payload.phone,
-                "name": payload.name
+                "name": payload.name,
+                "phone": payload.phone,
+            "matricNumber": payload.matricNumber,
             },
             "customizations": {
                 "title": "Your Store Automation Engine",
