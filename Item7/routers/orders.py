@@ -43,7 +43,7 @@ async def initialize_payment(payload: FrontendPayRequest):
         
         flutterwave_payload = {
             "tx_ref": tx_ref,
-            "amount": 50,
+            "amount": payload.amount,
             "currency": "NGN",
             "redirect_url": "https://item7cu.vercel.app/", 
             "customer": {

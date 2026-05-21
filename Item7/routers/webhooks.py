@@ -3,12 +3,12 @@ import httpx
 from database import supabase
 from config import settings
 from datetime import datetime, timezone
-import resend
+# import resend
 
 router = APIRouter(prefix="/webhooks", tags=["Third-Party Security Webhooks"])
 
 # Initialize the Resend Master Token
-resend.api_key = settings.RESEND_API_KEY
+# resend.api_key = settings.RESEND_API_KEY
 
 # ==========================================
 # EMAIL DISPATCH HELPER
@@ -198,6 +198,7 @@ async def handle_flutterwave_webhook(
             
             # 🌟 FIXED: Using background_tasks keeps the webhook lightning-fast 
             # and prevents runtime async/sync errors.
+            # background_tasks.add_task(send_email_order_receipt, order_record)
             background_tasks.add_task(send_email_order_receipt, order_record)
         else:
             print("DEBUG: Supabase update failed or returned empty data.")
