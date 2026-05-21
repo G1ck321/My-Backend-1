@@ -20,7 +20,7 @@ def send_email_order_receipt(order_info: dict):
     amount = order_info.get('amountpaid', '0.0')
     tx_ref = order_info.get('tx_ref', 'N/A')
     matric = order_info.get("matricNumber","N/A")
-    phone_num = order_info.get("number", "N/A")
+    phone_num = order_info.get("phone", "N/A")
 
     html_content = f"""
     <h3>🔔 Item 7 Management Dashboard</h3>
@@ -88,7 +88,7 @@ def compile_orders_dashboard(orders_list: list) -> str:
         details = order.get('orderDetails', 'N/A').replace('\n', ', ')
         ref = order.get('tx_ref', 'N/A')[-6:] # Grab last 6 chars of ref
         matric = order.get("matricNumber","N/A")
-        phone_num = order.get("number", "N/A")
+        phone_num = order.get("phone", "N/A")
         
         dashboard_text += (
             f"{i}. 📦 **Order #{ref}** - {name}\n"
