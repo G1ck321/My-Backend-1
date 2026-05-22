@@ -11,9 +11,11 @@ router = APIRouter(prefix="/api", tags=["Payment Initialization Pipeline"])
 
 @router.post("/pay")
 async def initialize_payment(payload: FrontendPayRequest):
+    calculated_total = float(payload.amount) + 150
     try:
         # 1. Generate unique reference tracking tokens
         tx_ref = f"order-{uuid.uuid4().hex[:8]}-{int(uuid.uuid4().time_low)}"
+
         
         # 2. Map data to your Supabase schema format
         db_payload = {
@@ -23,7 +25,7 @@ async def initialize_payment(payload: FrontendPayRequest):
             "address": payload.address,        
             "roomNumber": payload.roomNumber,  
             "orderDetails": payload.orderDetails,
-            "amountpaid": payload.amount+150,
+            "amountpaid": calculated_total,
             "tx_ref": tx_ref,
             "status": "pending"
         }
@@ -43,7 +45,7 @@ async def initialize_payment(payload: FrontendPayRequest):
         
         flutterwave_payload = {
             "tx_ref": tx_ref,
-            "amount": payload.amount+150,
+            "amount": calculated_total,
             "currency": "NGN",
             "redirect_url": "https://item7cu.vercel.app/", 
             "customer": {
