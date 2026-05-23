@@ -51,12 +51,16 @@ async def initialize_payment(payload: FrontendPayRequest):
             "redirect_url": "https://item7cu.vercel.app/", 
             "customer": {
                 #"email": customer_email,
-                "phone_number": payload.phone,
                 "name": payload.name,
                 "phone": payload.phone,
-            "matricNumber": payload.matricNumber,
-            "email": payload.email,
+                "email": payload.email,
             },
+#these details have to be in meta, only specific things like name email and phone can be in customer 
+"meta": {
+        "Matric Number": payload.matricNumber,
+        "Delivery Room": payload.roomNumber,
+        "Delivery Hall/Address": payload.address
+    },
             "payment_options": "card, ussd, banktransfer, opay",
 #enables multiple payment options 
             "customizations": {
