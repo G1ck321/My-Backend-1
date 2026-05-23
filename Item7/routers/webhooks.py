@@ -244,7 +244,10 @@ async def handle_telegram_incoming_traffic(request: Request):
         chat_id = payload["message"]["chat"]["id"]
         incoming_text = payload["message"]["text"].strip()
         
-       if incoming_text.startswith("/today"):
+        final_report = "" # Default empty string
+        
+        # 1. Handle the NEW /today command (Itemized list)
+        if incoming_text.startswith("/today"):
             raw_orders = get_todays_orders_from_supabase()
             final_report = compile_orders_dashboard(raw_orders)
             
