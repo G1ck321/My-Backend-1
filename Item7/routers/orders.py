@@ -64,8 +64,8 @@ async def initialize_payment(payload: FrontendPayRequest):
             "payment_options": "card, ussd, banktransfer, opay",
 #enables multiple payment options 
             "customizations": {
-                "title": "Your Store Automation Engine",
-                "description": "Secure payment confirmation processing."
+                "title": "Item 7 Meals",
+                "description": f"Food: NGN {payload.amount} | Convenience Fee: NGN 150"
             }
         }
         

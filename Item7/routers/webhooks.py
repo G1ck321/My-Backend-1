@@ -66,6 +66,15 @@ def get_todays_orders_from_supabase():
         
     return response.data
 
+def get_all_orders_from_supabase():
+    """Queries Supabase for ALL paid orders across all time"""
+    response = supabase.table("orders") \
+        .select("*") \
+        .eq("status", "paid") \
+        .execute()
+        
+    return response.data
+
 def compile_orders_dashboard(orders_list: list) -> str:
     """Formats raw database rows into a single, clean text report"""
     if not orders_list:
@@ -99,6 +108,24 @@ def compile_orders_dashboard(orders_list: list) -> str:
             "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
         )
         
+    return dashboard_text
+
+def compile_summary_dashboard(orders_list: list) -> str:
+    """Formats all-time database rows into a quick revenue summary"""
+    if not orders_list:
+        return "🍽️ **ITEM 7 ALL-TIME DASHBOARD**\n\nNo paid orders logged yet."
+        
+    total_revenue = sum(order.get('amountpaid', 0.0) for order in orders_list)
+    
+    dashboard_text = (
+        "📈 **ITEM 7 ALL-TIME BUSINESS SUMMARY**\n"
+        "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+        f"✅ Total Lifetime Orders: {len(orders_list)}\n"
+        f"💰 Total Lifetime Revenue: NGN {total_revenue:,.2f}\n"
+        "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+        "💡 *Tip: Type /today to see today's specific itemized orders.*"
+    )
+    
     return dashboard_text
 
 async def send_telegram_notification(order_info: dict):
@@ -217,20 +244,62 @@ async def handle_telegram_incoming_traffic(request: Request):
         chat_id = payload["message"]["chat"]["id"]
         incoming_text = payload["message"]["text"].strip()
         
-        # If the owner types /orders, fetch data and respond instantly
-        if incoming_text.startswith("/orders"):
+       if incoming_text.startswith("/today"):
             raw_orders = get_todays_orders_from_supabase()
             final_report = compile_orders_dashboard(raw_orders)
             
+        # 2. Handle the UPDATED /orders command (All-time summary)
+        elif incoming_text.startswith("/orders"):
+            raw_orders = get_all_orders_from_supabase()
+            final_report = compile_summary_dashboard(raw_orders)
+            
+        # 3. Only send a message if one of our commands was triggered
+        if final_report:
             telegram_api_url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
             
             response_payload = {
                 "chat_id": chat_id,
                 "text": final_report,
-                "parse_mode": "Markdown" # Renders the asterisks as beautiful bold text labels
+                "parse_mode": "Markdown" 
             }
             
             async with httpx.AsyncClient() as client:
                 await client.post(telegram_api_url, json=response_payload)
                 
     return {"status": "ok"}
+
+from fastapi.responses import Response
+import csv
+import io
+from database import supabase
+
+@router.get("/admin/export-csv")
+async def export_orders_csv():
+    # 1. Fetch all paid orders
+    db_response = supabase.table("orders").select("*").eq("status", "paid").execute()
+    orders = db_response.data
+    
+    # 2. Create an empty memory buffer to hold the CSV text
+    csv_buffer = io.StringIO()
+    writer = csv.writer(csv_buffer)
+    
+    # 3. Write the Header Row for Excel
+    writer.writerow(["Order ID", "Customer Name", "Matric Number", "Amount Paid", "Items Ordered", "Date"])
+    
+    # 4. Loop through the database and write each row
+    for order in orders:
+        writer.writerow([
+            order.get("tx_ref"), 
+            order.get("name"), 
+            order.get("matricNumber"),
+            order.get("amountpaid"), 
+            order.get("orderDetails"), 
+            order.get("created_at")
+        ])
+        
+    # 5. Return it as a downloadable file!
+    return Response(
+        content=csv_buffer.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=item7_sales_report.csv"}
+    )
