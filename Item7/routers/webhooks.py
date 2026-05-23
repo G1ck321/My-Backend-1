@@ -199,7 +199,7 @@ async def handle_flutterwave_webhook(
             # 🌟 FIXED: Using background_tasks keeps the webhook lightning-fast 
             # and prevents runtime async/sync errors.
             # background_tasks.add_task(send_email_order_receipt, order_record)
-            background_tasks.add_task(send_email_order_receipt, order_record)
+            background_tasks.add_task( order_record)
         else:
             print("DEBUG: Supabase update failed or returned empty data.")
 
