@@ -50,7 +50,7 @@ async def initialize_payment(payload: FrontendPayRequest):
             "currency": "NGN",
             "redirect_url": "https://item7cu.vercel.app/", 
             "customer": {
-                "email": customer_email,
+                #"email": customer_email,
                 "phone_number": payload.phone,
                 "name": payload.name,
                 "phone": payload.phone,
