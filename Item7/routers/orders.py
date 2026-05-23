@@ -27,7 +27,8 @@ async def initialize_payment(payload: FrontendPayRequest):
             "orderDetails": payload.orderDetails,
             "amountpaid": calculated_total,
             "tx_ref": tx_ref,
-            "status": "pending"
+            "status": "pending",
+            "email": payload.email
         }
         
         # 3. Attempt Database Write
@@ -41,7 +42,7 @@ async def initialize_payment(payload: FrontendPayRequest):
             "Authorization": f"Bearer {settings.FW_SECRET_KEY}",
             "Content-Type": "application/json"
         }
-        customer_email = payload.email if payload.email else f"{payload.phone}@customer.com"
+        #customer_email = payload.email if payload.email else f"{payload.phone}@customer.com"
         
         flutterwave_payload = {
             "tx_ref": tx_ref,
@@ -54,7 +55,10 @@ async def initialize_payment(payload: FrontendPayRequest):
                 "name": payload.name,
                 "phone": payload.phone,
             "matricNumber": payload.matricNumber,
+            "email": payload.email,
             },
+            "payment_options": "card, ussd, banktransfer, opay",
+#enables multiple payment options 
             "customizations": {
                 "title": "Your Store Automation Engine",
                 "description": "Secure payment confirmation processing."
