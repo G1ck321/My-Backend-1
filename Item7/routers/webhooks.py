@@ -123,7 +123,7 @@ def compile_orders_dashboard(orders_list: list= Npne, total:int=0) -> str:
                 f"   🍔 {details}\n"
                 f"Matric No: {matric}"
                 f"Phone Number: {phone_num}"
-                "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+                "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n")
         
     except Exception as e:    
         print(f"Error compiling order row: {str(e)}")
