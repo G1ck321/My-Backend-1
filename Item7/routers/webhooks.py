@@ -292,19 +292,19 @@ async def handle_telegram_incoming_traffic(request: Request):
         
         # 1. Handle the NEW /today command (Itemized list)
         if incoming_text.startswith("/today"):
-            if incoming_text.endswith("number"):
-                today_total = get_todays_orders_from_supabase()[1]
-                final_report = compile_orders_dashboard(total = today_total)
-            raw_orders = get_todays_orders_from_supabase()[0]
+            raw_orders,_ = get_todays_orders_from_supabase()
             final_report = compile_orders_dashboard(raw_orders)
-        
 
+        elif incoming_text.endswith("todaynumber"):
+                _,today_total = get_todays_orders_from_supabase()
+                final_report = compile_orders_dashboard(total = today_total)
+        
+        elif incoming_text.endswith("ordersnumber"):
+                _,orders_total = get_all_orders_from_supabase()
+                final_report = compile_summary_dashboard(orders_total)
         # 2. Handle the UPDATED /orders command (All-time summary)
         elif incoming_text.startswith("/orders"):
-            if incoming_text.endswith("number"):
-                orders_total = get_all_orders_from_supabase()[1]
-                final_report = compile_summary_dashboard(orders_total)
-            raw_orders = get_all_orders_from_supabase()[0]
+            raw_orders,_ = get_all_orders_from_supabase()
             final_report = compile_summary_dashboard(raw_orders)
         
             
