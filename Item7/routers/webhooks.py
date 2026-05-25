@@ -75,8 +75,10 @@ def get_all_orders_from_supabase():
         
     return response.data, response.count
 
-def compile_orders_dashboard(orders_list: list= "", total:int=0) -> str:
+def compile_orders_dashboard(orders_list: list= Npne, total:int=0) -> str:
     """Formats raw database rows into a single, clean text report"""
+    if orders_list is None:
+        orders_list=[]
     if not orders_list and not total:
         return "🍽️ **ITEM 7 DASHBOARD**\n\nNo paid orders logged yet for today. Keep pushing!"
     dashboard_text = "🍽️ **ITEM 7 DASHBOARD**\n Nothing to show here"
@@ -122,15 +124,18 @@ def compile_orders_dashboard(orders_list: list= "", total:int=0) -> str:
                 f"Matric No: {matric}"
                 f"Phone Number: {phone_num}"
                 "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
-        "💡 *Tip:\n Type /today to see today's specific itemized orders.*\n" \
-        "/orders to see total orders amount and revenue\n"
-        " /todaynumber to see today's total\n"
-        " /ordersnumber to see total lifetime orders"
-                "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
-            )
-    except:    
-        return dashboard_text
-
+        
+    except Exception as e:    
+        print(f"Error compiling order row: {str(e)}")
+    dashboard_text += (
+        "\n💡 *Menu Options:*\n"
+        "• /today - Today's itemized orders\n"
+        "• /orders - All-time business summary\n"
+        "• /todaynumber - Today's total count\n"
+        "• /ordersnumber - Lifetime total count"
+    )
+    return dashboard_text # 🌟 FIXED: Moved outside the except block!
+    
 def compile_summary_dashboard(orders_list: list = "", total:int = 0) -> str:
     """Formats all-time database rows into a quick revenue summary"""
     if not orders_list and not total:
@@ -162,8 +167,10 @@ def compile_summary_dashboard(orders_list: list = "", total:int = 0) -> str:
             " /todaynumber to see today's total\n"
             " /ordersnumber to see total lifetime orders"
         )
-    except:
-        return dashboard_text
+    except Exception as e:
+        print(f"Error compiling summary: {str(e)}")
+        dashboard_text = "⚠️ Error calculating financial analytics."
+    return dashboard_text
 
 async def send_telegram_notification(order_info: dict):
     """
