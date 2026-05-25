@@ -75,7 +75,7 @@ def get_all_orders_from_supabase():
         
     return response.data, response.count
 
-def compile_orders_dashboard(orders_list: list= Npne, total:int=0) -> str:
+def compile_orders_dashboard(orders_list: list= None, total:int=0) -> str:
     """Formats raw database rows into a single, clean text report"""
     if orders_list is None:
         orders_list=[]
@@ -136,7 +136,7 @@ def compile_orders_dashboard(orders_list: list= Npne, total:int=0) -> str:
     )
     return dashboard_text # 🌟 FIXED: Moved outside the except block!
     
-def compile_summary_dashboard(orders_list: list = "", total:int = 0) -> str:
+def compile_summary_dashboard(orders_list: list = None, total:int = 0) -> str:
     """Formats all-time database rows into a quick revenue summary"""
     if not orders_list and not total:
         return "🍽️ **ITEM 7 ALL-TIME DASHBOARD**\n\nNo paid orders logged yet."
