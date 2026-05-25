@@ -75,21 +75,36 @@ def get_all_orders_from_supabase():
         
     return response.data, response.count
 
-def compile_orders_dashboard(orders_list: list) -> str:
+def compile_orders_dashboard(orders_list: list= "", total:int=0) -> str:
     """Formats raw database rows into a single, clean text report"""
-    if not orders_list:
+    if not orders_list and not total:
         return "🍽️ **ITEM 7 DASHBOARD**\n\nNo paid orders logged yet for today. Keep pushing!"
-    
-        
-    total_revenue = sum(order.get('amountpaid', 0.0) for order in orders_list)
-    
-    dashboard_text = (
+    dashboard_text = "🍽️ **ITEM 7 DASHBOARD**\n Nothing to show here"
+    if total:
+        dashboard_text = (
+        "📊 **ITEM 7 LIVE MANAGEMENT REPORT**\n"
+        f"📅 Date: {datetime.now().strftime('%Y-%m-%d')}\n"
+        f"✅ Total Paid Orders: {total}\n"
+        "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+        "💡 *Tip:\n Type /today to see today's specific itemized orders.*\n" \
+        "/orders to see total orders amount and revenue\n"
+        " /todaynumber to see today's total\n"
+        " /ordersnumber to see total lifetime orders"
+        "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n\n"
+    )
+        return dashboard_text
+    else:
+
+        total_revenue = sum(order.get('amountpaid', 0.0) for order in orders_list)
+   
+        dashboard_text = (
         "📊 **ITEM 7 LIVE MANAGEMENT REPORT**\n"
         f"📅 Date: {datetime.now().strftime('%Y-%m-%d')}\n"
         f"✅ Total Paid Orders: {len(orders_list)}\n"
         f"💰 Total Revenue: NGN {total_revenue:,.2f}\n"
         "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n\n"
-    )
+        )
+
     try:
         for i, order in enumerate(orders_list, 1):
             name = order.get('name', 'N/A')
@@ -107,27 +122,48 @@ def compile_orders_dashboard(orders_list: list) -> str:
                 f"Matric No: {matric}"
                 f"Phone Number: {phone_num}"
                 "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+        "💡 *Tip:\n Type /today to see today's specific itemized orders.*\n" \
+        "/orders to see total orders amount and revenue\n"
+        " /todaynumber to see today's total\n"
+        " /ordersnumber to see total lifetime orders"
+                "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
             )
     except:    
         return dashboard_text
 
-def compile_summary_dashboard(orders_list: list) -> str:
+def compile_summary_dashboard(orders_list: list = "", total:int = 0) -> str:
     """Formats all-time database rows into a quick revenue summary"""
-    if not orders_list:
+    if not orders_list and not total:
         return "🍽️ **ITEM 7 ALL-TIME DASHBOARD**\n\nNo paid orders logged yet."
-        
-    total_revenue = sum(order.get('amountpaid', 0.0) for order in orders_list)
-    
-    dashboard_text = (
+    dashboard_text = "🍽️ **ITEM 7 DASHBOARD**\n Nothing to show here"
+    if total:
+            dashboard_text = (
         "📈 **ITEM 7 ALL-TIME BUSINESS SUMMARY**\n"
         "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
-        f"✅ Total Lifetime Orders: {len(orders_list)}\n"
-        f"💰 Total Lifetime Revenue: NGN {total_revenue:,.2f}\n"
+        f"✅ Total Lifetime Orders: {total}\n"
         "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
-        "💡 *Tip: Type /today to see today's specific itemized orders.*"
+        "💡 *Tip:\n Type /today to see today's specific itemized orders.*\n" \
+        "/orders to see total orders amount and revenue\n"
+        " /todaynumber to see today's total\n"
+        " /ordersnumber to see total lifetime orders"
     )
-    
-    return dashboard_text
+            return dashboard_text
+    try:
+        total_revenue = sum(order.get('amountpaid', 0.0) for order in orders_list)
+        
+        dashboard_text = (
+            "📈 **ITEM 7 ALL-TIME BUSINESS SUMMARY**\n"
+            "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+            f"✅ Total Lifetime Orders: {len(orders_list)}\n"
+            f"💰 Total Lifetime Revenue: NGN {total_revenue:,.2f}\n"
+            "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+            "💡 *Tip:\n Type /today to see today's specific itemized orders.*\n" \
+            "/orders to see total orders amount and revenue\n"
+            " /todaynumber to see today's total\n"
+            " /ordersnumber to see total lifetime orders"
+        )
+    except:
+        return dashboard_text
 
 async def send_telegram_notification(order_info: dict):
     """
@@ -249,18 +285,18 @@ async def handle_telegram_incoming_traffic(request: Request):
         
         # 1. Handle the NEW /today command (Itemized list)
         if incoming_text.startswith("/today"):
-            if incoming_text.endswith("total"):
+            if incoming_text.endswith("number"):
                 today_total = get_todays_orders_from_supabase()[1]
-                final_report = compile_orders_dashboard(today_total)
+                final_report = compile_orders_dashboard(total = today_total)
             raw_orders = get_todays_orders_from_supabase()[0]
             final_report = compile_orders_dashboard(raw_orders)
         
 
         # 2. Handle the UPDATED /orders command (All-time summary)
         elif incoming_text.startswith("/orders"):
-            if incoming_text.endswith("total"):
+            if incoming_text.endswith("number"):
                 orders_total = get_all_orders_from_supabase()[1]
-                final_report = compile_orders_dashboard(orders_total)
+                final_report = compile_summary_dashboard(orders_total)
             raw_orders = get_all_orders_from_supabase()[0]
             final_report = compile_summary_dashboard(raw_orders)
         
