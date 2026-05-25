@@ -79,6 +79,7 @@ def compile_orders_dashboard(orders_list: list) -> str:
     """Formats raw database rows into a single, clean text report"""
     if not orders_list:
         return "🍽️ **ITEM 7 DASHBOARD**\n\nNo paid orders logged yet for today. Keep pushing!"
+    
         
     total_revenue = sum(order.get('amountpaid', 0.0) for order in orders_list)
     
@@ -89,26 +90,26 @@ def compile_orders_dashboard(orders_list: list) -> str:
         f"💰 Total Revenue: NGN {total_revenue:,.2f}\n"
         "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n\n"
     )
-    
-    for i, order in enumerate(orders_list, 1):
-        name = order.get('name', 'N/A')
-        room = order.get('roomNumber', 'N/A')
-        hall = order.get('address', 'N/A')
-        details = order.get('orderDetails', 'N/A').replace('\n', ', ')
-        ref = order.get('tx_ref', 'N/A')[-6:] # Grab last 6 chars of ref
-        matric = order.get("matricNumber","N/A")
-        phone_num = order.get("phone", "N/A")
-        
-        dashboard_text += (
-            f"{i}. 📦 **Order #{ref}** - {name}\n"
-            f"   📍 {hall} (Room {room})\n"
-            f"   🍔 {details}\n"
-            f"Matric No: {matric}"
-            f"Phone Number: {phone_num}"
-            "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
-        )
-        
-    return dashboard_text
+    try:
+        for i, order in enumerate(orders_list, 1):
+            name = order.get('name', 'N/A')
+            room = order.get('roomNumber', 'N/A')
+            hall = order.get('address', 'N/A')
+            details = order.get('orderDetails', 'N/A').replace('\n', ', ')
+            ref = order.get('tx_ref', 'N/A')[-6:] # Grab last 6 chars of ref
+            matric = order.get("matricNumber","N/A")
+            phone_num = order.get("phone", "N/A")
+            
+            dashboard_text += (
+                f"{i}. 📦 **Order #{ref}** - {name}\n"
+                f"   📍 {hall} (Room {room})\n"
+                f"   🍔 {details}\n"
+                f"Matric No: {matric}"
+                f"Phone Number: {phone_num}"
+                "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+            )
+    except:    
+        return dashboard_text
 
 def compile_summary_dashboard(orders_list: list) -> str:
     """Formats all-time database rows into a quick revenue summary"""
