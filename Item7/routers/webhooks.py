@@ -58,13 +58,13 @@ def get_todays_orders_from_supabase():
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
     
     response = supabase.table("orders") \
-        .select("*") \
+        .select("*", count="exact") \
         .eq("status", "paid") \
         .gte("created_at", today_start.isoformat()) \
         .order("created_at", desc=False) \
         .execute()
         
-    return response.data
+    return response.data, response.count
 
 def get_all_orders_from_supabase():
     """Queries Supabase for ALL paid orders across all time"""
@@ -73,7 +73,7 @@ def get_all_orders_from_supabase():
         .eq("status", "paid") \
         .execute()
         
-    return response.data
+    return response.data, response.count
 
 def compile_orders_dashboard(orders_list: list) -> str:
     """Formats raw database rows into a single, clean text report"""
@@ -248,13 +248,22 @@ async def handle_telegram_incoming_traffic(request: Request):
         
         # 1. Handle the NEW /today command (Itemized list)
         if incoming_text.startswith("/today"):
-            raw_orders = get_todays_orders_from_supabase()
+            raw_orders = get_todays_orders_from_supabase()[0]
             final_report = compile_orders_dashboard(raw_orders)
-            
+        
+        elif incoming_text.startswith("/todaytotal"):
+            today_total = get_todays_orders_from_supabase()[1]
+            final_report = compile_orders_dashboard(today_total)
+
         # 2. Handle the UPDATED /orders command (All-time summary)
         elif incoming_text.startswith("/orders"):
-            raw_orders = get_all_orders_from_supabase()
+            raw_orders = get_all_orders_from_supabase()[0]
             final_report = compile_summary_dashboard(raw_orders)
+        
+        elif incoming_text.startswith("/orderstotal"):
+            orders_total = get_all_orders_from_supabase()[1]
+            final_report = compile_orders_dashboard(orders_total)
+            
             
         # 3. Only send a message if one of our commands was triggered
         if final_report:
