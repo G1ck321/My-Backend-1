@@ -138,21 +138,26 @@ def compile_orders_dashboard(orders_list: list= None, total:int=0) -> str:
     
 def compile_summary_dashboard(orders_list: list = None, total:int = 0) -> str:
     """Formats all-time database rows into a quick revenue summary"""
-    if not orders_list and not total:
+    
+    # Mode 1: Only total count provided (from /ordersnumber command)
+    if total and orders_list is None:
+        dashboard_text = (
+            "📈 **ITEM 7 ALL-TIME BUSINESS SUMMARY**\n"
+            "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+            f"✅ Total Lifetime Orders: {total}\n"
+            "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
+            "💡 *Tips:*\n"
+            "• /today - Today's itemized orders\n"
+            "• /orders - All-time summary with revenue\n"
+            "• /todaynumber - Today's total count\n"
+            "• /ordersnumber - Lifetime total count"
+        )
+        return dashboard_text
+    
+    # Mode 2: Full list provided (from /orders command)
+    if orders_list is None or not orders_list:
         return "🍽️ **ITEM 7 ALL-TIME DASHBOARD**\n\nNo paid orders logged yet."
-    dashboard_text = "🍽️ **ITEM 7 DASHBOARD**\n Nothing to show here"
-    if total:
-            dashboard_text = (
-        "📈 **ITEM 7 ALL-TIME BUSINESS SUMMARY**\n"
-        "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
-        f"✅ Total Lifetime Orders: {total}\n"
-        "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
-        "💡 *Tip:\n Type /today to see today's specific itemized orders.*\n" \
-        "/orders to see total orders amount and revenue\n"
-        " /todaynumber to see today's total\n"
-        " /ordersnumber to see total lifetime orders"
-    )
-            return dashboard_text
+    
     try:
         total_revenue = sum(order.get('amountpaid', 0.0) for order in orders_list)
         
@@ -162,10 +167,11 @@ def compile_summary_dashboard(orders_list: list = None, total:int = 0) -> str:
             f"✅ Total Lifetime Orders: {len(orders_list)}\n"
             f"💰 Total Lifetime Revenue: NGN {total_revenue:,.2f}\n"
             "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n"
-            "💡 *Tip:\n Type /today to see today's specific itemized orders.*\n" \
-            "/orders to see total orders amount and revenue\n"
-            " /todaynumber to see today's total\n"
-            " /ordersnumber to see total lifetime orders"
+            "💡 *Tips:*\n"
+            "• /today - Today's itemized orders\n"
+            "• /orders - All-time summary with revenue\n"
+            "• /todaynumber - Today's total count\n"
+            "• /ordersnumber - Lifetime total count"
         )
     except Exception as e:
         print(f"Error compiling summary: {str(e)}")
