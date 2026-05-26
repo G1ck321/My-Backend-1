@@ -286,26 +286,29 @@ async def handle_telegram_incoming_traffic(request: Request):
     
     if "message" in payload and "text" in payload["message"]:
         chat_id = payload["message"]["chat"]["id"]
-        incoming_text = payload["message"]["text"].strip()
+        incoming_text = payload["message"]["text"].strip().lower()
         
         final_report = "" # Default empty string
         
-        # 1. Handle the NEW /today command (Itemized list)
-        if incoming_text.startswith("/today"):
-            raw_orders,_ = get_todays_orders_from_supabase()
+        # 1. Handle the /today command (itemized list for today)
+        if incoming_text == "/today":
+            raw_orders, _ = get_todays_orders_from_supabase()
             final_report = compile_orders_dashboard(raw_orders)
 
-        elif incoming_text.endswith("todaynumber"):
-                _,today_total = get_todays_orders_from_supabase()
-                final_report = compile_orders_dashboard(total = today_total)
-        
-        elif incoming_text.endswith("ordersnumber"):
-                _,orders_total = get_all_orders_from_supabase()
-                final_report = compile_summary_dashboard(orders_total)
-        # 2. Handle the UPDATED /orders command (All-time summary)
-        elif incoming_text.startswith("/orders"):
-            raw_orders,_ = get_all_orders_from_supabase()
+        # 2. Handle the /todaynumber command (today's total count)
+        elif incoming_text == "/todaynumber":
+            _, today_total = get_todays_orders_from_supabase()
+            final_report = compile_orders_dashboard(total=today_total)
+
+        # 3. Handle the /orders command (all-time summary)
+        elif incoming_text == "/orders":
+            raw_orders, _ = get_all_orders_from_supabase()
             final_report = compile_summary_dashboard(raw_orders)
+
+        # 4. Handle the /ordersnumber command (all-time total count)
+        elif incoming_text == "/ordersnumber":
+            _, orders_total = get_all_orders_from_supabase()
+            final_report = compile_summary_dashboard(total=orders_total)
         
             
             
