@@ -2,6 +2,7 @@ from urllib import response
 
 from fastapi import APIRouter, Request, Header, HTTPException, BackgroundTasks, status
 import httpx
+import re
 from database import supabase
 from config import settings
 from datetime import datetime, timezone
@@ -329,9 +330,8 @@ async def handle_telegram_incoming_traffic(request: Request):
             _, orders_total = get_all_orders_from_supabase()
             final_report = compile_summary_dashboard(total=orders_total)
 
-        elif incoming_text.isalnum():
-            incoming_text = incoming_text[1:]
-            matric_total = get_matric_orders(incoming_text)
+        elif re.fullmatch(r"\d{2}[a-zA-Z]{2}\d{6}", incoming_text):
+            matric_total = get_matric_orders(incoming_text.upper())
             final_report = compile_orders_dashboard(matric_total)
                         
             

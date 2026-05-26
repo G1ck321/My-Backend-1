@@ -1,4 +1,6 @@
-from pydantic import BaseModel, Field
+import re
+
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
 class FrontendPayRequest(BaseModel):
@@ -15,6 +17,20 @@ class FrontendPayRequest(BaseModel):
     roomNumber: str
     orderDetails: str  # Matches 'orderDetails' from your frontend fetch body
     amount: float = Field(..., gt=0)  # Matches 'amount' (totalPrice) from your frontend fetch body
+
+    @field_validator("matricNumber", mode="before")
+    @classmethod
+    def validate_matric_number(cls, value):
+        if value in (None, ""):
+            return None
+        if not isinstance(value, str):
+            raise ValueError("matricNumber must be a string")
+
+        normalized_value = value.strip().upper()
+        if not re.fullmatch(r"\d{2}[A-Z]{2}\d{6}", normalized_value):
+            raise ValueError("matricNumber must match the format 12AB345678")
+
+        return normalized_value
 
 # from pydantic import BaseModel, Field
 # from typing import Optional
