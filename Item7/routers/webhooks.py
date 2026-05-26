@@ -330,8 +330,10 @@ async def handle_telegram_incoming_traffic(request: Request):
             _, orders_total = get_all_orders_from_supabase()
             final_report = compile_summary_dashboard(total=orders_total)
 
-        elif re.fullmatch(r"\d{2}[a-zA-Z]{2}\d{6}", incoming_text[1:]):
-            matric_total = get_matric_orders(incoming_text.upper())
+        # 5. Handle matric number lookup (e.g., /12AB345678)
+        elif incoming_text.startswith("/") and re.fullmatch(r"\d{2}[a-zA-Z]{2}\d{6}", incoming_text[1:]):
+            matric_number = incoming_text[1:].upper()
+            matric_total = get_matric_orders(matric_number)
             final_report = compile_orders_dashboard(matric_total)
                         
             
