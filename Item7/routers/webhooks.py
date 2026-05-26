@@ -69,7 +69,7 @@ def get_todays_orders_from_supabase():
 def get_all_orders_from_supabase():
     """Queries Supabase for ALL paid orders across all time"""
     response = supabase.table("orders") \
-        .select("*") \
+        .select("*", count="exact") \
         .eq("status", "paid") \
         .execute()
         
