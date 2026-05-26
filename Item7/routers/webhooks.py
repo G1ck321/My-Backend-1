@@ -330,6 +330,7 @@ async def handle_telegram_incoming_traffic(request: Request):
             final_report = compile_summary_dashboard(total=orders_total)
 
         elif incoming_text.isalnum():
+            incoming_text = incoming_text[1:]
             matric_total = get_matric_orders(incoming_text)
             final_report = compile_orders_dashboard(matric_total)
                         
