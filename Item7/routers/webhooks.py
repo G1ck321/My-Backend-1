@@ -186,6 +186,7 @@ def get_matric_orders(matricno):
     student = supabase.table("orders")\
             .select("*")\
             .eq("matricNumber",matricno)\
+            .eq("status", "paid")\
             .order("created_at", desc=False)\
             .execute()
     
