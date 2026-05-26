@@ -1,3 +1,5 @@
+from urllib import response
+
 from fastapi import APIRouter, Request, Header, HTTPException, BackgroundTasks, status
 import httpx
 from database import supabase
@@ -31,7 +33,7 @@ def send_email_order_receipt(order_info: dict):
     <p><strong>Amount Cleared:</strong> NGN {amount}</p>
     <p><strong>Transaction Reference:</strong> <code>{tx_ref}</code></p>
     <p><strong>Matric No:</strong> NGN {matric}</p>
-    <p><strong>Phone Number:</strong> NGN {phone_num}</p>
+    <p><strong>Phone Number:</strong> NGN {phone_num}</p><br>
     <hr />
     """
 
@@ -121,8 +123,8 @@ def compile_orders_dashboard(orders_list: list= None, total:int=0) -> str:
                 f"{i}. 📦 **Order #{ref}** - {name}\n"
                 f"   📍 {hall} (Room {room})\n"
                 f"   🍔 {details}\n"
-                f"Matric No: {matric}"
-                f"Phone Number: {phone_num}"
+                f"Matric No: {matric}\n"
+                f"Phone Number: {phone_num}\n"
                 "⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n")
         
     except Exception as e:    
@@ -177,6 +179,17 @@ def compile_summary_dashboard(orders_list: list = None, total:int = 0) -> str:
         print(f"Error compiling summary: {str(e)}")
         dashboard_text = "⚠️ Error calculating financial analytics."
     return dashboard_text
+
+def get_matric_orders(matricno):
+    """Obtain the Matric Number of the user from the telegram bot"""
+    student = supabase.table("orders")\
+            .select("*")\
+            .eq("matricNumber",matricno)\
+            .order("created_at", desc=False)\
+            .execute()
+    
+    return student.data
+
 
 async def send_telegram_notification(order_info: dict):
     """
@@ -315,8 +328,11 @@ async def handle_telegram_incoming_traffic(request: Request):
         elif incoming_text == "/ordersnumber":
             _, orders_total = get_all_orders_from_supabase()
             final_report = compile_summary_dashboard(total=orders_total)
-        
-            
+
+        elif incoming_text.isalnum():
+            matric_total = get_matric_orders(incoming_text)
+            final_report = compile_orders_dashboard(matric_total)
+                        
             
         # 3. Only send a message if one of our commands was triggered
         if final_report:
