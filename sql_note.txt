@@ -32,7 +32,7 @@ Error:
 
   
   run mysqld --console if it gets an error, delete the data folder 
-  run mysqld --initialize --console you will see a password copy it then run 
+  run mysqld --initialize --console/ mysqld --initialize --user=mysql you will see a password copy it then run 
   in a seperate cmd and run mysql -u root -p and type the password you copied
   type ALTER USER 'root'@'localhost' IDENTIFIED BY 'newpassword'; FLUSH privilege
 
@@ -68,7 +68,8 @@ to fix select or show table s* from table_name
 To change a column
   AlTER table add primary key(columnname) adds a primary
   ALTER TABLE table_name 
-  RENAME COLUMN column_name TO new_name(AlTER CAN ALSO BE MODIFY IN SOME DBMS) RENAME does not specify
+  U
+  [//]655]5=5=0]6] COLUMN column_name TO new_name(AlTER CAN ALSO BE MODIFY IN SOME DBMS) RENAME does not specify
   For mysql - ALTER TABLE python_table CHANGE old_name new_name datatype(int,varchar); change column specifies datatype
   alter table table_name add column columnname datatype
   alter table table_name drop column column_name
