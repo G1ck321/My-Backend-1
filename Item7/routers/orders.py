@@ -1,24 +1,24 @@
 import uuid
-import traceback  # 👈 Added to print the full error layout
+import traceback
 from fastapi import APIRouter, HTTPException, status
 import httpx
 from schemas import FrontendPayRequest
 from database import supabase
 from config import settings
 from fastapi.responses import JSONResponse
+    # Add the delivery/convenience fee on the server so the frontend cannot alter it.
 
 router = APIRouter(prefix="/api", tags=["Payment Initialization Pipeline"])
-
+        # Generate a unique reference that ties the pending order to the payment session.
 @router.post("/pay")
 async def initialize_payment(payload: FrontendPayRequest):
-    calculated_total = float(payload.amount) + 150
-    try:
+        # Shape the request into the exact column names expected by Supabase.
         # 1. Generate unique reference tracking tokens
         tx_ref = f"order-{uuid.uuid4().hex[:8]}-{int(uuid.uuid4().time_low)}"
 
         
-        # 2. Map data to your Supabase schema format
-        db_payload = {
+            "address": payload.address,
+            "roomNumber": payload.roomNumber,
             "name": payload.name,
             "phone": payload.phone,
             "matricNumber": payload.matricNumber,
@@ -26,45 +26,42 @@ async def initialize_payment(payload: FrontendPayRequest):
             "roomNumber": payload.roomNumber,  
             "orderDetails": payload.orderDetails,
             "amountpaid": calculated_total,
-            "tx_ref": tx_ref,
+        # Save the order before contacting the payment gateway.
             "status": "pending",
             "email": payload.email
         }
         
-        # 3. Attempt Database Write
+        # Build the Flutterwave payment payload with customer-facing details.
         print("DEBUG: Attempting to insert into Supabase...")
         db_response = supabase.table("orders").insert(db_payload).execute()
         print("DEBUG: Supabase insertion successful!")
 
         # 4. Attempt Flutterwave Call
-        flutterwave_api_url = "https://api.flutterwave.com/v3/payments"
         headers = {
             "Authorization": f"Bearer {settings.FW_SECRET_KEY}",
             "Content-Type": "application/json"
         }
         #customer_email = payload.email if payload.email else f"{payload.phone}@customer.com"
-        
+            "redirect_url": "https://item7cu.vercel.app/",
         flutterwave_payload = {
-            "tx_ref": tx_ref,
             "amount": calculated_total,
             "currency": "NGN",
             "redirect_url": "https://item7cu.vercel.app/", 
             "customer": {
-                #"email": customer_email,
-                "name": payload.name,
-                "phone": payload.phone,
-                "email": payload.email,
+            # Extra order data goes into meta because the gateway customer block is limited.
+            "meta": {
+                "Matric Number": payload.matricNumber,
+                "Delivery Room": payload.roomNumber,
+                "Delivery Hall/Address": payload.address,
             },
-#these details have to be in meta, only specific things like name email and phone can be in customer 
-"meta": {
-        "Matric Number": payload.matricNumber,
-        "Delivery Room": payload.roomNumber,
+            "payment_options": "card, ussd, banktransfer, opay",
         "Delivery Hall/Address": payload.address
     },
             "payment_options": "card, ussd, banktransfer, opay",
 #enables multiple payment options 
             "customizations": {
                 "title": "Item 7 Meals",
+        # Ask Flutterwave for a hosted checkout link.
                 "description": f"Food: NGN {payload.amount} | Convenience Fee: NGN 150"
             }
         }
@@ -83,12 +80,12 @@ async def initialize_payment(payload: FrontendPayRequest):
                 raise HTTPException(status_code=400, detail=f"Gateway Error: {flw_data.get('message')}")
                 
     except Exception as e:
-        # 🚨 This prints the exact traceback down to the line number in your terminal terminal window
+        # Keep the full traceback in the terminal during development.
         print("\n💥!!! CRITICAL BACKEND EXCEPTION DETECTED !!!💥")
         traceback.print_exc()
         print("💥!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!💥\n")
         
-        # Send the exact text explanation back to the client response payload
+        # Return a clean 500 response to the client.
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Crash details: {str(e)}"
@@ -108,7 +105,7 @@ async def health_check():
         }
     )
 @router.head("/health", status_code=status.HTTP_200_OK, tags=["System Health"])
-async def health_check():
+async def health_check_head():
     """
     Lightweight system performance & availability monitor target.
     Used by UptimeRobot to prevent Render containers from entering sleep states.

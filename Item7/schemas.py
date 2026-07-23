@@ -3,24 +3,24 @@ import re
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
+
 class FrontendPayRequest(BaseModel):
-    """
-    Validates the incoming payload arriving directly from your React frontend form.
-    This acts as the gatekeeper for data entering your API.
-    """
+    """Validate the checkout payload sent from the frontend before processing."""
+
+    # Customer identity and delivery details.
     name: str = Field(..., min_length=1)
     phone: str
     matricNumber: Optional[str] = None
-    # location: str
-    address:str
-    email:str
+    address: str
+    email: str
     roomNumber: str
-    orderDetails: str  # Matches 'orderDetails' from your frontend fetch body
-    amount: float = Field(..., gt=0)  # Matches 'amount' (totalPrice) from your frontend fetch body
+    orderDetails: str
+    amount: float = Field(..., gt=0)
 
     @field_validator("matricNumber", mode="before")
     @classmethod
     def validate_matric_number(cls, value):
+        # Keep the field optional, but normalize it when the user does send one.
         if value in (None, ""):
             return None
         if not isinstance(value, str):
@@ -31,20 +31,3 @@ class FrontendPayRequest(BaseModel):
             raise ValueError("matricNumber must match the format 12AB345678")
 
         return normalized_value
-
-# from pydantic import BaseModel, Field
-# from typing import Optional
-
-# class OrderCreate(BaseModel):
-#     """
-#     Validates incoming data payload sent directly from the Frontend UI
-#     before any checkout session is initiated.
-#     """
-#     name: str = Field(..., min_length=1, description="Customer's legal name")
-#     phone: str = Field(..., description="Customer's phone number")
-#     username: Optional[str] = Field(None, description="Optional system username")
-#     location: str = Field(..., description="Delivery area or town")
-#     housenumber: str = Field(..., description="Specific apartment or house address")
-#     orderDetails: str = Field(..., description="Stringified summary of purchased items")
-#     amountpaid: float = Field(..., gt=0, description="The checkout price value")
-#     tx_ref: str = Field(..., description="Unique generated transaction reference string from the frontend")

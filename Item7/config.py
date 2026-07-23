@@ -2,16 +2,19 @@ import os
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
-    # Supabase Configuration
+    """Typed environment settings loaded from the local .env file."""
+
+    # Supabase connection details used by the database client.
     SUPABASE_URL: str
     SUPABASE_KEY: str
 
-    # Flutterwave Configuration
+    # Flutterwave configuration for payment creation and webhook verification.
     FLW_SECRET_HASH: str
-    FW_SECRET_KEY: str  # Added to authenticate outbound API requests
+    FW_SECRET_KEY: str
 
-    # Telegram Configuration
+    # Telegram and email settings for admin notifications.
     TELEGRAM_BOT_TOKEN: str
     TELEGRAM_CHAT_ID: str
     RESEND_API_KEY: str
@@ -23,11 +26,11 @@ class Settings(BaseSettings):
         if not isinstance(v, str):
             return v
         v = v.strip()
-        # Remove surrounding quotes
+        # Allow values copied from shells or editors that wrap the token in quotes.
         if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
             v = v[1:-1]
         v = v.strip()
-        # Remove leading "bot" case-insensitive
+        # Telegram sometimes gets pasted with the "bot" prefix included.
         if v.lower().startswith("bot"):
             v = v[3:]
         return v.strip()
@@ -38,13 +41,13 @@ class Settings(BaseSettings):
         if not isinstance(v, str):
             return str(v)
         v = v.strip()
-        # Remove surrounding quotes
+        # Keep chat IDs clean even if they were copied with surrounding quotes.
         if (v.startswith('"') and v.endswith('"')) or (v.startswith("'") and v.endswith("'")):
             v = v[1:-1]
         return v.strip()
 
-    # Automatically look for a .env file in the current working directory
+    # Load variables from the project-local .env file.
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-# Initialize a single settings instance to share across modules
+# Create one shared settings object so every module reads the same configuration.
 settings = Settings()
