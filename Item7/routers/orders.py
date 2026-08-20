@@ -6,48 +6,53 @@ from schemas import FrontendPayRequest
 from database import supabase
 from config import settings
 from fastapi.responses import JSONResponse
-    # Add the delivery/convenience fee on the server so the frontend cannot alter it.
 
 router = APIRouter(prefix="/api", tags=["Payment Initialization Pipeline"])
-        # Generate a unique reference that ties the pending order to the payment session.
+
 @router.post("/pay")
 async def initialize_payment(payload: FrontendPayRequest):
-        # Shape the request into the exact column names expected by Supabase.
-        # 1. Generate unique reference tracking tokens
+    # Add the delivery/convenience fee on the server so the frontend cannot alter it.
+    calculated_total = float(payload.amount) + 150
+    try:
+        # Generate a unique reference that ties the pending order to the payment session.
         tx_ref = f"order-{uuid.uuid4().hex[:8]}-{int(uuid.uuid4().time_low)}"
 
-        
-            "address": payload.address,
-            "roomNumber": payload.roomNumber,
+        # Shape the request into the exact column names expected by Supabase.
+        db_payload = {
             "name": payload.name,
             "phone": payload.phone,
             "matricNumber": payload.matricNumber,
-            "address": payload.address,        
-            "roomNumber": payload.roomNumber,  
+            "address": payload.address,
+            "roomNumber": payload.roomNumber,
             "orderDetails": payload.orderDetails,
             "amountpaid": calculated_total,
-        # Save the order before contacting the payment gateway.
+            "tx_ref": tx_ref,
             "status": "pending",
             "email": payload.email
         }
-        
-        # Build the Flutterwave payment payload with customer-facing details.
+
+        # Save the order before contacting the payment gateway.
         print("DEBUG: Attempting to insert into Supabase...")
         db_response = supabase.table("orders").insert(db_payload).execute()
         print("DEBUG: Supabase insertion successful!")
 
-        # 4. Attempt Flutterwave Call
+        # Build the Flutterwave payment payload with customer-facing details.
+        flutterwave_api_url = "https://api.flutterwave.com/v3/payments"
         headers = {
             "Authorization": f"Bearer {settings.FW_SECRET_KEY}",
             "Content-Type": "application/json"
         }
-        #customer_email = payload.email if payload.email else f"{payload.phone}@customer.com"
-            "redirect_url": "https://item7cu.vercel.app/",
+
         flutterwave_payload = {
+            "tx_ref": tx_ref,
             "amount": calculated_total,
             "currency": "NGN",
-            "redirect_url": "https://item7cu.vercel.app/", 
+            "redirect_url": "https://item7cu.vercel.app/",
             "customer": {
+                "name": payload.name,
+                "phone": payload.phone,
+                "email": payload.email,
+            },
             # Extra order data goes into meta because the gateway customer block is limited.
             "meta": {
                 "Matric Number": payload.matricNumber,
@@ -55,17 +60,13 @@ async def initialize_payment(payload: FrontendPayRequest):
                 "Delivery Hall/Address": payload.address,
             },
             "payment_options": "card, ussd, banktransfer, opay",
-        "Delivery Hall/Address": payload.address
-    },
-            "payment_options": "card, ussd, banktransfer, opay",
-#enables multiple payment options 
             "customizations": {
                 "title": "Item 7 Meals",
-        # Ask Flutterwave for a hosted checkout link.
                 "description": f"Food: NGN {payload.amount} | Convenience Fee: NGN 150"
             }
         }
-        
+
+        # Ask Flutterwave for a hosted checkout link.
         print("DEBUG: Reaching out to Flutterwave...")
         async with httpx.AsyncClient() as client:
             response = await client.post(flutterwave_api_url, json=flutterwave_payload, headers=headers)
@@ -104,6 +105,7 @@ async def health_check():
             "message": "Item 7 API system is running smoothly."
         }
     )
+
 @router.head("/health", status_code=status.HTTP_200_OK, tags=["System Health"])
 async def health_check_head():
     """

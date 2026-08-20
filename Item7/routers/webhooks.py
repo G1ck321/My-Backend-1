@@ -17,6 +17,7 @@ router = APIRouter(prefix="/webhooks", tags=["Third-Party Security Webhooks"])
 # EMAIL DISPATCH HELPER
 # ==========================================
 def send_email_order_receipt(order_info: dict):
+    # Build a human-readable receipt for the admin inbox.
     """Fires a structured HTML transactional report to the manager's inbox"""
     name = order_info.get('name', 'N/A')
     details = order_info.get('orderDetails', 'N/A')
@@ -56,6 +57,7 @@ def send_email_order_receipt(order_info: dict):
 # ==========================================
 
 def get_todays_orders_from_supabase():
+    # Used by Telegram commands that need only today's paid orders.
     """Queries Supabase for paid orders matching today's date"""
     # Calculates the start of today (UTC)
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
@@ -70,6 +72,7 @@ def get_todays_orders_from_supabase():
     return response.data, response.count
 
 def get_all_orders_from_supabase():
+    # Used by Telegram commands that need all paid orders across time.
     """Queries Supabase for ALL paid orders across all time"""
     response = supabase.table("orders") \
         .select("*", count="exact") \
@@ -79,6 +82,7 @@ def get_all_orders_from_supabase():
     return response.data, response.count
 
 def compile_orders_dashboard(orders_list: list= None, total:int=0) -> str:
+    # Turn raw order rows into a Telegram-friendly dashboard message.
     """Formats raw database rows into a single, clean text report"""
     if orders_list is None:
         orders_list=[]
@@ -140,6 +144,7 @@ def compile_orders_dashboard(orders_list: list= None, total:int=0) -> str:
     return dashboard_text # 🌟 FIXED: Moved outside the except block!
     
 def compile_summary_dashboard(orders_list: list = None, total:int = 0) -> str:
+    # Turn all-time totals into a compact summary message.
     """Formats all-time database rows into a quick revenue summary"""
     
     # Mode 1: Only total count provided (from /ordersnumber command)
@@ -182,6 +187,7 @@ def compile_summary_dashboard(orders_list: list = None, total:int = 0) -> str:
     return dashboard_text
 
 def get_matric_orders(matricno):
+    # Look up paid orders for one student matric number.
     """Obtain the Matric Number of the user from the telegram bot"""
     student = supabase.table("orders")\
             .select("*")\
@@ -199,18 +205,18 @@ async def send_telegram_notification(order_info: dict):
     and fires it down into the Telegram Admin channel.
     """
 
-    # Safe fallback data extraction using exact dict keys from your DB log
+    # Use defensive lookups so a missing field does not break the notification.
     name = order_info.get('name', 'N/A')
     matric = order_info.get('matricNumber', 'N/A')
     phone = order_info.get('phone', 'N/A')
     address = order_info.get('address', 'N/A')
     room = order_info.get('roomNumber', 'N/A')
-    # Note the camelCase 'orderDetails' matching your Supabase log!
+    # Keep the exact database field name for the order details.
     details = order_info.get('orderDetails', 'N/A') 
     amount = order_info.get('amountpaid', '0.0')
     tx_ref = order_info.get('tx_ref', 'N/A')
 
-    # Standard, pure text string (No HTML tags like <b> or <i>)
+    # Build a plain text message so Telegram renders it predictably.
     message = (
         "🔔 ITEM 7 NEW ORDER 🔔\n\n"
         f"Student Name: {name}\n"
@@ -224,11 +230,11 @@ async def send_telegram_notification(order_info: dict):
     
     telegram_api_url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
     
-    # 🌟 CRITICAL: Explicitly ensure "parse_mode" is NOT in this payload dictionary!
+    # Leave parse_mode empty to avoid Telegram interpreting the text as markup.
     payload = {
         "chat_id": settings.TELEGRAM_CHAT_ID,
         "text": message,
-        "parse_mode": ""  # Passing an empty string completely disables HTML/Markdown parsing
+        "parse_mode": ""
     }
     
     async with httpx.AsyncClient() as client:
@@ -238,7 +244,7 @@ async def send_telegram_notification(order_info: dict):
             print(f"DEBUG: Telegram API response body: {response.text}")
             response.raise_for_status()
         except httpx.HTTPError:
-            # Silent logging on network failure so API endpoint never crashes for external gateway
+            # Network failures are logged only; the webhook still completes safely.
             print(f"CRITICAL: Failed dispatching notification for reference {order_info.get('tx_ref')}")
 
 @router.post("/flutterwave")
@@ -251,24 +257,24 @@ async def handle_flutterwave_webhook(
     Highly secure, signature-verified webhook handler.
     Listens directly to server updates from Flutterwave.
     """
-    # 1. Enforce Webhook Header signature validation
+    # Verify the shared secret header before trusting the payload.
     if not verif_hash or verif_hash != settings.FLW_SECRET_HASH:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Signature validation handshake mismatch."
         )
 
-    # 2. Extract payload body
+    # Parse the webhook body after the signature check passes.
     payload = await request.json()
     
-    # Check if the payment status event payload is explicitly successful
+    # Only proceed when Flutterwave reports a successful payment.
     if payload.get("status") == "successful" or payload.get("data", {}).get("status") == "successful":
         
-        # Flatten structure variations depending on webhook charge event type schemas
+        # Different Flutterwave event shapes place tx_ref in different locations.
         data_block = payload.get("data", payload)
         tx_ref = data_block.get("tx_ref")
         
-        # 3. Guard Against Duplication (Idempotency check)
+        # Idempotency check: ignore duplicate webhook deliveries for the same order.
         existing_order = supabase.table("orders").select("*").eq("tx_ref", tx_ref).execute()
         
         if not existing_order.data:
@@ -276,11 +282,11 @@ async def handle_flutterwave_webhook(
             
         order_record = existing_order.data[0]
         
-        # If order was already marked paid by a previous duplicate webhook retry event, exit early safely
+        # Exit early if the order was already marked paid by a previous attempt.
         if order_record.get("status") == "paid":
             return {"status": "ignored", "reason": "Already processed transaction pattern."}
 
-        # 4. Atomic Database Updates via Supabase client
+        # Update the order row to paid once the gateway confirms success.
         updated_order = supabase.table("orders").update({"status": "paid"}).eq("tx_ref", tx_ref).execute()
         
         # 🌟 RIGHT HERE: Once your code successfully updates the database row to "paid"
@@ -288,10 +294,9 @@ async def handle_flutterwave_webhook(
         if updated_order.data:
             order_record = updated_order.data[0]
             
-            # 🌟 FIXED: Using background_tasks keeps the webhook lightning-fast 
-            # and prevents runtime async/sync errors.
+            # Background tasks keep the webhook response fast and non-blocking.
             # background_tasks.add_task(send_email_order_receipt, order_record)
-            background_tasks.add_task( order_record)
+            background_tasks.add_task(order_record)
         else:
             print("DEBUG: Supabase update failed or returned empty data.")
 
@@ -302,7 +307,7 @@ async def handle_flutterwave_webhook(
 # ==========================================
 @router.post("/telegram")
 async def handle_telegram_incoming_traffic(request: Request):
-    """Listens for inbound group or DM chat interactions from Telegram"""
+    """Listen for admin Telegram commands and return a formatted summary."""
     payload = await request.json()
     
     if "message" in payload and "text" in payload["message"]:
@@ -311,34 +316,34 @@ async def handle_telegram_incoming_traffic(request: Request):
         
         final_report = "" # Default empty string
         
-        # 1. Handle the /today command (itemized list for today)
+        # /today returns today's paid orders.
         if incoming_text == "/today":
             raw_orders, _ = get_todays_orders_from_supabase()
             final_report = compile_orders_dashboard(raw_orders)
 
-        # 2. Handle the /todaynumber command (today's total count)
+        # /todaynumber returns only today's count.
         elif incoming_text == "/todaynumber":
             _, today_total = get_todays_orders_from_supabase()
             final_report = compile_orders_dashboard(total=today_total)
 
-        # 3. Handle the /orders command (all-time summary)
+        # /orders returns the all-time summary with revenue.
         elif incoming_text == "/orders":
             raw_orders, _ = get_all_orders_from_supabase()
             final_report = compile_summary_dashboard(raw_orders)
 
-        # 4. Handle the /ordersnumber command (all-time total count)
+        # /ordersnumber returns the all-time count only.
         elif incoming_text == "/ordersnumber":
             _, orders_total = get_all_orders_from_supabase()
             final_report = compile_summary_dashboard(total=orders_total)
 
-        # 5. Handle matric number lookup (e.g., /12AB345678)
-        elif incoming_text.startswith("/") and re.fullmatch(r"\d{2}[a-zA-Z]{2}\d{6}", incoming_text[1:]):
+        # A slash-prefixed matric number triggers a student-specific lookup.
+        elif incoming_text.startswith("/") and re.fullmatch(r"\d{2}[a-z A-Z]{2}\d{6}", incoming_text[1:]):
             matric_number = incoming_text[1:].upper()
             matric_total = get_matric_orders(matric_number)
             final_report = compile_orders_dashboard(matric_total)
                         
             
-        # 3. Only send a message if one of our commands was triggered
+        # Only reply when one of the supported commands matched.
         if final_report:
             telegram_api_url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
             
