@@ -5,6 +5,7 @@ __pycache__/
 *.pyd
 .env
 .env*
+*.db
 ngrok.exe
 # dependencies
 node_modules/
