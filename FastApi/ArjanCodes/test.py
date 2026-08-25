@@ -9,6 +9,9 @@ class Color(Enum):
 
 print(Color.blue)
 print(type(Color.green))
+# enums are iterable
+mylist = [c for c in Color]
+print(mylist)
 
 
 response = requests.get(url="http://127.0.0.1:8000/")

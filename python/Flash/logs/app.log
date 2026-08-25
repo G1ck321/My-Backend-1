@@ -65,3 +65,43 @@
 2026-04-30 20:58:13 - FlashApp - INFO - [app.py:user_profile:201] - First visit from user: bob
 2026-04-30 20:58:17 - FlashApp - DEBUG - [app.py:user_profile:187] - Loading profile for user: bob
 2026-04-30 20:58:17 - FlashApp - DEBUG - [app.py:user_profile:205] - Return visit from user: bob
+2026-08-19 22:44:47 - FlashApp - INFO - [logger_setup.py:setup_logger:136] - ======================================================================
+2026-08-19 22:44:47 - FlashApp - INFO - [logger_setup.py:setup_logger:137] - Logger initialized successfully
+2026-08-19 22:44:47 - FlashApp - INFO - [logger_setup.py:setup_logger:138] - Log level: DEBUG
+2026-08-19 22:44:47 - FlashApp - INFO - [logger_setup.py:setup_logger:139] - Logs directory: C:\Users\User\Downloads\lap\Backend\python\Flash\logs
+2026-08-19 22:44:47 - FlashApp - INFO - [logger_setup.py:setup_logger:140] - ======================================================================
+2026-08-19 22:44:47 - FlashApp - INFO - [app.py:<module>:37] - Flask application initialized
+2026-08-19 22:44:47 - FlashApp - INFO - [app.py:<module>:38] - Secret key set: ********************
+2026-08-19 22:44:47 - FlashApp - INFO - [app.py:<module>:395] - ======================================================================
+2026-08-19 22:44:47 - FlashApp - INFO - [app.py:<module>:396] - Starting Flask Application
+2026-08-19 22:44:47 - FlashApp - INFO - [app.py:<module>:397] - ======================================================================
+2026-08-19 22:44:47 - FlashApp - INFO - [logger_setup.py:setup_logger:136] - ======================================================================
+2026-08-19 22:44:47 - FlashApp - INFO - [logger_setup.py:setup_logger:137] - Logger initialized successfully
+2026-08-19 22:44:47 - FlashApp - INFO - [logger_setup.py:setup_logger:138] - Log level: DEBUG
+2026-08-19 22:44:47 - FlashApp - INFO - [logger_setup.py:setup_logger:139] - Logs directory: C:\Users\User\Downloads\lap\Backend\python\Flash\logs
+2026-08-19 22:44:47 - FlashApp - INFO - [logger_setup.py:setup_logger:140] - ======================================================================
+2026-08-19 22:44:47 - FlashApp - INFO - [app.py:<module>:37] - Flask application initialized
+2026-08-19 22:44:47 - FlashApp - INFO - [app.py:<module>:38] - Secret key set: ********************
+2026-08-19 22:44:47 - FlashApp - INFO - [app.py:<module>:395] - ======================================================================
+2026-08-19 22:44:47 - FlashApp - INFO - [app.py:<module>:396] - Starting Flask Application
+2026-08-19 22:44:47 - FlashApp - INFO - [app.py:<module>:397] - ======================================================================
+2026-08-19 22:45:07 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-08-19 22:45:16 - FlashApp - DEBUG - [app.py:submit_form:134] - Form submission received: name=rsgwrw, email=rEWBRB@RBE
+2026-08-19 22:45:16 - FlashApp - INFO - [app.py:submit_form:162] - Form successfully submitted by user: rsgwrw (rEWBRB@RBE)
+2026-08-19 22:45:16 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-08-19 22:45:59 - FlashApp - DEBUG - [app.py:upload_file:256] - File upload request received
+2026-08-19 22:45:59 - FlashApp - INFO - [app.py:upload_file:275] - Attempting to save file: notepad.txt
+2026-08-19 22:45:59 - FlashApp - DEBUG - [app.py:upload_file:279] - File type verified: .txt - proceeding with save
+2026-08-19 22:45:59 - FlashApp - INFO - [app.py:upload_file:281] - File saved successfully: notepad.txt (size: ~11 bytes)
+2026-08-19 22:45:59 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-08-19 22:46:06 - FlashApp - DEBUG - [app.py:test_logging:323] - Test message for debug level
+2026-08-19 22:46:06 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-08-19 22:46:17 - FlashApp - INFO - [app.py:test_logging:326] - Test message for info level
+2026-08-19 22:46:17 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-08-19 22:46:21 - FlashApp - DEBUG - [app.py:user_profile:187] - Loading profile for user: alice
+2026-08-19 22:46:21 - FlashApp - INFO - [app.py:user_profile:201] - First visit from user: alice
+2026-08-19 22:46:24 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-08-19 22:46:32 - FlashApp - INFO - [app.py:process_operation:219] - Processing operation: success
+2026-08-19 22:46:33 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
+2026-08-19 22:46:37 - FlashApp - INFO - [app.py:process_operation:219] - Processing operation: pending
+2026-08-19 22:46:37 - FlashApp - DEBUG - [app.py:index:112] - User visiting home page
