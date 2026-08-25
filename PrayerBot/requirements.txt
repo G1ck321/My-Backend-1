@@ -1,0 +1,8 @@
+asyncio
+logging
+uvicorn
+python-telegram-bot
+httpx
+sqlalchemysqlalchemy
+supabase
+python-dotenv

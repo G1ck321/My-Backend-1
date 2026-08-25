@@ -48,41 +48,41 @@ async def health():
 async def starter(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle Start Command"""
     await update.message.reply_text(
-        "Hi I'm the GFA prayer Points Bot\n"
+        "Hi I'm the GFA rule Points Bot\n"
         "Commands:\n"
-        "/prayers will display all the prayers\n"
-        "/prayer {number} will display a particular prayer point\n"
-        "/total will show the total prayer points for the day"
+        "/rules will display all the rules\n"
+        "/rule {number} will display a particular rule point\n"
+        "/total will show the total rule points for the day"
     )
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "I help manage orders and prayers in this group.\n"
-        "Use /prayers, /prayer {number}, /total, or tap buttons when I show them."
+        "I help manage orders and rules in this group.\n"
+        "Use /rules, /rule {number}, /total, or tap buttons when I show them."
     )
 
 
-async def get_prayers(
+async def get_rules(
     update: Optional[Update] = None,
     context: Optional[ContextTypes.DEFAULT_TYPE] = None,
 ):
     # Execute query
-    response = supabase.table("prayers").select("prayer_number","description", "prayer").execute()
+    response = supabase.table("rules").select("rule_number","description", "rule").execute()
 
     # Extract records list from response.data
     rows = response.data
-    text = "All prayers "
+    text = "All rules "
 
     for row in rows:
         des = row.get("description", "")
-        num = row.get("prayer_number", "")
-        prayer = row.get("prayer", "")
+        num = row.get("rule_number", "")
+        rule = row.get("rule", "")
 
-        if prayer.endswith("."):
-                    text += f"\n{num}. {des.title()}:\n{prayer}\n\n"
+        if rule.endswith("."):
+                    text += f"\n{num}. {des.title()}:\n{rule}\n\n"
         else:
-            text += f"\n{num}. {des.title()}:\n{prayer}.\n\n"
+            text += f"\n{num}. {des.title()}:\n{rule}.\n\n"
             
 
     print(text)
@@ -93,82 +93,82 @@ async def get_prayers(
 
     return rows
 
-async def total_prayer(update: Optional[Update] = None,
+async def total_rule(update: Optional[Update] = None,
     context: Optional[ContextTypes.DEFAULT_TYPE] = None,
 ):
      resp = supabase.table("track")\
-     .select("prayer_number","total_times")\
+     .select("rule_number","total_times")\
      .execute()
      total = resp.count
 
-async def each_prayer(update: Optional[Update] = None,
+async def each_rule(update: Optional[Update] = None,
     context: Optional[ContextTypes.DEFAULT_TYPE] = None,
 ): 
     if not context.args:
         await update.message.reply_text(
-            "Usage: /prayer <number>\nExample: /rule 2")
+            "Usage: /rule <number>\nExample: /rule 2")
         return
 
     try: 
-        prayer_number = int(context.args[0])
+        rule_number = int(context.args[0])
     except ValueError:
-        await update.message.reply_text("/prayer must be followed by a number")
+        await update.message.reply_text("/rule must be followed by a number")
 
         return
 
-    resp = supabase.table("prayers")\
-    .select("prayer","description")\
-    .eq("prayer_number",prayer_number)\
+    resp = supabase.table("rules")\
+    .select("rule","description")\
+    .eq("rule_number",rule_number)\
     .eq("active",True)\
     .execute()
 
-    prayer = resp.data or []
+    rule = resp.data or []
 
-    if not prayer:
+    if not rule:
         await update.message.reply_text(
-              f"No Prayer found with the number {prayer_number}"
+              f"No rule found with the number {rule_number}"
         )
         return
-    prayer = prayer[0]
+    rule = rule[0]
 
-    text = f"\n{prayer_number}. {prayer['description'].title()}:\n{prayer['prayer']}\n\n"
+    text = f"\n{rule_number}. {rule['description'].title()}:\n{rule['rule']}\n\n"
     await update.message.reply_text(text)
 
-async def prayer_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def rule_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handle inline keyboard button clicks for rule selection.
-    callback_data format: 'prayer:<number>'
+    callback_data format: 'rule:<number>'
     """
     query = update.callback_query
     await query.answer()  # acknowledge to remove "loading" state
 
     data = query.data  # e.g. "rule:2"
-    if not data.startswith("prayer:"):
+    if not data.startswith("rule:"):
         return
 
     try:
-        prayer_number = int(data.split(":", 1)[1])
+        rule_number = int(data.split(":", 1)[1])
     except (ValueError, IndexError):
-        await query.edit_message_text("Invalid prayer selection.")
+        await query.edit_message_text("Invalid rule selection.")
         return
 
     # Fetch rule
     resp = (
         supabase
-        .table("prayers")
-        .select("id, prayer_number, description")
-        .eq("prayer_number", prayer_number)
+        .table("rules")
+        .select("id, rule_number, description")
+        .eq("rule_number", rule_number)
         .eq("active", True)
         .execute()
     )
-    prayers = resp.data or []
+    rules = resp.data or []
 
-    if not prayers:
-        await query.edit_message_text(f"No active rule found with number {prayer_number}.")
+    if not rules:
+        await query.edit_message_text(f"No active rule found with number {rule_number}.")
         return
 
-    prayer = prayers[0]
-    text = f"Selected prayer:\n{prayer['prayer_number']}. {prayer['description']}"
+    rule = rules[0]
+    text = f"Selected rule:\n{rule['rule_number']}. {rule['description']}"
 
     # Optionally edit the original message to show selection
     await query.edit_message_text(text)
@@ -184,22 +184,38 @@ async def main():
     application = Application.builder().token(TELEGRAM_TOKEN).build()
     application.add_handler(CommandHandler("start",starter))
     application.add_handler(CommandHandler("help",help_command))
-    application.add_handler(CommandHandler("prayers",get_prayers))
-    application.add_handler(CommandHandler("prayer",each_prayer))
+    application.add_handler(CommandHandler("rules",get_rules))
+    application.add_handler(CommandHandler("rule",each_rule))
 
-    application.add_handler(CallbackQueryHandler(prayer_callback))
+    application.add_handler(CallbackQueryHandler(rule_callback))
 
     application.add_error_handler(error_handler)
 
-    logger.info("Start Polling Bot")
+    # Starts telegram Bot asynchronously 
+    async with application:
+        await application.start()
+        await application.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+        logger.info("Start Polling Bot")
 
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    try:
+            # Code to run while bot is live
+            rule_text = await get_rules()
+            print("Done!")
 
-    
+            # Keep the event loop open until interrupted (Ctrl+C)
+            await asyncio.Event().wait()
 
-    prayer_text = await get_prayers()
+    finally:
+            # Stop polling and application before exiting context manager
+            if application.updater.running:
+                await application.updater.stop()
+            if application.running:
+                await application.stop()
+
+
+    rule_text = await get_rules()
     print("Done!")
-    return prayer_text
+    return rule_text
 
 
 if __name__ == "__main__":
@@ -211,4 +227,30 @@ if __name__ == "__main__":
     fastapi_thread =threading.Thread(target=run_fastapi, daemon= True)
     fastapi_thread.start()
 
-    main()
+    asyncio.run(main())
+
+# Second Option
+# def main():
+#     application = Application.builder().token(TELEGRAM_TOKEN).build()
+    
+#     application.add_handler(CommandHandler("start", starter))
+#     application.add_handler(CommandHandler("help", help_command))
+#     application.add_handler(CommandHandler("rules", get_rules))
+#     application.add_handler(CommandHandler("rule", each_rule))
+#     application.add_handler(CallbackQueryHandler(rule_callback))
+#     application.add_error_handler(error_handler)
+
+#     logger.info("Start Polling Bot")
+
+#     # This blocks and runs the event loop internally
+#     application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+# if __name__ == "__main__":
+#     def run_fastapi():
+#         uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+
+#     fastapi_thread = threading.Thread(target=run_fastapi, daemon=True)
+#     fastapi_thread.start()
+
+#     # Call main directly as a sync function
+#     main()
