@@ -3,6 +3,6 @@ logging
 uvicorn
 python-telegram-bot
 httpx
-sqlalchemysqlalchemy
+sqlalchemy
 supabase
 python-dotenv
