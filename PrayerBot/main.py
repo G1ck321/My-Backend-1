@@ -132,6 +132,7 @@ async def each_prayer(update: Optional[Update] = None,
     prayer = prayer[0]
 
     text = f"\n{prayer_number}. {prayer['description'].title()}:\n{prayer['prayer']}\n\n"
+    print(text)
     await update.message.reply_text(text)
 
 async def prayer_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -169,7 +170,7 @@ async def prayer_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     prayer = prayers[0]
     text = f"Selected prayer:\n{prayer['prayer_number']}. {prayer['description']}"
-
+    
     # Optionally edit the original message to show selection
     await query.edit_message_text(text)
 
@@ -184,7 +185,7 @@ async def main():
     application = Application.builder().token(TELEGRAM_TOKEN).build()
     application.add_handler(CommandHandler("start",starter))
     application.add_handler(CommandHandler("help",help_command))
-    application.add_handler(CommandHandler("prayers",get_prayers))
+    application.add_handler(CommandHandler("all",get_prayers))
     application.add_handler(CommandHandler("prayer",each_prayer))
 
     application.add_handler(CallbackQueryHandler(prayer_callback))
