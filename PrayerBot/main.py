@@ -58,7 +58,7 @@ async def starter(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "I help manage orders and prayers in this group.\n"
+        "I help manage prayers in this group.\n"
         "Use /prayers, /prayer {number}, /total, or tap buttons when I show them."
     )
 
@@ -199,7 +199,7 @@ async def main():
 
     try:
             # Code to run while bot is live
-            prayer_text = await get_prayers()
+            # prayer_text = await get_prayers()
             print("Done!")
 
             # Keep the event loop open until interrupted (Ctrl+C)
