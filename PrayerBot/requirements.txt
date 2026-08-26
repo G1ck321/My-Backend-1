@@ -7,3 +7,4 @@ sqlalchemy
 supabase
 python-dotenv
 gunicorn
+fastapi 
