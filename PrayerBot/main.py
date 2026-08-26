@@ -88,10 +88,10 @@ async def get_prayers(
     print(text)
 
     # Send message to Telegram if triggered by a command
-    if update and update.message:
-        await update.message.reply_text(text)
-
-    return rows
+    
+    await update.message.reply_text(text)
+    print(rows)
+    return text
 
 async def total_prayer(update: Optional[Update] = None,
     context: Optional[ContextTypes.DEFAULT_TYPE] = None,
@@ -217,9 +217,9 @@ async def main():
             await application.shutdown()
 
 
-    prayer_text = await get_prayers()
-    print("Done!")
-    return prayer_text
+    # prayer_text = await get_prayers()
+    # print("Done!")
+    # return prayer_text
 
 
 if __name__ == "__main__":
