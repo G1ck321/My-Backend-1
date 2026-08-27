@@ -1,10 +1,13 @@
 import asyncio
 import logging
 import os
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.encoders import isoformat
 from supabase import Client, create_client
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
@@ -15,6 +18,7 @@ from telegram.ext import (
     filters,
 )
 import uvicorn
+
 
 
 
@@ -59,7 +63,7 @@ async def starter(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "I help manage prayers in this group.\n"
-        "Use /prayers, /prayer {number}, /total, or tap buttons when I show them."
+        "Use /prayers, /prayer {number}, /totalprayed, or tap buttons when I show them."
     )
 
 
@@ -96,10 +100,47 @@ async def get_prayers(
 async def total_prayer(update: Optional[Update] = None,
     context: Optional[ContextTypes.DEFAULT_TYPE] = None,
 ):
-     resp = supabase.table("track")\
-     .select("prayer_number","total_times")\
-     .execute()
-     total = resp.count
+    if not context.args:
+        await update.message.reply_text(
+              "Usage: /totalprayed <numofdays>\n num of days is the days that have passed" \
+              "\n 1 is 24hours, 7 is seven days"
+         )
+        return
+
+    try:
+        number =  int(context.args[0])
+    except:
+        await update.message.reply_text(
+                      f"Enter a valid number!"
+                )
+        return
+    print(type(number))
+    
+    nigeria = ZoneInfo("Africa/Lagos")    
+    now = datetime.now(nigeria)
+    start = now - timedelta(days=number)
+    resp = supabase.table("trackprayers")\
+            .select("prayer","usage_count","last_used_at")\
+            .gte("last_used_at", start.isoformat())\
+            .lte("last_used_at",now.isoformat())\
+            .order("usage_count", desc=False)\
+            .execute()
+    
+    print(resp,"tt")
+    total = resp.data or []
+    print(total,"tt")
+    if not total:
+            await update.message.reply_text(
+                  f"No prayers yet with the number {number}"
+            )
+            return
+    text = f"These are the prayer points prayed already in the past {"day" if number ==1 else f"{number} days" }\n"
+    for row in total:
+        prayer_number = row.get("prayer", "")
+        usage = row.get("usage_count", "")
+                    
+        text += f"Prayer {prayer_number}: {usage}\n"
+    await update.message.reply_text(text)
 
 async def each_prayer(update: Optional[Update] = None,
     context: Optional[ContextTypes.DEFAULT_TYPE] = None,
@@ -122,7 +163,20 @@ async def each_prayer(update: Optional[Update] = None,
     .eq("active",True)\
     .execute()
 
+    update_row = supabase.rpc("increment_prayer_usage", {"target_prayer":prayer_number}).execute()
+
+    print("RPC:", update_row.data)
+
+    check = (
+    supabase
+    .table("trackprayers")
+    .select("prayer, usage_count, last_used_at")
+    .eq("prayer", prayer_number)
+    .execute()
+)
     prayer = resp.data or []
+
+    
 
     if not prayer:
         await update.message.reply_text(
@@ -187,6 +241,7 @@ async def main():
     application.add_handler(CommandHandler("help",help_command))
     application.add_handler(CommandHandler("all",get_prayers))
     application.add_handler(CommandHandler("prayer",each_prayer))
+    application.add_handler(CommandHandler("totalprayed",total_prayer))
 
     application.add_handler(CallbackQueryHandler(prayer_callback))
 
@@ -227,7 +282,7 @@ if __name__ == "__main__":
     import threading
     def run_fastapi():
     # Start FastAPI server
-        uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+        uvicorn.run(app, host="0.0.0.0",reload=True, port=8000, log_level="info")
     fastapi_thread =threading.Thread(target=run_fastapi, daemon= True)
     fastapi_thread.start()
 
