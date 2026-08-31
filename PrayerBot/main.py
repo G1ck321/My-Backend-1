@@ -34,6 +34,7 @@ logging.basicConfig(
     level=logging.INFO,
 )
 logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # ---------- Supabase Client ----------
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -47,6 +48,9 @@ app = FastAPI()
 async def health():
     return {"status": "ok"}
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 # ------- Handler Functions -------
 async def starter(update: Update, context: ContextTypes.DEFAULT_TYPE):
